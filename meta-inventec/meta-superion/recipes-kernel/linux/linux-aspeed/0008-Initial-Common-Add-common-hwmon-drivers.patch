@@ -1,0 +1,2208 @@
+From 0bbb42c2ec9412d8e3e27400448e9603c39f0f2a Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 7 Jan 2022 10:04:06 +0000
+Subject: [PATCH] Initial - [Common] - Add common hwmon drivers
+
+Symptom/Reason:
+    Add common hwmon drivers we used.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    hwmon driver
+        - emc2305
+        - pac193x
+        - tmp468
+        - tsod (Inventec design for temperature sensor on dimms)
+
+Entry Test:
+    N/A
+---
+ drivers/hwmon/Kconfig   |  36 +++
+ drivers/hwmon/Makefile  |   4 +
+ drivers/hwmon/emc2305.c | 693 ++++++++++++++++++++++++++++++++++++++++
+ drivers/hwmon/pac193x.c | 635 ++++++++++++++++++++++++++++++++++++
+ drivers/hwmon/tmp468.c  | 517 ++++++++++++++++++++++++++++++
+ drivers/hwmon/tsod.c    | 199 ++++++++++++
+ 6 files changed, 2084 insertions(+)
+ create mode 100644 drivers/hwmon/emc2305.c
+ create mode 100644 drivers/hwmon/pac193x.c
+ create mode 100644 drivers/hwmon/tmp468.c
+ create mode 100644 drivers/hwmon/tsod.c
+
+diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
+index 47a037d55e60..47508fbd9e36 100644
+--- a/drivers/hwmon/Kconfig
++++ b/drivers/hwmon/Kconfig
+@@ -1529,6 +1529,16 @@ config SENSORS_PCF8591
+ 	  These devices are hard to detect and rarely found on mainstream
+ 	  hardware. If unsure, say N.
+ 
++config SENSORS_PAC193X
++	tristate "Microchip PAC193X"
++	depends on I2C
++	help
++	  This is a driver for the Microchip PAC193X four-channel
++	  power/energy monitor, including current and voltage sensors
++
++	  This driver can also be built as a module.  If so, the module
++	  will be called pac193X
++
+ config SENSORS_PECI_CPUTEMP
+ 	tristate "PECI CPU temperature monitoring client"
+ 	depends on PECI
+@@ -1752,6 +1762,16 @@ config SENSORS_EMC2103
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called emc2103.
+ 
++config SENSORS_EMC2305
++	tristate "SMSC EMC2305"
++	depends on I2C
++	help
++	  If you say yes here you get support for the SMSC EMC2305/EMC2303
++	  fan controller chips.
++
++	  This driver can also be built as a module.  If so, the module
++	  will be called emc2305.
++
+ config SENSORS_EMC6W201
+ 	tristate "SMSC EMC6W201"
+ 	depends on I2C
+@@ -2021,6 +2041,16 @@ config SENSORS_TMP421
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called tmp421.
+ 
++config SENSORS_TMP468
++        tristate "Texas Instruments TMP468 and compatible"
++        depends on I2C
++        help
++          If you say yes here you get support for Texas Instruments TMP468
++          temperature sensor chips.
++
++          This driver can also be built as a module. If so, the module
++          will be called tmp468
++
+ config SENSORS_TMP513
+ 	tristate "Texas Instruments TMP513 and compatibles"
+ 	depends on I2C
+@@ -2254,6 +2284,12 @@ config SENSORS_INTEL_M10_BMC_HWMON
+ 	  sensors monitor various telemetry data of different components on the
+ 	  card, e.g. board temperature, FPGA core temperature/voltage/current.
+ 
++config SENSORS_TSOD
++	tristate "temperature sensor on dimms"
++	depends on I2C
++	help
++	  If you say yes here you get support for thermal sensor on dimms following spd spec.
++
+ if ACPI
+ 
+ comment "ACPI drivers"
+diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
+index 37ea779cb101..290543237deb 100644
+--- a/drivers/hwmon/Makefile
++++ b/drivers/hwmon/Makefile
+@@ -70,6 +70,7 @@ obj-$(CONFIG_SENSORS_DS620)	+= ds620.o
+ obj-$(CONFIG_SENSORS_DS1621)	+= ds1621.o
+ obj-$(CONFIG_SENSORS_EMC1403)	+= emc1403.o
+ obj-$(CONFIG_SENSORS_EMC2103)	+= emc2103.o
++obj-$(CONFIG_SENSORS_EMC2305)	+= emc2305.o
+ obj-$(CONFIG_SENSORS_EMC6W201)	+= emc6w201.o
+ obj-$(CONFIG_SENSORS_F71805F)	+= f71805f.o
+ obj-$(CONFIG_SENSORS_F71882FG)	+= f71882fg.o
+@@ -162,6 +163,7 @@ obj-$(CONFIG_SENSORS_NZXT_KRAKEN2) += nzxt-kraken2.o
+ obj-$(CONFIG_SENSORS_PC87360)	+= pc87360.o
+ obj-$(CONFIG_SENSORS_PC87427)	+= pc87427.o
+ obj-$(CONFIG_SENSORS_PCF8591)	+= pcf8591.o
++obj-$(CONFIG_SENSORS_PAC193X)	+= pac193x.o
+ obj-$(CONFIG_SENSORS_PECI_CPUTEMP)	+= peci-cputemp.o
+ obj-$(CONFIG_SENSORS_PECI_DIMMTEMP)	+= peci-dimmtemp.o
+ obj-$(CONFIG_SENSORS_PECI_CPUPOWER)	+= peci-cpupower.o
+@@ -196,6 +198,7 @@ obj-$(CONFIG_SENSORS_TMP103)	+= tmp103.o
+ obj-$(CONFIG_SENSORS_TMP108)	+= tmp108.o
+ obj-$(CONFIG_SENSORS_TMP401)	+= tmp401.o
+ obj-$(CONFIG_SENSORS_TMP421)	+= tmp421.o
++obj-$(CONFIG_SENSORS_TMP468)	+= tmp468.o
+ obj-$(CONFIG_SENSORS_TMP513)	+= tmp513.o
+ obj-$(CONFIG_SENSORS_VEXPRESS)	+= vexpress-hwmon.o
+ obj-$(CONFIG_SENSORS_VIA_CPUTEMP)+= via-cputemp.o
+@@ -208,6 +211,7 @@ obj-$(CONFIG_SENSORS_W83L786NG)	+= w83l786ng.o
+ obj-$(CONFIG_SENSORS_WM831X)	+= wm831x-hwmon.o
+ obj-$(CONFIG_SENSORS_WM8350)	+= wm8350-hwmon.o
+ obj-$(CONFIG_SENSORS_XGENE)	+= xgene-hwmon.o
++obj-$(CONFIG_SENSORS_TSOD)      += tsod.o
+ 
+ obj-$(CONFIG_SENSORS_OCC)	+= occ/
+ obj-$(CONFIG_PMBUS)		+= pmbus/
+diff --git a/drivers/hwmon/emc2305.c b/drivers/hwmon/emc2305.c
+new file mode 100644
+index 000000000000..45d5e63b5b77
+--- /dev/null
++++ b/drivers/hwmon/emc2305.c
+@@ -0,0 +1,693 @@
++/*
++ * emc2305.c - hwmon driver for SMSC EMC2305 fan controller
++ * (C) Copyright 2013
++ * Copyright 2020 NXP
++ * Reinhard Pfau, Guntermann & Drunck GmbH <pfau@gdsys.de>
++ * Biwen Li <biwen.li@nxp.com>
++ *
++ * Based on emc2103 driver by SMSC.
++ *
++ * Datasheet available at:
++ * http://ww1.microchip.com/downloads/en/DeviceDoc/2305.pdf
++ *
++ * Also supports the EMC2303 fan controller which has the same functionality
++ * and register layout as EMC2305, but supports only up to 3 fans instead of 5.
++ *
++ * Also supports EMC2302 (up to 2 fans) and EMC2301 (1 fan) fan controller.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ */
++
++/*
++ * TODO / IDEAS:
++ * - expose more of the configuration and features
++ */
++
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/slab.h>
++#include <linux/jiffies.h>
++#include <linux/i2c.h>
++#include <linux/hwmon.h>
++#include <linux/hwmon-sysfs.h>
++#include <linux/err.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++
++/*
++ * Addresses scanned.
++ * Listed in the same order as they appear in the EMC2305, EMC2303 data sheets.
++ *
++ * Note: these are the I2C adresses which are possible for EMC2305 and EMC2303
++ * chips.
++ * The EMC2302 supports only 0x2e (EMC2302-1) and 0x2f (EMC2302-2).
++ * The EMC2301 supports only 0x2f.
++ */
++static const unsigned short i2c_addresses[] = {
++	0x2E,
++	0x2F,
++	0x2C,
++	0x2D,
++	0x4C,
++	0x4D,
++	I2C_CLIENT_END
++};
++
++/*
++ * global registers
++ */
++enum {
++	REG_CONFIGURATION = 0x20,
++	REG_FAN_STATUS = 0x24,
++	REG_FAN_STALL_STATUS = 0x25,
++	REG_FAN_SPIN_STATUS = 0x26,
++	REG_DRIVE_FAIL_STATUS = 0x27,
++	REG_FAN_INTERRUPT_ENABLE = 0x29,
++	REG_PWM_POLARITY_CONFIG = 0x2a,
++	REG_PWM_OUTPUT_CONFIG = 0x2b,
++	REG_PWM_BASE_FREQ_1 = 0x2c,
++	REG_PWM_BASE_FREQ_2 = 0x2d,
++	REG_SOFTWARE_LOCK = 0xef,
++	REG_PRODUCT_FEATURES = 0xfc,
++	REG_PRODUCT_ID = 0xfd,
++	REG_MANUFACTURER_ID = 0xfe,
++	REG_REVISION = 0xff
++};
++
++/*
++ * fan specific registers
++ */
++enum {
++	REG_FAN_SETTING = 0x30,
++	REG_PWM_DIVIDE = 0x31,
++	REG_FAN_CONFIGURATION_1 = 0x32,
++	REG_FAN_CONFIGURATION_2 = 0x33,
++	REG_GAIN = 0x35,
++	REG_FAN_SPIN_UP_CONFIG = 0x36,
++	REG_FAN_MAX_STEP = 0x37,
++	REG_FAN_MINIMUM_DRIVE = 0x38,
++	REG_FAN_VALID_TACH_COUNT = 0x39,
++	REG_FAN_DRIVE_FAIL_BAND_LOW = 0x3a,
++	REG_FAN_DRIVE_FAIL_BAND_HIGH = 0x3b,
++	REG_TACH_TARGET_LOW = 0x3c,
++	REG_TACH_TARGET_HIGH = 0x3d,
++	REG_TACH_READ_HIGH = 0x3e,
++	REG_TACH_READ_LOW = 0x3f,
++};
++
++#define SEL_FAN(fan, reg) (reg + fan * 0x10)
++
++/*
++ * Factor by equations [2] and [3] from data sheet; valid for fans where the
++ * number of edges equals (poles * 2 + 1).
++ */
++#define FAN_RPM_FACTOR 3932160
++
++struct emc2305_fan_data {
++	bool		enabled;
++	bool		rpm_control;
++	bool		valid;		/* registers are valid */
++	u8		poles;
++	u8		multiplier;
++	u16		tach;
++	u16		target;
++	unsigned long		last_updated;	/* in jiffies */
++};
++
++struct emc2305_data {
++	struct i2c_client	*client;
++	const struct		attribute_group *groups[6];
++	struct mutex		update_lock;
++	int			fan_count; /* num of fan */
++	struct emc2305_fan_data fan[5];
++};
++
++static int read_u8_from_i2c(struct i2c_client *client, u8 i2c_reg, u8 *output)
++{
++	int status = i2c_smbus_read_byte_data(client, i2c_reg);
++	if (status < 0) {
++		dev_warn(&client->dev, "reg 0x%02x, err %d\n",
++			i2c_reg, status);
++	} else {
++		*output = status;
++	}
++	return status;
++}
++
++static void read_fan_from_i2c(struct i2c_client *client, u16 *output,
++			      u8 hi_addr, u8 lo_addr)
++{
++	u8 high_byte, lo_byte;
++
++	if (read_u8_from_i2c(client, hi_addr, &high_byte) < 0)
++		return;
++
++	if (read_u8_from_i2c(client, lo_addr, &lo_byte) < 0)
++		return;
++
++	*output = ((u16)high_byte << 5) | (lo_byte >> 3);
++}
++
++static void write_fan_target_to_i2c(struct i2c_client *client, int fan,
++				    u16 new_target)
++{
++	const u8 lo_reg = SEL_FAN(fan, REG_TACH_TARGET_LOW);
++	const u8 hi_reg = SEL_FAN(fan, REG_TACH_TARGET_HIGH);
++	u8 high_byte = (new_target & 0x1fe0) >> 5;
++	u8 low_byte = (new_target & 0x001f) << 3;
++
++	i2c_smbus_write_byte_data(client, lo_reg, low_byte);
++	i2c_smbus_write_byte_data(client, hi_reg, high_byte);
++}
++
++static void read_fan_config_from_i2c(struct i2c_client *client, int fan_idx)
++
++{
++	struct emc2305_data *data = i2c_get_clientdata(client);
++	u8 conf1;
++
++	if (read_u8_from_i2c(client, SEL_FAN(fan_idx, REG_FAN_CONFIGURATION_1),
++			     &conf1) < 0)
++		return;
++
++	data->fan[fan_idx].rpm_control = (conf1 & 0x80) != 0;
++	data->fan[fan_idx].multiplier = 1 << ((conf1 & 0x60) >> 5);
++	data->fan[fan_idx].poles = ((conf1 & 0x18) >> 3) + 1;
++}
++
++static void read_fan_data(struct i2c_client *client, int fan_idx)
++{
++	struct emc2305_data *data = i2c_get_clientdata(client);
++
++	read_fan_from_i2c(client, &data->fan[fan_idx].target,
++			  SEL_FAN(fan_idx, REG_TACH_TARGET_HIGH),
++			  SEL_FAN(fan_idx, REG_TACH_TARGET_LOW));
++	read_fan_from_i2c(client, &data->fan[fan_idx].tach,
++			  SEL_FAN(fan_idx, REG_TACH_READ_HIGH),
++			  SEL_FAN(fan_idx, REG_TACH_READ_LOW));
++}
++
++static struct emc2305_fan_data *
++emc2305_update_fan(struct i2c_client *client, int fan_idx)
++{
++	struct emc2305_data *data = i2c_get_clientdata(client);
++	struct emc2305_fan_data *fan_data = &data->fan[fan_idx];
++
++	mutex_lock(&data->update_lock);
++
++	if (time_after(jiffies, fan_data->last_updated + HZ + HZ / 2)
++	    || !fan_data->valid) {
++		read_fan_config_from_i2c(client, fan_idx);
++		read_fan_data(client, fan_idx);
++		fan_data->valid = true;
++		fan_data->last_updated = jiffies;
++	}
++
++	mutex_unlock(&data->update_lock);
++	return fan_data;
++}
++
++static struct emc2305_fan_data *
++emc2305_update_device_fan(struct device *dev, struct device_attribute *da)
++{
++	struct emc2305_data *data = dev_get_drvdata(dev);
++	struct i2c_client *client = data->client;
++	int fan_idx = to_sensor_dev_attr(da)->index;
++
++	return emc2305_update_fan(client, fan_idx);
++}
++
++/*
++ * set/ config functions
++ */
++
++/*
++ * Note: we also update the fan target here, because its value is
++ * determined in part by the fan clock divider.  This follows the principle
++ * of least surprise; the user doesn't expect the fan target to change just
++ * because the divider changed.
++ */
++static int
++emc2305_set_fan_div(struct i2c_client *client, int fan_idx, long new_div)
++{
++	struct emc2305_data *data = i2c_get_clientdata(client);
++	struct emc2305_fan_data *fan = emc2305_update_fan(client, fan_idx);
++	const u8 reg_conf1 = SEL_FAN(fan_idx, REG_FAN_CONFIGURATION_1);
++	int new_range_bits, old_div = 8 / fan->multiplier;
++	int status = 0;
++
++	if (new_div == old_div) /* No change */
++		return 0;
++
++	switch (new_div) {
++	case 1:
++		new_range_bits = 3;
++		break;
++	case 2:
++		new_range_bits = 2;
++		break;
++	case 4:
++		new_range_bits = 1;
++		break;
++	case 8:
++		new_range_bits = 0;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	mutex_lock(&data->update_lock);
++
++	status = i2c_smbus_read_byte_data(client, reg_conf1);
++	if (status < 0) {
++		dev_dbg(&client->dev, "reg 0x%02x, err %d\n",
++			reg_conf1, status);
++		goto exit_unlock;
++	}
++	status &= 0x9F;
++	status |= (new_range_bits << 5);
++	status = i2c_smbus_write_byte_data(client, reg_conf1, status);
++	if (status < 0) {
++		goto exit_invalidate;
++	}
++
++	fan->multiplier = 8 / new_div;
++
++	/* update fan target if high byte is not disabled */
++	if ((fan->target & 0x1fe0) != 0x1fe0) {
++		u16 new_target = (fan->target * old_div) / new_div;
++		fan->target = min_t(u16, new_target, 0x1fff);
++		write_fan_target_to_i2c(client, fan_idx, fan->target);
++	}
++
++exit_invalidate:
++	/* invalidate fan data to force re-read from hardware */
++	fan->valid = false;
++exit_unlock:
++	mutex_unlock(&data->update_lock);
++	return status;
++}
++
++static int
++emc2305_set_fan_target(struct i2c_client *client, int fan_idx, long rpm_target)
++{
++	struct emc2305_data *data = i2c_get_clientdata(client);
++	struct emc2305_fan_data *fan = emc2305_update_fan(client, fan_idx);
++
++	/*
++	 * Datasheet states 16000 as maximum RPM target
++	 * (table 2.2 and section 4.3)
++	 */
++	if ((rpm_target < 0) || (rpm_target > 16000))
++		return -EINVAL;
++
++	mutex_lock(&data->update_lock);
++
++	if (rpm_target == 0)
++		fan->target = 0x1fff;
++	else
++		fan->target = clamp_val(
++			FAN_RPM_FACTOR * fan->multiplier / rpm_target,
++			0, 0x1fff);
++
++	write_fan_target_to_i2c(client, fan_idx, fan->target);
++
++	mutex_unlock(&data->update_lock);
++	return 0;
++}
++
++static int
++emc2305_set_pwm_enable(struct i2c_client *client, int fan_idx, long enable)
++{
++	struct emc2305_data *data = i2c_get_clientdata(client);
++	struct emc2305_fan_data *fan = emc2305_update_fan(client, fan_idx);
++	const u8 reg_fan_conf1 = SEL_FAN(fan_idx, REG_FAN_CONFIGURATION_1);
++	int status = 0;
++	u8 conf_reg;
++
++	mutex_lock(&data->update_lock);
++	switch (enable) {
++	case 0:
++		fan->rpm_control = false;
++		break;
++	case 3:
++		fan->rpm_control = true;
++		break;
++	default:
++		status = -EINVAL;
++		goto exit_unlock;
++	}
++
++	status = read_u8_from_i2c(client, reg_fan_conf1, &conf_reg);
++	if (status < 0)
++		goto exit_unlock;
++
++	if (fan->rpm_control)
++		conf_reg |= 0x80;
++	else
++		conf_reg &= ~0x80;
++
++	status = i2c_smbus_write_byte_data(client, reg_fan_conf1, conf_reg);
++
++exit_unlock:
++	mutex_unlock(&data->update_lock);
++	return status;
++}
++
++static ssize_t
++fan_input_show(struct device *dev, struct device_attribute *da, char *buf)
++{
++	struct emc2305_fan_data *fan = emc2305_update_device_fan(dev, da);
++	int rpm = 0;
++
++	if (fan->tach != 0)
++		rpm = (FAN_RPM_FACTOR * fan->multiplier) / fan->tach;
++	return sprintf(buf, "%d\n", rpm);
++}
++
++static ssize_t
++fan_fault_show(struct device *dev, struct device_attribute *da, char *buf)
++{
++	struct emc2305_fan_data *fan = emc2305_update_device_fan(dev, da);
++
++	return sprintf(buf, "%d\n", (fan->tach & 0x1fe0) == 0x1fe0);
++}
++
++static ssize_t
++fan_div_show(struct device *dev, struct device_attribute *da, char *buf)
++{
++	struct emc2305_fan_data *fan = emc2305_update_device_fan(dev, da);
++
++	return sprintf(buf, "%d\n", 8 / fan->multiplier);
++}
++
++static ssize_t
++fan_div_store(struct device *dev, struct device_attribute *da,
++	    const char *buf, size_t count)
++{
++	struct emc2305_data *data = dev_get_drvdata(dev);
++	struct i2c_client *client = data->client;
++	int fan_idx = to_sensor_dev_attr(da)->index;
++	long new_div;
++	int status;
++
++	status = kstrtol(buf, 10, &new_div);
++	if (status < 0)
++		return status;
++
++	status = emc2305_set_fan_div(client, fan_idx, new_div);
++	if (status < 0)
++		return status;
++
++	return count;
++}
++
++static ssize_t
++fan_target_show(struct device *dev, struct device_attribute *da, char *buf)
++{
++	struct emc2305_fan_data *fan = emc2305_update_device_fan(dev, da);
++	int rpm = 0;
++
++	/* high byte of 0xff indicates disabled so return 0 */
++	if ((fan->target != 0) && ((fan->target & 0x1fe0) != 0x1fe0))
++		rpm = FAN_RPM_FACTOR * fan->multiplier
++			/ fan->target;
++
++	return sprintf(buf, "%d\n", rpm);
++}
++
++static ssize_t fan_target_store(struct device *dev, struct device_attribute *da,
++			      const char *buf, size_t count)
++{
++	struct emc2305_data *data = dev_get_drvdata(dev);
++	struct i2c_client *client = data->client;
++	int fan_idx = to_sensor_dev_attr(da)->index;
++	long rpm_target;
++	int status;
++
++	status = kstrtol(buf, 10, &rpm_target);
++	if (status < 0)
++		return status;
++
++	status = emc2305_set_fan_target(client, fan_idx, rpm_target);
++	if (status < 0)
++		return status;
++
++	return count;
++}
++
++static ssize_t
++pwm_enable_show(struct device *dev, struct device_attribute *da, char *buf)
++{
++	struct emc2305_fan_data *fan = emc2305_update_device_fan(dev, da);
++	return sprintf(buf, "%d\n", fan->rpm_control ? 3 : 0);
++}
++
++static ssize_t pwm_enable_store(struct device *dev, struct device_attribute *da,
++			      const char *buf, size_t count)
++{
++	struct emc2305_data *data = dev_get_drvdata(dev);
++	struct i2c_client *client = data->client;
++	int fan_idx = to_sensor_dev_attr(da)->index;
++	long new_value;
++	int status;
++
++	status = kstrtol(buf, 10, &new_value);
++	if (status < 0)
++		return -EINVAL;
++	status = emc2305_set_pwm_enable(client, fan_idx, new_value);
++	return count;
++}
++
++static SENSOR_DEVICE_ATTR_RO(fan1_input, fan_input, 0);
++static SENSOR_DEVICE_ATTR_RW(fan1_div, fan_div, 0);
++static SENSOR_DEVICE_ATTR_RW(fan1_target, fan_target, 0);
++static SENSOR_DEVICE_ATTR_RO(fan1_fault, fan_fault, 0);
++static SENSOR_DEVICE_ATTR_RO(fan2_input, fan_input, 1);
++static SENSOR_DEVICE_ATTR_RW(fan2_div, fan_div, 1);
++static SENSOR_DEVICE_ATTR_RW(fan2_target, fan_target, 1);
++static SENSOR_DEVICE_ATTR_RO(fan2_fault, fan_fault, 1);
++static SENSOR_DEVICE_ATTR_RO(fan3_input, fan_input, 2);
++static SENSOR_DEVICE_ATTR_RW(fan3_div, fan_div, 2);
++static SENSOR_DEVICE_ATTR_RW(fan3_target, fan_target, 2);
++static SENSOR_DEVICE_ATTR_RO(fan3_fault, fan_fault, 2);
++static SENSOR_DEVICE_ATTR_RO(fan4_input, fan_input, 3);
++static SENSOR_DEVICE_ATTR_RW(fan4_div, fan_div, 3);
++static SENSOR_DEVICE_ATTR_RW(fan4_target, fan_target, 3);
++static SENSOR_DEVICE_ATTR_RO(fan4_fault, fan_fault, 3);
++static SENSOR_DEVICE_ATTR_RO(fan5_input, fan_input, 4);
++static SENSOR_DEVICE_ATTR_RW(fan5_div, fan_div, 4);
++static SENSOR_DEVICE_ATTR_RW(fan5_target, fan_target, 4);
++static SENSOR_DEVICE_ATTR_RO(fan5_fault, fan_fault, 4);
++static SENSOR_DEVICE_ATTR_RW(pwm1, pwm_enable, 0);
++static SENSOR_DEVICE_ATTR_RW(pwm2, pwm_enable, 1);
++static SENSOR_DEVICE_ATTR_RW(pwm3, pwm_enable, 2);
++static SENSOR_DEVICE_ATTR_RW(pwm4, pwm_enable, 3);
++static SENSOR_DEVICE_ATTR_RW(pwm5, pwm_enable, 4);
++
++static struct attribute *emc2305_attributes_fan1[] = {
++	&sensor_dev_attr_fan1_input.dev_attr.attr,
++	&sensor_dev_attr_fan1_div.dev_attr.attr,
++	&sensor_dev_attr_fan1_target.dev_attr.attr,
++	&sensor_dev_attr_fan1_fault.dev_attr.attr,
++	&sensor_dev_attr_pwm1.dev_attr.attr,
++	NULL
++};
++
++static struct attribute *emc2305_attributes_fan2[] = {
++	&sensor_dev_attr_fan2_input.dev_attr.attr,
++	&sensor_dev_attr_fan2_div.dev_attr.attr,
++	&sensor_dev_attr_fan2_target.dev_attr.attr,
++	&sensor_dev_attr_fan2_fault.dev_attr.attr,
++	&sensor_dev_attr_pwm2.dev_attr.attr,
++	NULL
++};
++
++static struct attribute *emc2305_attributes_fan3[] = {
++	&sensor_dev_attr_fan3_input.dev_attr.attr,
++	&sensor_dev_attr_fan3_div.dev_attr.attr,
++	&sensor_dev_attr_fan3_target.dev_attr.attr,
++	&sensor_dev_attr_fan3_fault.dev_attr.attr,
++	&sensor_dev_attr_pwm3.dev_attr.attr,
++	NULL
++};
++
++static struct attribute *emc2305_attributes_fan4[] = {
++	&sensor_dev_attr_fan4_input.dev_attr.attr,
++	&sensor_dev_attr_fan4_div.dev_attr.attr,
++	&sensor_dev_attr_fan4_target.dev_attr.attr,
++	&sensor_dev_attr_fan4_fault.dev_attr.attr,
++	&sensor_dev_attr_pwm4.dev_attr.attr,
++	NULL
++};
++
++static struct attribute *emc2305_attributes_fan5[] = {
++	&sensor_dev_attr_fan5_input.dev_attr.attr,
++	&sensor_dev_attr_fan5_div.dev_attr.attr,
++	&sensor_dev_attr_fan5_target.dev_attr.attr,
++	&sensor_dev_attr_fan5_fault.dev_attr.attr,
++	&sensor_dev_attr_pwm5.dev_attr.attr,
++	NULL
++};
++
++static const struct attribute_group emc2305_fan1_group = {
++	.attrs = emc2305_attributes_fan1,
++};
++
++static const struct attribute_group emc2305_fan2_group = {
++	.attrs = emc2305_attributes_fan2,
++};
++
++static const struct attribute_group emc2305_fan3_group = {
++	.attrs = emc2305_attributes_fan3,
++};
++
++static const struct attribute_group emc2305_fan4_group = {
++	.attrs = emc2305_attributes_fan4,
++};
++
++static const struct attribute_group emc2305_fan5_group = {
++	.attrs = emc2305_attributes_fan5,
++};
++
++/*
++ * driver interface
++ */
++static int
++emc2305_probe(struct i2c_client *client, const struct i2c_device_id *id)
++{
++	struct emc2305_data *data;
++	struct device *hwmon_dev;
++	int status, idx = 0;
++
++	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA))
++		return -EIO;
++
++	data = devm_kzalloc(&client->dev, sizeof(struct emc2305_data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	i2c_set_clientdata(client, data);
++	data->client = client;
++	mutex_init(&data->update_lock);
++
++	status = i2c_smbus_read_byte_data(client, REG_PRODUCT_ID);
++	switch (status) {
++	case 0x34: /* EMC2305 */
++		data->fan_count = 5;
++		break;
++	case 0x35: /* EMC2303 */
++		data->fan_count = 3;
++		break;
++	case 0x36: /* EMC2302 */
++		data->fan_count = 2;
++		break;
++	case 0x37: /* EMC2301 */
++		data->fan_count = 1;
++		break;
++	default:
++		if (status < 0)
++			dev_err(&client->dev, "Failed to read reg REG_PRODUCT_ID, status = %d\n", status);
++		else
++			dev_err(&client->dev, "Unknown device, status = %d\n", status);
++		return status;
++	}
++
++	/* sysfs hooks */
++	data->groups[idx++] = &emc2305_fan1_group;
++	if (data->fan_count >= 2)
++		data->groups[idx++] = &emc2305_fan2_group;
++	if (data->fan_count >= 3) {
++		data->groups[idx++] = &emc2305_fan3_group;
++	}
++	if (data->fan_count == 5) {
++		data->groups[idx++] = &emc2305_fan4_group;
++		data->groups[idx++] = &emc2305_fan5_group;
++	}
++
++	hwmon_dev = devm_hwmon_device_register_with_groups(&client->dev,
++							   client->name, data,
++							   data->groups);
++	if (IS_ERR(hwmon_dev))
++		return PTR_ERR(hwmon_dev);
++
++	dev_info(&client->dev, "pwm fan controller: '%s'\n",
++		 client->name);
++
++	return 0;
++}
++
++static const struct i2c_device_id emc2305_ids[] = {
++	{ "emc2301", 0 },
++	{ "emc2302", 0 },
++	{ "emc2303", 0 },
++	{ "emc2305", 0 },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, emc2305_ids);
++
++/* Return 0 if detection is successful, -ENODEV otherwise */
++static int
++emc2305_detect(struct i2c_client *new_client, struct i2c_board_info *info)
++{
++	struct i2c_adapter *adapter = new_client->adapter;
++	int manufacturer, product;
++
++	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
++		return -ENODEV;
++
++	manufacturer =
++		i2c_smbus_read_byte_data(new_client, REG_MANUFACTURER_ID);
++	if (manufacturer != 0x5D)
++		return -ENODEV;
++
++	product = i2c_smbus_read_byte_data(new_client, REG_PRODUCT_ID);
++
++	switch (product) {
++	case 0x34:
++		strlcpy(info->type, "emc2305", I2C_NAME_SIZE);
++		break;
++	case 0x35:
++		strlcpy(info->type, "emc2303", I2C_NAME_SIZE);
++		break;
++	case 0x36:
++		strlcpy(info->type, "emc2302", I2C_NAME_SIZE);
++		break;
++	case 0x37:
++		strlcpy(info->type, "emc2301", I2C_NAME_SIZE);
++		break;
++	default:
++		return -ENODEV;
++	}
++
++	return 0;
++}
++
++static struct i2c_driver emc2305_driver = {
++	.class		= I2C_CLASS_HWMON,
++	.driver = {
++		.name	= "emc2305",
++	},
++	.probe		= emc2305_probe,
++	.id_table	= emc2305_ids,
++	.detect		= emc2305_detect,
++	.address_list	= i2c_addresses,
++};
++
++module_i2c_driver(emc2305_driver);
++
++MODULE_AUTHOR("Reinhard Pfau <pfau@gdsys>, Biwen Li <biwen.li@nxp.com>\n");
++MODULE_DESCRIPTION("SMSC EMC2305 hwmon driver");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/hwmon/pac193x.c b/drivers/hwmon/pac193x.c
+new file mode 100644
+index 000000000000..e5afedc43803
+--- /dev/null
++++ b/drivers/hwmon/pac193x.c
+@@ -0,0 +1,635 @@
++/*
++ * Hwmon driver for the Microchip/SMSC PAC1934 Voltage/Current monitor
++ *
++ * Copyright (C) 2018 Traverse Technologies
++ * Author: Mathew McBride <matt@traverse.com.au>
++ *
++ * Note: Microchip has posted an IIO subsystem driver on the website, that
++ * might be better suited to some applications
++ *
++ * SPDX-License-Identifier: GPL-2.0
++ */
++
++#include <linux/err.h>
++#include <linux/hwmon.h>
++#include <linux/hwmon-sysfs.h>
++#include <linux/of_device.h>
++#include <linux/of.h>
++#include <linux/i2c.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/jiffies.h>
++#include <linux/delay.h>
++#include <linux/timer.h>
++
++
++#define PAC193X_MID 0x5D
++#define PAC1934_PID 0x5B
++#define PAC1932_PID 0x59
++#define PAC1931_PID 0x58
++
++#define PAC193X_MAX_NUM_CHANNELS 4
++
++/* 1000usec is the minimum wait time for normal conversions when sample
++ * rate doesn't change
++ */
++#define PAC193x_MIN_UPDATE_WAIT_TIME					1000
++
++
++
++#define PAC1934_REFRESH_REGISTER 0x00
++
++/* I2C Address Maps*/
++#define PAC193X_REFRESH_REG 0x00
++#define PAC193X_CTRL_REG 0x01
++#define PAC193X_REFRESH_V_REG 0x1F
++#define PAC193X_ACC_COUNT_REG 0x02
++#define PAC193X_CTRL_STAT_REGS_ADDR 0x1C
++#define PAC193X_PID_REG_ADDR 0xFD
++
++#define PAC193X_VPOWER_ACC_0_ADDR 0x03
++#define PAC193X_VPOWER_ACC_1_ADDR (PAC193X_VPOWER_ACC_0_ADDR + 1)
++#define PAC193X_VPOWER_ACC_2_ADDR 0x05
++#define PAC193X_VPOWER_ACC_3_ADDR 0x06
++#define PAC193X_VBUS_0_ADDR 0x07
++#define PAC193X_VBUS_1_ADDR 0x08
++#define PAC193X_VBUS_2_ADDR 0x09
++#define PAC193X_VBUS_3_ADDR 0x0A
++#define PAC193X_VSENSE_0_ADDR 0x0B
++#define PAC193X_VSENSE_1_ADDR 0x0C
++#define PAC193X_VSENSE_2_ADDR 0x0D
++#define PAC193X_VSENSE_3_ADDR 0x0E
++#define PAC193X_VBUS_AVG_0_ADDR 0x0F
++#define PAC193X_VBUS_AVG_1_ADDR 0x10
++#define PAC193X_VBUS_AVG_2_ADDR 0x11
++#define PAC193X_VBUS_AVG_3_ADDR 0x12
++#define PAC193X_VSENSE_AVG_0_ADDR 0x13
++#define PAC193X_VSENSE_AVG_1_ADDR 0x14
++#define PAC193X_VSENSE_AVG_2_ADDR 0x15
++#define PAC193X_VSENSE_AVG_3_ADDR 0x16
++#define PAC193X_VPOWER_0_ADDR 0x17
++#define PAC193X_VPOWER_1_ADDR 0x18
++#define PAC193X_VPOWER_2_ADDR 0x19
++#define PAC193X_VPOWER_3_ADDR 0x1A
++
++#define UNIDIR_VBUS_LSB_STEP_SIZE 488
++#define UNIDIR_VSENSE_LSB_STEP_SIZE 1500 /*nV*/
++
++/*----------------------------------------------------------------*/
++enum pac193x_ids
++{
++	pac1934,
++	pac1932,
++	pac1931
++};
++
++struct pac193x_features
++{
++	u8 phys_channels; /*number of physical channels supported by the chip */
++	u8 prod_id;		  /*product ID*/
++};
++
++static const struct pac193x_features pac193x_chip_config[] = {
++	[pac1934] = {
++		.phys_channels = PAC193X_MAX_NUM_CHANNELS,
++		.prod_id = PAC1934_PID,
++	},
++	[pac1932] = {
++		.phys_channels = PAC193X_MAX_NUM_CHANNELS >> 1,
++		.prod_id = PAC1932_PID,
++	},
++	[pac1931] = {
++		.phys_channels = PAC193X_MAX_NUM_CHANNELS >> 2,
++		.prod_id = PAC1931_PID,
++	},
++};
++
++struct pac193x_data
++{
++	struct i2c_client *i2c;
++	u8 prod_id;
++	u8 chip_revision;
++	u8 phys_channels;
++	const struct attribute_group **attr_groups;
++	u32 shunt_resistor[PAC193X_MAX_NUM_CHANNELS]; /* Shunt resistor value, in uOhms */
++};
++
++/*----------------------------------------------------------------*/
++/* Functions*/
++/* Low-level I2c functions */
++static int pac193x_i2c_read(struct i2c_client *client, u8 reg_addr,
++							u8 *databuf, u8 len);
++static int pac193x_i2c_write(struct i2c_client *client, u8 reg_addr,
++							 int len, u8 *data);
++static int pac193x_i2c_send_byte(struct i2c_client *client, u8 reg_addr);
++static int pac193x_i2c_write_byte(struct i2c_client *client,
++								  u8 reg_addr, u8 val);
++
++static int pac193x_chip_identify(struct pac193x_data *data);
++
++/*----------------------------------------------------------------*/
++
++/* Low-level I2c functions */
++static int pac193x_i2c_read(struct i2c_client *client, u8 reg_addr,
++							u8 *databuf, u8 len)
++{
++	int ret;
++	struct i2c_msg msgs[2] = {
++		{.addr = client->addr, .len = 1, .buf = (u8 *)&reg_addr, .flags = 0},
++		{.addr = client->addr, .len = len, .buf = databuf, .flags = I2C_M_RD}};
++
++	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
++	if (ret < 0)
++	{
++		dev_err(&client->dev,
++				"failed reading data from register 0x%02X\n", reg_addr);
++		return ret;
++	}
++
++	return 0;
++}
++
++static int pac193x_i2c_write(struct i2c_client *client, u8 reg_addr,
++							 int len, u8 *data)
++{
++	int ret;
++	u8 send[len + 1];
++	struct i2c_msg msg = {.addr = client->addr,
++						  .len = len + 1,
++						  .flags = 0};
++
++	send[0] = reg_addr;
++	memcpy(&send[1], data, len * sizeof(u8));
++	msg.buf = send;
++
++	ret = i2c_transfer(client->adapter, &msg, 1);
++	if (ret < 0)
++	{
++		dev_err(&client->dev,
++				"failed writing data from register 0x%02X\n",
++				reg_addr);
++		return ret;
++	}
++	return 0;
++}
++
++static int pac193x_i2c_send_byte(struct i2c_client *client, u8 reg_addr)
++{
++	int ret;
++	u8 buf;
++	struct i2c_msg msgs[1] = {
++		{.addr = client->addr, .len = sizeof(buf), .buf = (u8 *)&buf, .flags = 0}};
++	buf = reg_addr;
++
++	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
++	if (ret < 0)
++	{
++		dev_err(&client->dev,
++				"failed sending byte to register 0x%02X\n", reg_addr);
++		return ret;
++	}
++	return 0;
++}
++
++static int pac193x_i2c_write_byte(struct i2c_client *client,
++								  u8 reg_addr, u8 val)
++{
++	int ret;
++	u8 buf[2];
++	struct i2c_msg msgs[1] = {
++		{.addr = client->addr, .len = sizeof(buf), .buf = (u8 *)&buf, .flags = 0}};
++	buf[0] = reg_addr;
++	buf[1] = val;
++
++	ret = i2c_transfer(client->adapter, msgs, ARRAY_SIZE(msgs));
++	if (ret < 0)
++	{
++		dev_err(&client->dev,
++				"failed writing register 0x%02X\n", reg_addr);
++		return ret;
++	}
++	return 0;
++}
++
++static int pac193x_chip_identify(struct pac193x_data *data)
++{
++	int ret = 0;
++	struct i2c_client *i2c = data->i2c;
++	u8 chip_rev_info[3];
++
++	/*try to identify the chip variant
++	 * read the chip ID values
++	 */
++	ret = pac193x_i2c_read(i2c, PAC193X_PID_REG_ADDR,
++						   (u8 *)chip_rev_info, 3);
++	if (ret < 0)
++	{
++		dev_err(&i2c->dev, "cannot read PAC193x IDs\n");
++		goto chip_identify_err;
++	}
++
++	if (chip_rev_info[1] != PAC193X_MID)
++	{
++		dev_err(&i2c->dev, "ManufacturerID not match\n");
++		goto chip_identify_err;
++	}
++
++	dev_info(&i2c->dev, "Chip product: 0x%02x revision: 0x%02X\n",
++			 chip_rev_info[0], chip_rev_info[2]);
++
++	data->prod_id = chip_rev_info[0];
++	data->chip_revision = chip_rev_info[2];
++chip_identify_err:
++	return ret;
++}
++
++static int pac193x_send_refresh(struct pac193x_data *data, u8 reg)
++{
++	/* this function only sends REFRESH or REFRESH_V */
++	struct i2c_client *i2c = data->i2c;
++	int ret;
++
++	/* now write a REFRESH or a REFRESH_V command */
++	ret = pac193x_i2c_send_byte(i2c, reg);
++	if (ret < 0) {
++		dev_err(&i2c->dev,
++			"%s - cannot send byte to PAC193x 0x%02X reg\n", __func__, reg);
++		return ret;
++	}
++
++	/* wait till the data is available */
++	usleep_range(PAC193x_MIN_UPDATE_WAIT_TIME, PAC193x_MIN_UPDATE_WAIT_TIME + 100);
++	return ret;
++}
++
++
++
++
++/* Return the converted value from the given register in uV or mC */
++static int pac1934_get_value(struct pac193x_data *data, u8 reg, int *result)
++{
++	int ret = 0;
++	int val, bus;
++	struct i2c_client *i2c = data->i2c;
++	u32 nvsense, shunt_res;
++	u64 cur_reading;
++	u8 read_buff[2];
++
++	ret = pac193x_i2c_read(i2c, reg, (u8 *)read_buff, 2);
++	if (ret < 0)
++	{
++		dev_err(&i2c->dev, "cannot read PAC193x Reg 0x%x\n", reg);
++		return ret;
++	}
++	val = read_buff[0] << 8 | read_buff[1];
++
++	switch (reg)
++	{
++	case PAC193X_VBUS_0_ADDR:
++	case PAC193X_VBUS_1_ADDR:
++	case PAC193X_VBUS_2_ADDR:
++	case PAC193X_VBUS_3_ADDR:
++	case PAC193X_VBUS_AVG_0_ADDR:
++	case PAC193X_VBUS_AVG_1_ADDR:
++	case PAC193X_VBUS_AVG_2_ADDR:
++	case PAC193X_VBUS_AVG_3_ADDR:
++		/*VBUS LSB Step Size 488 for Unipolar Voltages*/
++		#ifdef DEBUG
++		printk(KERN_INFO "Read value register %x=%d\n", reg, val);
++		#endif
++		*result = val * UNIDIR_VBUS_LSB_STEP_SIZE;
++		break;
++	case PAC193X_VSENSE_0_ADDR:
++	case PAC193X_VSENSE_1_ADDR:
++	case PAC193X_VSENSE_2_ADDR:
++	case PAC193X_VSENSE_3_ADDR:
++	case PAC193X_VSENSE_AVG_0_ADDR:
++	case PAC193X_VSENSE_AVG_1_ADDR:
++	case PAC193X_VSENSE_AVG_2_ADDR:
++	case PAC193X_VSENSE_AVG_3_ADDR:
++		/* The LSB value for Vsense is 1.5uV (0xFFFF ~ 100mV), to avoid floating point,
++		* make this into nV and multiply by 1500nV  */
++		#ifdef DEBUG
++		printk("Read value register %x=%d\n", reg, val);
++		#endif
++
++		nvsense = val * UNIDIR_VSENSE_LSB_STEP_SIZE;
++		if (reg >= PAC193X_VSENSE_AVG_0_ADDR)
++		{
++			bus = reg - PAC193X_VSENSE_AVG_0_ADDR;
++		}
++		else if (reg >= PAC193X_VSENSE_0_ADDR)
++		{
++			bus = reg - PAC193X_VSENSE_0_ADDR;
++		}
++		/* If there is no shunt resistor (i.e only sensing voltage), stop here */
++		if (data->shunt_resistor[bus] == 0)
++		{
++			*result = 0;
++			break;
++		}
++		shunt_res = data->shunt_resistor[bus]; /* nV / uOhms = mA */
++		cur_reading = (u64)nvsense / (u64)shunt_res;
++		*result = cur_reading;
++		break;
++	default:
++		*result = 0;
++		return -EINVAL;
++	}
++	return 0;
++}
++
++static ssize_t pac193x_show_value(struct device *dev,
++								  struct device_attribute *da, char *buf)
++{
++	struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
++	struct pac193x_data *data = dev_get_drvdata(dev);
++	int value;
++	int ret;
++
++	/* Send a refresh command */
++	ret = pac193x_send_refresh(data, PAC193X_REFRESH_REG);
++	if (unlikely(ret < 0))
++		return ret;
++
++	ret = pac1934_get_value(data, attr->index, &value);
++	if (unlikely(ret < 0))
++		return ret;
++
++	return snprintf(buf, PAGE_SIZE, "%d\n", value);
++}
++
++static ssize_t shunt_value_show(struct device *dev,
++								struct device_attribute *da, char *buf)
++{
++	struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
++	struct pac193x_data *data = dev_get_drvdata(dev);
++	unsigned int i;
++	int len = 0;
++	int cnt;
++
++	for (cnt = 0; cnt < data->phys_channels; cnt++)
++	{
++		i = data->shunt_resistor[cnt];
++		len += sprintf(buf + len, "%d ", i);
++	}
++	buf[len - 1] = '\n';
++	return len;
++}
++
++/*
++	echo [channel] [value(uOhms)]
++*/
++static ssize_t shunt_value_store(struct device *dev,
++								 struct device_attribute *da,
++								 const char *buf, size_t count)
++{
++	struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
++	struct pac193x_data *data = dev_get_drvdata(dev);
++	int chan, sh_val;
++	char *blank, mybuff[8];
++
++	blank = strchr(buf, ' ');
++	if (!blank)
++	{
++		dev_err(dev, "%s: Missing parameters\n", "shunt_value");
++		return -EINVAL;
++	}
++	memset(mybuff, 0, sizeof(mybuff));
++	memcpy(mybuff, buf, blank - buf);
++	if (kstrtoint(mybuff, 10, &chan))
++	{
++		dev_err(dev, "%s: Channel index is not a number\n",
++				"shunt_value");
++		return -EINVAL;
++	}
++	if (chan < 0)
++	{
++		dev_err(dev, "%s: Negative channel values not allowed\n",
++				"shunt_value");
++		return -EINVAL;
++	}
++	if (chan >= data->phys_channels)
++	{
++		dev_err(dev,
++				"%s: Channel index out of range\n",
++				"shunt_value");
++		return -EINVAL;
++	}
++	if (kstrtoint(++blank, 10, &sh_val))
++	{
++		dev_err(dev, "%s: Shunt value is not a number\n",
++				"shunt_value");
++		return -EINVAL;
++	}
++	if (sh_val < 0)
++	{
++		dev_err(dev, "%s: Negative shunt values not allowed\n",
++				"shunt_value");
++		return -EINVAL;
++	}
++	data->shunt_resistor[chan] = sh_val;
++	return count;
++}
++
++static SENSOR_DEVICE_ATTR(in1_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_0_ADDR);
++static SENSOR_DEVICE_ATTR(in2_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_1_ADDR);
++static SENSOR_DEVICE_ATTR(in3_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_2_ADDR);
++static SENSOR_DEVICE_ATTR(in4_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_3_ADDR);
++static SENSOR_DEVICE_ATTR(in1_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_AVG_0_ADDR);
++static SENSOR_DEVICE_ATTR(in2_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_AVG_1_ADDR);
++static SENSOR_DEVICE_ATTR(in3_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_AVG_2_ADDR);
++static SENSOR_DEVICE_ATTR(in4_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VBUS_AVG_3_ADDR);
++
++static SENSOR_DEVICE_ATTR(curr1_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_0_ADDR);
++static SENSOR_DEVICE_ATTR(curr2_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_1_ADDR);
++static SENSOR_DEVICE_ATTR(curr3_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_2_ADDR);
++static SENSOR_DEVICE_ATTR(curr4_input, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_3_ADDR);
++
++static SENSOR_DEVICE_ATTR(curr1_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_AVG_0_ADDR);
++static SENSOR_DEVICE_ATTR(curr2_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_AVG_1_ADDR);
++static SENSOR_DEVICE_ATTR(curr3_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_AVG_2_ADDR);
++static SENSOR_DEVICE_ATTR(curr4_average, S_IRUGO, pac193x_show_value, NULL,
++						  PAC193X_VSENSE_AVG_3_ADDR);
++
++static SENSOR_DEVICE_ATTR(shunt_value, S_IRUGO | S_IWUSR, shunt_value_show, shunt_value_store,
++						  NULL);
++
++static struct attribute *pac1934_attrs[] = {
++	&sensor_dev_attr_in1_input.dev_attr.attr,
++	&sensor_dev_attr_in2_input.dev_attr.attr,
++	&sensor_dev_attr_in3_input.dev_attr.attr,
++	&sensor_dev_attr_in4_input.dev_attr.attr,
++	&sensor_dev_attr_in1_average.dev_attr.attr,
++	&sensor_dev_attr_in2_average.dev_attr.attr,
++	&sensor_dev_attr_in3_average.dev_attr.attr,
++	&sensor_dev_attr_in4_average.dev_attr.attr,
++	&sensor_dev_attr_curr1_input.dev_attr.attr,
++	&sensor_dev_attr_curr2_input.dev_attr.attr,
++	&sensor_dev_attr_curr3_input.dev_attr.attr,
++	&sensor_dev_attr_curr4_input.dev_attr.attr,
++	&sensor_dev_attr_curr1_average.dev_attr.attr,
++	&sensor_dev_attr_curr2_average.dev_attr.attr,
++	&sensor_dev_attr_curr3_average.dev_attr.attr,
++	&sensor_dev_attr_curr4_average.dev_attr.attr,
++	&sensor_dev_attr_shunt_value.dev_attr.attr,
++	NULL,
++};
++ATTRIBUTE_GROUPS(pac1934);
++
++static struct attribute *pac1932_attrs[] = {
++	&sensor_dev_attr_in1_input.dev_attr.attr,
++	&sensor_dev_attr_in2_input.dev_attr.attr,
++	&sensor_dev_attr_in1_average.dev_attr.attr,
++	&sensor_dev_attr_in2_average.dev_attr.attr,
++	&sensor_dev_attr_curr1_input.dev_attr.attr,
++	&sensor_dev_attr_curr2_input.dev_attr.attr,
++	&sensor_dev_attr_curr1_average.dev_attr.attr,
++	&sensor_dev_attr_curr2_average.dev_attr.attr,
++	&sensor_dev_attr_shunt_value.dev_attr.attr,
++	NULL,
++};
++ATTRIBUTE_GROUPS(pac1932);
++
++static struct attribute *pac1931_attrs[] = {
++	&sensor_dev_attr_in1_input.dev_attr.attr,
++	&sensor_dev_attr_in1_average.dev_attr.attr,
++	&sensor_dev_attr_curr1_input.dev_attr.attr,
++	&sensor_dev_attr_curr1_average.dev_attr.attr,
++	&sensor_dev_attr_shunt_value.dev_attr.attr,
++	NULL,
++};
++ATTRIBUTE_GROUPS(pac1931);
++
++static int pac1934_probe(struct i2c_client *client,
++							 const struct i2c_device_id *id)
++{
++	int ret;
++	int i;
++	struct device *hwmon_dev;
++	struct pac193x_features *features;
++	struct pac193x_data *data;
++	struct device_node *of_node = client->dev.of_node;
++
++	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE_DATA |
++													  I2C_FUNC_SMBUS_WORD_DATA))
++	{
++		dev_info(&client->dev, "I2C function fail\n");
++		return -ENODEV;
++	}
++
++	data = devm_kzalloc(&client->dev, sizeof(struct pac193x_data), GFP_KERNEL);
++	if (unlikely(!data))
++	{
++		dev_info(&client->dev, "Cannot alloc memory\n");
++		return -ENODEV;
++	}
++
++	data->i2c = client;
++	ret = pac193x_chip_identify(data);
++	if (ret < 0)
++	{
++		dev_info(&client->dev, "Chip identity fail\n");
++		return -EINVAL;
++	}
++
++	if (of_node)
++	{
++		features = (struct pac193x_features *)of_device_get_match_data(&client->dev);
++
++		if (features->prod_id != data->prod_id)
++		{
++			dev_info(&client->dev, "Product ID not match\n");
++			return -EINVAL;
++		}
++
++		ret = of_property_read_u32_array(of_node, "shunt-resistors",
++										 data->shunt_resistor, features->phys_channels);
++		if (ret < 0)
++		{
++			memset(data->shunt_resistor, 0,
++				   features->phys_channels * sizeof(u32));
++		}
++		else
++		{
++			for (i = 0; i < features->phys_channels; i++)
++			{
++				dev_info(&client->dev, "Bus %d shunt resistor value %d uOhms\n",
++						i, data->shunt_resistor[i]);
++			}
++		}
++	}
++
++	switch (data->prod_id)
++	{
++	case PAC1934_PID:
++		data->phys_channels = pac193x_chip_config[pac1934].phys_channels;
++		data->attr_groups = pac1934_groups;
++		break;
++	case PAC1932_PID:
++		data->phys_channels = pac193x_chip_config[pac1932].phys_channels;
++		data->attr_groups = pac1932_groups;
++		break;
++	case PAC1931_PID:
++		data->phys_channels = pac193x_chip_config[pac1931].phys_channels;
++		data->attr_groups = pac1931_groups;
++		break;
++	default:
++		dev_info(&client->dev, "Product ID not match\n");
++		break;
++	}
++
++	hwmon_dev = devm_hwmon_device_register_with_groups(&client->dev,
++													   client->name,
++													   data,
++													   data->attr_groups);
++	return PTR_ERR_OR_ZERO(hwmon_dev);
++}
++
++
++static const struct i2c_device_id pac193x_id[] = {
++	{"pac1934", pac1934},
++	{"pac1932", pac1932},
++	{"pac1931", pac1931},
++	{}};
++MODULE_DEVICE_TABLE(i2c, pac193x_id);
++
++static const struct of_device_id pac193x_of_match[] = {
++	{.compatible = "microchip,pac1934",
++	 .data = (void *)&pac193x_chip_config[pac1934]},
++	{.compatible = "microchip,pac1932",
++	 .data = (void *)&pac193x_chip_config[pac1932]},
++	{.compatible = "microchip,pac1931",
++	 .data = (void *)&pac193x_chip_config[pac1931]},
++	{},
++};
++MODULE_DEVICE_TABLE(of, pac193x_of_match);
++
++static struct i2c_driver pac193x_driver = {
++	.driver = {
++		.name = "pac193x",
++		.of_match_table = of_match_ptr(pac193x_of_match),
++	},
++	.probe = pac1934_probe,
++	.id_table = pac193x_id,
++};
++module_i2c_driver(pac193x_driver);
++
++MODULE_DESCRIPTION("PAC193x Sensor Driver");
++MODULE_AUTHOR("Mathew McBride <matt@traverse.com.au>");
++MODULE_LICENSE("GPL v2");
+diff --git a/drivers/hwmon/tmp468.c b/drivers/hwmon/tmp468.c
+new file mode 100644
+index 000000000000..b27474b81aac
+--- /dev/null
++++ b/drivers/hwmon/tmp468.c
+@@ -0,0 +1,517 @@
++/* tmp468.c
++ * Driver for the TI TMP468 temperature sensor
++ */
++
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/bitops.h>
++#include <linux/slab.h>
++#include <linux/jiffies.h>
++#include <linux/i2c.h>
++#include <linux/hwmon.h>
++#include <linux/hwmon-sysfs.h>
++#include <linux/err.h>
++#include <linux/mutex.h>
++#include <linux/sysfs.h>
++#include <linux/of_device.h>
++#include <linux/of.h>
++
++/* Addresses to scan */
++static const unsigned short normal_i2c[] = { 0x48, 0x49, 0x4a, 0x4b,
++	I2C_CLIENT_END
++};
++
++enum chips {
++	tmp464,
++	tmp468,
++};
++
++/*
++ * The TMP468 registers
++ */
++
++#define TMP468_CONFIG_REG			0x30
++#define TMP468_TEMP_HYST_REG			0x38
++#define TMP468_LOCK_REG				0xC4
++#define TMP468_MANUFACTURER_ID_REG		0xFE
++#define TMP468_DEVICE_ID_REG			0xFF
++
++static const u8 TMP468_TEMP[4][9] = {
++	{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 }, /* temp */
++	{ 0x39, 0x42, 0x4a, 0x52, 0x5a, 0x62, 0x6a, 0x72, 0x7a }, /* high limit */
++	{ 0x3a, 0x43, 0x4b, 0x53, 0x5b, 0x63, 0x6b, 0x73, 0x7b }, /* crit limit */
++	{ 0xff, 0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x78 }, /* offset */
++};
++
++/* [0] = high, [1] = crit, [2] = fault */
++static const u8 TMP468_STATUS[] = {
++	0x21, 0x22, 0x23
++};
++
++/*
++ * Constants: flags, masks, offsets, ids
++ */
++
++#define TMP468_CONFIG_RESERVE			BIT(0)
++#define TMP468_CONFIG_SHUTDOWN 			BIT(5)
++#define TMP468_CONFIG_ALL_CHANNELS 		GENMASK(15, 7)
++#define TMP468_CONFIG_CONV_RATE_MASK 		GENMASK(4, 2)
++#define TMP468_CONFIG_CONV_RATE_OFFSET 		2
++#define TMP468_UNLOCK				0xEB19
++#define TMP468_HYST_MASK			GENMASK(14, 7)
++
++#define TMP468_MAX_TEMP				255000
++
++/* Status bit for sensors */
++static const u16 TMP468_STATUS_MASKS[] = {
++	BIT(7), BIT(8), BIT(9), BIT(10), BIT(11),
++	BIT(12), BIT(13), BIT(14), BIT(15)
++};
++
++/* Manufacturer and Device ID */
++#define TMP468_MANUFACTURER_ID			0x5449
++#define TMP464_DEVICE_ID			0x0464
++#define TMP468_DEVICE_ID			0x0468
++
++/*
++ * Driver data (common to all clients)
++ */
++
++static const struct i2c_device_id tmp468_id[] = {
++	{ "tmp464", tmp464 },
++	{ "tmp468", tmp468 },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, tmp468_id);
++
++/*
++ * Client data
++ */
++
++struct tmp468_data {
++	struct i2c_client *client;
++	const struct attribute_group *groups[2];
++	struct mutex update_lock;
++	char valid; /* zero until following fields are valid */
++	unsigned long last_updated; /* in jiffies */
++	enum chips kind;
++
++	unsigned int update_interval; /* in milliseconds */
++
++	/* register values */
++	u16 status[3];
++	u16 config;
++	u16 temp[4][9];
++	u16 temp_hyst;
++};
++
++/*
++ * Sysfs code
++ */
++
++static int tmp468_register_to_temp(u16 reg)
++{
++	int intVal = reg >> 7;
++	int decVal = (reg >> 3) & 0xf;
++
++	decVal = DIV_ROUND_CLOSEST(decVal * 135, 2);
++	intVal = (intVal & ~(1 << 8)) - (intVal & (1 << 8));
++	intVal *= 1000;
++
++	return intVal + decVal;
++}
++
++static u16 tmp468_temp_to_register(long temp)
++{
++	temp = clamp_val(temp, 0, TMP468_MAX_TEMP);
++
++	return DIV_ROUND_CLOSEST(temp, 1000) << 7;
++}
++
++static int tmp468_update_device_reg16(struct i2c_client *client,
++				      struct tmp468_data *data)
++{
++	int i;
++	int j;
++	int val;
++	int num_regs = 4;
++	int num_sensors = 9;
++
++	for (i = 0; i < num_regs; i++) {		/* temp / high / ... */
++		for (j = 0; j < num_sensors; j++) {	/* local / r1 / r2 */
++			u8 regaddr;
++			regaddr = TMP468_TEMP[i][j];
++			if (regaddr == 0xff)
++				continue;
++			val = i2c_smbus_read_word_swapped(client, regaddr);
++			if (val < 0)
++				return val;
++
++			data->temp[i][j] = val;
++		}
++	}
++	return 0;
++}
++
++static struct tmp468_data *tmp468_update_device(struct device *dev)
++{
++	struct tmp468_data *data = dev_get_drvdata(dev);
++	struct i2c_client *client = data->client;
++	struct tmp468_data *ret = data;
++	int i;
++	int val;
++	unsigned long next_update;
++
++	mutex_lock(&data->update_lock);
++
++	next_update = data->last_updated +
++		      msecs_to_jiffies(data->update_interval);
++	if (time_after(jiffies, next_update) || !data->valid) {
++		for (i = 0; i < ARRAY_SIZE(data->status); i++) {
++			val = i2c_smbus_read_word_swapped(client, TMP468_STATUS[i]);
++			if (val < 0) {
++				ret = ERR_PTR(val);
++				goto abort;
++			}
++			data->status[i] = val;
++		}
++		val = i2c_smbus_read_word_swapped(client, TMP468_CONFIG_REG);
++		if (val < 0) {
++			ret = ERR_PTR(val);
++			goto abort;
++		}
++		data->config = val;
++		val = tmp468_update_device_reg16(client, data);
++		if (val < 0) {
++			ret = ERR_PTR(val);
++			goto abort;
++		}
++		val = i2c_smbus_read_word_swapped(client, TMP468_TEMP_HYST_REG);
++		if (val < 0) {
++			ret = ERR_PTR(val);
++			goto abort;
++		}
++		data->temp_hyst = val;
++
++		data->last_updated = jiffies;
++		data->valid = 1;
++	}
++
++abort:
++	mutex_unlock(&data->update_lock);
++	return ret;
++}
++
++static ssize_t show_temp(struct device *dev,
++			 struct device_attribute *devattr, char *buf)
++{
++	int nr = to_sensor_dev_attr_2(devattr)->nr;
++	int index = to_sensor_dev_attr_2(devattr)->index;
++	struct tmp468_data *data = tmp468_update_device(dev);
++
++	if (IS_ERR(data))
++		return PTR_ERR(data);
++
++	return sprintf(buf, "%d\n", tmp468_register_to_temp(data->temp[nr][index]));
++}
++
++static ssize_t show_temp_hyst(struct device *dev,
++			      struct device_attribute *devattr, char *buf)
++{
++	int nr = to_sensor_dev_attr_2(devattr)->nr;
++	int index = to_sensor_dev_attr_2(devattr)->index;
++	struct tmp468_data *data = tmp468_update_device(dev);
++	int temp;
++
++	if (IS_ERR(data))
++		return PTR_ERR(data);
++
++	mutex_lock(&data->update_lock);
++	temp = tmp468_register_to_temp(data->temp[nr][index]);
++	temp -= tmp468_register_to_temp(data->temp_hyst);
++	mutex_unlock(&data->update_lock);
++
++	return sprintf(buf, "%d\n", temp);
++}
++
++static ssize_t show_status(struct device *dev,
++			   struct device_attribute *devattr, char *buf)
++{
++	int nr = to_sensor_dev_attr_2(devattr)->nr;
++	int mask = TMP468_STATUS_MASKS[to_sensor_dev_attr_2(devattr)->index];
++	struct tmp468_data *data = tmp468_update_device(dev);
++
++	if (IS_ERR(data))
++		return PTR_ERR(data);
++
++	return sprintf(buf, "%d\n", !!(data->status[nr] & mask));
++}
++
++static ssize_t store_temp(struct device *dev, struct device_attribute *devattr,
++			  const char *buf, size_t count)
++{
++	int nr = to_sensor_dev_attr_2(devattr)->nr;
++	int index = to_sensor_dev_attr_2(devattr)->index;
++	struct tmp468_data *data = dev_get_drvdata(dev);
++	long val;
++	int err;
++	u16 reg;
++	u8 regaddr;
++
++	if (kstrtol(buf, 10, &val))
++		return -EINVAL;
++
++	reg = tmp468_temp_to_register(val);
++
++	mutex_lock(&data->update_lock);
++	regaddr = TMP468_TEMP[nr][index];
++
++	err = i2c_smbus_write_word_swapped(data->client, regaddr, reg);
++	if (!err)
++		data->temp[nr][index] = reg;
++	mutex_unlock(&data->update_lock);
++
++	return err ? err : count;
++}
++
++static ssize_t store_temp_hyst(struct device *dev,
++			       struct device_attribute *devattr,
++			       const char *buf, size_t count)
++{
++	int nr = to_sensor_dev_attr_2(devattr)->nr;
++	int index = to_sensor_dev_attr_2(devattr)->index;
++	struct tmp468_data *data = tmp468_update_device(dev);
++	int temp;
++	long val;
++	int err;
++	u16 reg;
++
++	if (IS_ERR(data))
++		return PTR_ERR(data);
++
++	if (kstrtol(buf, 10, &val))
++		return -EINVAL;
++
++	val = clamp_val(val, 0, TMP468_MAX_TEMP);
++
++	mutex_lock(&data->update_lock);
++	temp = tmp468_register_to_temp(data->temp[nr][index]);
++	val = clamp_val(val, temp - TMP468_MAX_TEMP, temp);
++
++	reg = tmp468_temp_to_register(temp - val);
++	reg &= TMP468_HYST_MASK;
++
++	err = i2c_smbus_write_word_swapped(data->client, TMP468_TEMP_HYST_REG, reg);
++
++	if (!err)
++		data->temp_hyst = reg;
++
++	mutex_unlock(&data->update_lock);
++
++	return err ? err : count;
++}
++
++#define DECLARE_SENSOR_ATTRS(x)							\
++static SENSOR_DEVICE_ATTR_2(temp##x##_input, S_IRUGO, show_temp, NULL, 0, x-1);	\
++static SENSOR_DEVICE_ATTR_2(temp##x##_max, S_IWUSR | S_IRUGO, show_temp,	\
++			    store_temp, 1, x-1);				\
++static SENSOR_DEVICE_ATTR_2(temp##x##_crit, S_IWUSR | S_IRUGO, show_temp,	\
++			    store_temp, 2, x-1);				\
++static SENSOR_DEVICE_ATTR_2(temp##x##_max_alarm, S_IRUGO, show_status, NULL,	\
++			    0, x-1);						\
++static SENSOR_DEVICE_ATTR_2(temp##x##_crit_alarm, S_IRUGO, show_status, NULL,	\
++			    1, x-1);						\
++static SENSOR_DEVICE_ATTR_2(temp##x##_max_hyst, S_IWUSR | S_IRUGO,		\
++			    show_temp_hyst, store_temp_hyst, 1, x-1);		\
++static SENSOR_DEVICE_ATTR_2(temp##x##_crit_hyst, S_IWUSR | S_IRUGO,		\
++			    show_temp_hyst, store_temp_hyst, 2, x-1)
++
++#define DECLARE_REMOTE_SENSOR_ATTRS(x) 						\
++DECLARE_SENSOR_ATTRS(x);							\
++static SENSOR_DEVICE_ATTR_2(temp##x##_offset, S_IWUSR | S_IRUGO, show_temp,	\
++			    store_temp, 3, x-1);				\
++static SENSOR_DEVICE_ATTR_2(temp##x##_fault, S_IRUGO, show_status, NULL,	\
++			    2, x-1)
++
++DECLARE_SENSOR_ATTRS(1);
++DECLARE_REMOTE_SENSOR_ATTRS(2);
++DECLARE_REMOTE_SENSOR_ATTRS(3);
++DECLARE_REMOTE_SENSOR_ATTRS(4);
++DECLARE_REMOTE_SENSOR_ATTRS(5);
++DECLARE_REMOTE_SENSOR_ATTRS(6);
++DECLARE_REMOTE_SENSOR_ATTRS(7);
++DECLARE_REMOTE_SENSOR_ATTRS(8);
++DECLARE_REMOTE_SENSOR_ATTRS(9);
++
++#define SENSOR_ATTRS(x)						\
++	&sensor_dev_attr_temp##x##_input.dev_attr.attr,		\
++	&sensor_dev_attr_temp##x##_max.dev_attr.attr,		\
++	&sensor_dev_attr_temp##x##_crit.dev_attr.attr,		\
++	&sensor_dev_attr_temp##x##_max_alarm.dev_attr.attr,	\
++	&sensor_dev_attr_temp##x##_crit_alarm.dev_attr.attr,	\
++	&sensor_dev_attr_temp##x##_max_hyst.dev_attr.attr,	\
++	&sensor_dev_attr_temp##x##_crit_hyst.dev_attr.attr
++
++#define REMOTE_SENSOR_ATTRS(x) 					\
++	SENSOR_ATTRS(x),					\
++	&sensor_dev_attr_temp##x##_offset.dev_attr.attr,	\
++	&sensor_dev_attr_temp##x##_fault.dev_attr.attr
++
++static struct attribute *tmp468_attributes[] = {
++	SENSOR_ATTRS(1),
++	REMOTE_SENSOR_ATTRS(2),
++	REMOTE_SENSOR_ATTRS(3),
++	REMOTE_SENSOR_ATTRS(4),
++	REMOTE_SENSOR_ATTRS(5),
++	REMOTE_SENSOR_ATTRS(6),
++	REMOTE_SENSOR_ATTRS(7),
++	REMOTE_SENSOR_ATTRS(8),
++	REMOTE_SENSOR_ATTRS(9),
++
++	NULL
++};
++
++static const struct attribute_group tmp468_group = {
++	.attrs = tmp468_attributes,
++};
++
++
++/*
++ * Driver init code
++ */
++
++static int tmp468_init_client(struct tmp468_data *data,
++			      struct i2c_client *client)
++{
++	int config;
++	int config_orig;
++	int ret = 0;
++
++	/* Read config */
++	config = i2c_smbus_read_word_swapped(client, TMP468_CONFIG_REG);
++	if (config < 0)
++		return config;
++
++	/* Unlock write */
++	ret = i2c_smbus_write_word_swapped(client, TMP468_LOCK_REG, TMP468_UNLOCK);
++	if (ret)
++		return ret;
++
++	config_orig = config;
++
++	/* Disable shutdown */
++	config &= ~TMP468_CONFIG_SHUTDOWN;
++	/* Enable all channals */
++	config |= TMP468_CONFIG_ALL_CHANNELS;
++	/* Set conv rate to 2 hz */
++	config &= ~TMP468_CONFIG_CONV_RATE_MASK;
++	config |= 0x101 << TMP468_CONFIG_CONV_RATE_OFFSET;
++
++	if (config != config_orig)
++		ret = i2c_smbus_write_word_swapped(client, TMP468_CONFIG_REG,
++						   config);
++	if (!ret)
++		data->update_interval = 500;
++	return ret;
++}
++
++static int tmp468_detect(struct i2c_client *client,
++			 struct i2c_board_info *info)
++{
++	enum chips kind;
++	struct i2c_adapter *adapter = client->adapter;
++	u16 reg;
++
++	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_WORD_DATA))
++		return -ENODEV;
++
++	/* Detect and identify the chip */
++	reg = i2c_smbus_read_word_swapped(client, TMP468_MANUFACTURER_ID_REG);
++	if (reg != TMP468_MANUFACTURER_ID)
++		return -ENODEV;
++
++	reg = i2c_smbus_read_word_swapped(client, TMP468_DEVICE_ID_REG);
++
++	switch (reg) {
++	case TMP468_DEVICE_ID:
++		kind = tmp468;
++		break;
++	case TMP464_DEVICE_ID:
++		kind = tmp464;
++		break;
++	default:
++		return -ENODEV;
++	}
++
++	strlcpy(info->type, tmp468_id[kind].name, I2C_NAME_SIZE);
++
++	return 0;
++}
++
++static int tmp468_probe(struct i2c_client *client,
++			const struct i2c_device_id *id)
++{
++	static const char * const names[] = {
++		"TMP468"
++	};
++	struct device *dev = &client->dev;
++	struct device *hwmon_dev;
++	struct tmp468_data *data;
++	int groups = 0;
++	int status;
++	enum chips kind;
++	if (client->dev.of_node)
++                kind = (enum chips)of_device_get_match_data(&client->dev);
++        else
++                kind = id->driver_data;
++
++	data = devm_kzalloc(dev, sizeof(struct tmp468_data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	data->client = client;
++	mutex_init(&data->update_lock);
++	data->kind = kind;
++
++	/* Initialize the TMP468 chip */
++	status = tmp468_init_client(data, client);
++	if (status < 0)
++		return status;
++
++	/* Register sysfs hooks */
++	data->groups[groups++] = &tmp468_group;
++
++	hwmon_dev = devm_hwmon_device_register_with_groups(dev, client->name,
++							   data, data->groups);
++	if (IS_ERR(hwmon_dev))
++		return PTR_ERR(hwmon_dev);
++
++	dev_info(dev, "Detected TI %s chip\n", names[data->kind]);
++
++	return 0;
++}
++static const struct of_device_id __maybe_unused tmp468_of_match[] = {
++        {
++                .compatible = "ti,tmp468",
++                .data = (void *)tmp468
++        },
++	{ },
++};
++MODULE_DEVICE_TABLE(of, tmp468_of_match);
++static struct i2c_driver tmp468_driver = {
++	.class		= I2C_CLASS_HWMON,
++	.driver = {
++		.name	= "tmp468",
++		.of_match_table = of_match_ptr(tmp468_of_match),
++	},
++	.probe		= tmp468_probe,
++	.id_table	= tmp468_id,
++	.detect		= tmp468_detect,
++	.address_list	= normal_i2c,
++};
++
++module_i2c_driver(tmp468_driver);
++
++MODULE_AUTHOR("Arista Networks");
++MODULE_DESCRIPTION("TI TMP468 temperature sensor driver");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/hwmon/tsod.c b/drivers/hwmon/tsod.c
+new file mode 100644
+index 000000000000..27917247a35e
+--- /dev/null
++++ b/drivers/hwmon/tsod.c
+@@ -0,0 +1,199 @@
++/*
++ * tsod.c - temperature sensor on dimms
++ *             
++ */
++
++#include <linux/err.h>
++#include <linux/hwmon.h>
++#include <linux/i2c.h>
++#include <linux/init.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++
++
++/*tsod(temperature sensor on dimms) registers*/
++#define TSOD_REG_DEV_ID (0x0)
++#define TSOD_REG_TEMP_L (0x31)
++#define TSOD_REG_TEMP_H (0x32)
++
++
++/*
++ * Client data (each client gets its own)
++ */
++struct tsod_data {
++	struct i2c_client *client;
++	struct mutex update_lock;
++	bool valid; /* zero until following fields are valid */
++	unsigned long last_updated; /* in jiffies */
++};
++
++static int tsod_read(struct device *dev, enum hwmon_sensor_types type,
++			 u32 attr, int channel, long *val)
++{
++	struct tsod_data *priv = dev_get_drvdata(dev);
++	struct i2c_client *client = priv->client;
++    int rv = 0;
++    int data_h = 0;
++    int data_l = 0;    
++    int data = 0;    
++
++    switch (type) {
++	case hwmon_temp:
++	    switch (attr) {
++            case hwmon_temp_input:
++                if ((rv = i2c_smbus_read_byte_data(client,
++                     TSOD_REG_TEMP_L)) < 0) {
++                    break;
++                } 
++                data_l = rv;                
++                if ((rv = i2c_smbus_read_byte_data(client,
++                     TSOD_REG_TEMP_H)) < 0) {
++                    break;
++                } 
++                data_h = rv;
++                /*calculate temp here follow jdec 5003 Table 104　thermal register*/
++                data = (data_h << 8) | data_l;
++                if (data & (1 << 10)) {
++                    /*do the special calculation in the future , normally this case will NOT be met*/
++                    dev_info(&client->dev, "temp is bellow 0 degree\n");
++                } else {
++                    data = ((data * 1000) >> 2) >> 2;
++                }
++                *val = data;
++                break;
++		    default:
++                rv = -EINVAL;
++			    break;
++
++        }
++        break;
++    default:
++		rv = -EOPNOTSUPP;
++        break;
++	}
++    
++    return rv;
++}
++
++static int tsod_write(struct device *dev, enum hwmon_sensor_types type,
++			  u32 attr, int channel, long val)
++{
++    return -EOPNOTSUPP;
++}
++
++static umode_t tsod_is_visible(const void *data,
++				   enum hwmon_sensor_types type,
++				   u32 attr, int channel)
++{
++	umode_t mode = 0;
++    switch (type) {
++	case hwmon_temp:
++	    switch (attr) {
++		case hwmon_temp_input:
++            mode = 0444;
++        default: 
++            break;
++		}
++        break; 
++    default:
++        break;
++	}
++
++    return mode;
++}
++
++static const struct hwmon_channel_info *tsod_info[] = {
++	HWMON_CHANNEL_INFO(temp,
++			           HWMON_T_INPUT),
++    NULL
++};
++
++static const struct hwmon_ops tsod_hwmon_ops = {
++	.is_visible = tsod_is_visible,
++	.read = tsod_read,
++	.write = tsod_write,
++};
++
++static const struct hwmon_chip_info tsod_chip_info = {
++	.ops = &tsod_hwmon_ops,
++	.info = tsod_info,
++};
++
++static int tsod_init_client(struct i2c_client *client)
++{
++	int rv = 0;
++
++    rv = i2c_smbus_read_byte_data(client,
++            TSOD_REG_DEV_ID);
++    if (rv < 0) {
++        dev_err(&client->dev, "init fail rv %d\n", rv);
++        return rv;
++    } else {
++        dev_info(&client->dev, "id:0x%x\n", rv);
++    }
++	return 0;
++}
++
++static int tsod_probe(struct i2c_client *client)
++{
++	struct i2c_adapter *adapter = client->adapter;
++	struct device *dev = &client->dev;
++	struct tsod_data *data;
++	struct device *hwmon_dev;
++	int err;
++
++	if (!i2c_check_functionality(adapter,
++		I2C_FUNC_SMBUS_BYTE_DATA | I2C_FUNC_SMBUS_WORD_DATA)) {
++		return -ENODEV;
++    }
++
++	data = devm_kzalloc(dev, sizeof(struct tsod_data), GFP_KERNEL);
++	if (!data) {
++		return -ENOMEM;
++    }
++	data->client = client;
++	/*
++	 * Initialize the tsod chip
++	 */
++	err = tsod_init_client(client);
++	if (err)
++		return err;
++
++	hwmon_dev = devm_hwmon_device_register_with_info(dev, client->name,
++							 data,
++							 &tsod_chip_info,
++							 NULL);
++
++	return PTR_ERR_OR_ZERO(hwmon_dev);
++}
++
++static const struct i2c_device_id tsod_id[] = {
++	{ "tsod", 0 },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, tsod_id);
++
++static const struct of_device_id __maybe_unused tsod_of_match[] = {
++	{
++		.compatible = "spd,tsod",
++	},
++	{ },
++};
++MODULE_DEVICE_TABLE(of, tsod_of_match);
++
++static struct i2c_driver tsod_driver = {
++	.class		= I2C_CLASS_HWMON,
++	.probe_new	= tsod_probe,
++	.driver = {
++		.name	= "tsod",
++		.of_match_table = of_match_ptr(tsod_of_match),
++	},
++	.id_table	= tsod_id,
++};
++
++module_i2c_driver(tsod_driver);
++
++MODULE_AUTHOR(" <huang.alang@inventec.com>");
++MODULE_DESCRIPTION("temperature sensor on dimms driver");
++MODULE_LICENSE("GPL");
+-- 
+2.17.1
+

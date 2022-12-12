@@ -1,0 +1,72 @@
+From 064e925d66379c489b3f97f0d8a87a5e5ac17ed9 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Tue, 29 Sep 2020 15:47:29 -0400
+Subject: [PATCH] Subject: [PATCH] Revise ADT7462 driver in kernel
+
+- Revise ADT7462 driver in kernel, so we can get voltage value from hwmon
+- Enables the voltage measurement input for Pin 19
+---
+ drivers/hwmon/adt7462.c | 33 +++++++++++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+
+diff --git a/drivers/hwmon/adt7462.c b/drivers/hwmon/adt7462.c
+index e75bbd87ad09..2797ab38f35b 100644
+--- a/drivers/hwmon/adt7462.c
++++ b/drivers/hwmon/adt7462.c
+@@ -143,6 +143,9 @@ static const unsigned short normal_i2c[] = { 0x58, 0x5C, I2C_CLIENT_END };
+ 
+ #define ADT7462_ALARM_REG_COUNT		4
+ 
++#define ADT7462_MONITOR             0x01
++#define ADT7462_SETUP_COMPLETE      0x20
++
+ /*
+  * The chip can measure 13 different voltage sources:
+  *
+@@ -1792,6 +1795,7 @@ static int adt7462_probe(struct i2c_client *client)
+ 	struct device *dev = &client->dev;
+ 	struct adt7462_data *data;
+ 	struct device *hwmon_dev;
++	u32 reg;
+ 
+ 	data = devm_kzalloc(dev, sizeof(struct adt7462_data), GFP_KERNEL);
+ 	if (!data)
+@@ -1802,6 +1806,35 @@ static int adt7462_probe(struct i2c_client *client)
+ 
+ 	dev_info(&client->dev, "%s chip found\n", client->name);
+ 
++	mutex_lock(&data->lock);
++
++	// Pin Configuration Register 1 Setting
++	reg = i2c_smbus_read_byte_data(client, ADT7462_REG_PIN_CFG(0));
++	reg &= ~ADT7462_DIODE3_INPUT;		// Enables the voltage measurement input for Pin 19
++	i2c_smbus_write_byte_data(client, ADT7462_REG_PIN_CFG(0), reg);
++
++	// Pin Configuration Register 2 Setting
++	reg = i2c_smbus_read_byte_data(client, ADT7462_REG_PIN_CFG(1));
++	reg &= ~ADT7462_PIN8_INPUT;		//Set Pin 8 to +12V2
++	reg &= ~ADT7462_PIN13_INPUT;	//Set Pin 13 to +3V3
++	reg &= ~ADT7462_PIN15_INPUT;	//Set Pin 15 to +2V5
++	reg &= ~ADT7462_PIN19_INPUT;	//Set Pin 19 to +1V25
++	reg &= ~ADT7462_PIN21_INPUT;	//Set Pin 21 to +5V
++	reg &= ~ADT7462_PIN22_INPUT;	//Set Pin 22 to +12V3
++	i2c_smbus_write_byte_data(client, ADT7462_REG_PIN_CFG(1), reg);
++
++	// Pin Configuration Register 3 Setting
++	reg = i2c_smbus_read_byte_data(client, ADT7462_REG_PIN_CFG(2));
++	reg &= ~ADT7462_PIN25_MASK;		// Set Pin 25 to +3V3
++	i2c_smbus_write_byte_data(client, ADT7462_REG_PIN_CFG(2), reg);
++
++	// Setup complete to monitor
++	reg = i2c_smbus_read_byte_data(client, ADT7462_MONITOR);
++	reg |= ADT7462_SETUP_COMPLETE;
++	i2c_smbus_write_byte_data(client, ADT7462_MONITOR, reg);
++
++	mutex_unlock(&data->lock);
++
+ 	hwmon_dev = devm_hwmon_device_register_with_groups(dev, client->name,
+ 							   data,
+ 							   adt7462_groups);
+-- 
+2.17.1
+

@@ -1,0 +1,102 @@
+From b066cf9ad90c9ab9bc176f6bf5db7da77f5d73ab Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 29 Apr 2022 06:48:22 +0000
+Subject: [PATCH] Bug 936 - [SW][superion][kernel] - Add SAPPHIRERAPIDS for
+ intel peci
+
+Symptom/Reason:
+    We sync the peci linux driver form Intel's public github.
+    It didn't support sapphire rapids(Eagle stream).
+    We need to patch the drivers.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    Add sapphirerapids support for peci.
+
+Entry Test:
+
+sysadmin@superions:~# ipmitool sdr list
+DTS_CPU1         | 39 degrees C      | ok
+Die_CPU1         | 39 degrees C      | ok
+DTS_CPU2         | 38 degrees C      | ok
+Die_CPU2         | 38 degrees C      | ok
+----
+DIMM_H1_CPU1     | 27 degrees C      | ok
+DIMM_D1_CPU2     | 26 degrees C      | ok
+---
+ drivers/hwmon/peci-dimmtemp.c         | 6 ++++++
+ drivers/mfd/intel-peci-client.c       | 6 ++++++
+ include/linux/mfd/intel-peci-client.h | 7 +++++++
+ 3 files changed, 19 insertions(+)
+
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index a50902ceb70a..b7c7154618cf 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -43,6 +43,7 @@ static const u8 support_model[] = {
+ 	INTEL_FAM6_SKYLAKE_XD,
+ 	INTEL_FAM6_ICELAKE_X,
+ 	INTEL_FAM6_ICELAKE_XD,
++	INTEL_FAM6_SAPPHIRERAPIDS_X,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -265,6 +266,11 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+ 		break;
++	case INTEL_FAM6_SAPPHIRERAPIDS_X:
++		/*<TBD> not sure how to get temp config hard code here as Icelake patch*/
++		priv->temp_max[dimm_no] = 85 * 1000; //85C
++		priv->temp_crit[dimm_no] = 90 * 1000; //90C
++		break;
+ 	default:
+ 		return -EOPNOTSUPP;
+ 	}
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 3eb2c59a2424..185152d41beb 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -62,6 +62,12 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_mask_bits = CORE_MASK_BITS_ON_ICXD,
+ 		.chan_rank_max  = CHAN_RANK_MAX_ON_ICXD,
+ 		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICXD },
++	{ /* SAPPHIRERAPIDS */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SAPPHIRERAPIDS_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_SAPPHIRERAPIDS,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SAPPHIRERAPIDS,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SAPPHIRERAPIDS },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 55dec5be3245..97731ac469ce 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -20,6 +20,7 @@
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
+ #define INTEL_FAM6_ICELAKE_X		0x6A
+ #define INTEL_FAM6_ICELAKE_XD		0x6C
++#define INTEL_FAM6_SAPPHIRERAPIDS_X		0x8F
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -48,6 +49,12 @@
+ #define CHAN_RANK_MAX_ON_ICXD  4  /* Max number of channel ranks on Icelake D */
+ #define DIMM_IDX_MAX_ON_ICXD   2  /* Max DIMM index per channel on Icelake D */
+ 
++/*SAPPHIRERAPIDS*/
++#define CORE_MASK_BITS_ON_SAPPHIRERAPIDS 50 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_SAPPHIRERAPIDS  8  /* Max number of channel ranks*/
++#define DIMM_IDX_MAX_ON_SAPPHIRERAPIDS   2  /* Max DIMM index per channel*/
++
++
+ #define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_ICX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.17.1
+

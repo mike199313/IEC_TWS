@@ -1,0 +1,65 @@
+From ffda300e784f8e423fdc833f6cff7194a9cef150 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Thu, 24 Feb 2022 10:22:34 +0000
+Subject: [PATCH] Initial - [Common] - Add virtual driver to simulate driver
+ behavier
+
+Symptom/Reason:
+    Add virtual driver to simulate driver behavier
+    Here just add kconfig.
+    Code should copy by bbfile.
+
+Root Casue:
+    N/A
+
+Solution/Change:
+    virtual driver
+        - Add config
+
+Entry Test:
+    N/A
+---
+ drivers/Kconfig         | 2 ++
+ drivers/Makefile        | 1 +
+ drivers/virtual/Kconfig | 9 +++++++++
+ 3 files changed, 12 insertions(+)
+ create mode 100644 drivers/virtual/Kconfig
+
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 9292c6cad652..ed1b5b39ed2a 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -241,4 +241,6 @@ source "drivers/peci/Kconfig"
+ 
+ source "drivers/jtag/Kconfig"
+ 
++source "drivers/virtual/Kconfig"
++
+ endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+index 0cc25f7446de..2c57933c7ca3 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -190,3 +190,4 @@ obj-$(CONFIG_COUNTER)		+= counter/
+ obj-$(CONFIG_MOST)		+= most/
+ obj-$(CONFIG_PECI)		+= peci/
+ obj-$(CONFIG_JTAG)		+= jtag/
++obj-$(CONFIG_VIRTUAL)		+= virtual/
+diff --git a/drivers/virtual/Kconfig b/drivers/virtual/Kconfig
+new file mode 100644
+index 000000000000..1198807d5697
+--- /dev/null
++++ b/drivers/virtual/Kconfig
+@@ -0,0 +1,9 @@
++menuconfig VIRTUAL
++	tristate "VIRTUAL support"
++	help
++	  This provides virtual driver to create hwmon or else, to simulate driver behavier.
++
++	  If you want this support, you should say Y here.
++
++	  To compile this driver as a module, choose M here: the module will
++	  be called virtual.
+-- 
+2.17.1
+

@@ -1,0 +1,38 @@
+From 0f603da6c3cdba500767a8e863139227f00f4625 Mon Sep 17 00:00:00 2001
+From: anonymous <anonymous@inventec.com>
+Date: Fri, 21 Aug 2020 12:51:46 +0800
+Subject: [PATCH] Subject: [Patch][kernel][driver] Set max31790 default enable
+ pwm mode
+
+- Default enable pwm mode that fan sensor can read tach value.
+---
+ drivers/hwmon/max31790.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/hwmon/max31790.c b/drivers/hwmon/max31790.c
+index 7e9362f6dc29..ec3eb194d4de 100644
+--- a/drivers/hwmon/max31790.c
++++ b/drivers/hwmon/max31790.c
+@@ -468,6 +468,19 @@ static int max31790_init_client(struct i2c_client *client,
+ 			return rv;
+ 		data->fan_config[i] = rv;
+ 
++		// default enable fan CFG PWM mode
++		data->fan_config[i] = (data->fan_config[i] |
++				MAX31790_FAN_CFG_TACH_INPUT_EN) &
++				~MAX31790_FAN_CFG_RPM_MODE;
++
++		rv = i2c_smbus_write_byte_data(client,
++				MAX31790_REG_FAN_CONFIG(i),
++				data->fan_config[i]);
++		if (rv < 0) {
++			printk("Failed to enable pwm mode of %s at channel-%d\n",
++				client->name, i);
++		}
++
+ 		rv = i2c_smbus_read_byte_data(client,
+ 				MAX31790_REG_FAN_DYNAMICS(i));
+ 		if (rv < 0)
+-- 
+2.17.1
+

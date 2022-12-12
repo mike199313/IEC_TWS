@@ -1,0 +1,44 @@
+From 8c0b53638be91efd903a6b9e1564c2e6ceabbd72 Mon Sep 17 00:00:00 2001
+From: Wein <kuo.wein@inventec.com>
+Date: Wed, 13 Apr 2022 14:09:28 +0800
+Subject: [PATCH] Fix KCS3 cannot be created
+
+---
+ arch/arm/boot/dts/aspeed-g6.dtsi | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/boot/dts/aspeed-g6.dtsi b/arch/arm/boot/dts/aspeed-g6.dtsi
+index 242ff7743256..ee572e836544 100644
+--- a/arch/arm/boot/dts/aspeed-g6.dtsi
++++ b/arch/arm/boot/dts/aspeed-g6.dtsi
+@@ -896,6 +896,7 @@
+ 					reg = <0x0 0x130>;
+ 					interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
+ 					kcs_chan = <1>;
++					kcs_addr = <0xCA0>;
+ 					status = "disabled";
+ 				};
+ 
+@@ -904,15 +905,16 @@
+ 					reg = <0x0 0x130>;
+ 					interrupts = <GIC_SPI 139 IRQ_TYPE_LEVEL_HIGH>;
+ 					kcs_chan = <2>;
++					kcs_addr = <0xCA8>;
+ 					status = "disabled";
+ 				};
+ 
+ 				kcs3: kcs3@2c {
+-					compatible = "aspeed,ast2600-kcs-bmc";
+-					reg = <0x0 0x130>;
++					compatible = "aspeed,ast2500-kcs-bmc-v2";
++					reg = <0x2c 0x1>, <0x38 0x1>, <0x44 0x1>;
+ 					interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
+ 					kcs_chan = <3>;
+-					status = "disabled";
++					aspeed,lpc-io-reg = <0xca2>;
+ 				};
+ 
+ 				kcs4: kcs4@114 {
+-- 
+2.17.1
+

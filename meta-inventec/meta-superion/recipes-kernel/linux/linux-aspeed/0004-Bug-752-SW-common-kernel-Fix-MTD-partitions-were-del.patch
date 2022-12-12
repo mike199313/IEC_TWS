@@ -1,0 +1,70 @@
+From e1a0a2c51534be6e8bafe89d721e2e79b3bbd996 Mon Sep 17 00:00:00 2001
+From: OpenEmbedded <oe.patch@oe>
+Date: Wed, 7 Dec 2022 10:28:05 +0800
+Subject: [PATCH 1/1] 
+ Bug-752-SW-common-kernel-Fix-MTD-partitions-were-del.patch
+
+---
+ drivers/mtd/spi-nor/controllers/aspeed-smc.c | 26 +++++++++++++++++---
+ 1 file changed, 23 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/mtd/spi-nor/controllers/aspeed-smc.c b/drivers/mtd/spi-nor/controllers/aspeed-smc.c
+index 7225870e8b18..b96304a298ab 100644
+--- a/drivers/mtd/spi-nor/controllers/aspeed-smc.c
++++ b/drivers/mtd/spi-nor/controllers/aspeed-smc.c
+@@ -769,6 +769,7 @@ static int aspeed_smc_setup_flash(struct aspeed_smc_controller *controller,
+ 	struct device_node *child;
+ 	unsigned int cs;
+ 	int ret = -ENODEV;
++	unsigned int n;
+ 
+ 	for_each_available_child_of_node(np, child) {
+ 		struct aspeed_smc_chip *chip;
+@@ -827,8 +828,12 @@ static int aspeed_smc_setup_flash(struct aspeed_smc_controller *controller,
+ 		 * by of property.
+ 		 */
+ 		ret = spi_nor_scan(nor, NULL, &hwcaps);
++		/* Inventec - Fix MTD partitions were deleted due to another flash not found */
+ 		if (ret)
+-			break;
++		{
++			//break;
++			continue;
++		}
+ 
+ 		ret = aspeed_smc_chip_setup_finish(chip);
+ 		if (ret)
+@@ -840,13 +845,28 @@ static int aspeed_smc_setup_flash(struct aspeed_smc_controller *controller,
+ 
+ 		controller->chips[cs] = chip;
+ 	}
+-
++	/* Inventec - Fix MTD partitions were deleted due to another flash not found */
++	/*
+ 	if (ret) {
+ 		of_node_put(child);
+ 		aspeed_smc_unregister(controller);
+ 	}
++	*/
+ 
+-	return ret;
++	/* Were any children registered? */
++	for (n = 0; n < info->nce; n++){
++		if (controller->chips[n]){
++			break;
++		}
++	}
++
++	if (n == info->nce){
++		printk("Setup flash failed");
++		aspeed_smc_unregister(controller);
++		return -ENODEV;
++	}
++
++	return 0;
+ }
+ 
+ static int aspeed_smc_probe(struct platform_device *pdev)
+-- 
+2.25.1
+
