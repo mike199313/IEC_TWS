@@ -10,6 +10,7 @@ KERNEL_FEATURES:remove += " phosphor-gpio-keys \
 SRC_URI:append = " file://superion.cfg \
                    file://arch \
                    file://0001-Kernel-sync-Aspeed-tag-00.05.03-soc-i3c-drivers.patch \
+                   file://0002-Kernel-sync-Aspeed-tag-00.05.03-misc-drivers.patch \
                  "
 
 do_add_overwrite_files () {
