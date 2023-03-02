@@ -53,4 +53,5 @@ RDEPENDS:${PN}-system = " \
         phosphor-gpio-monitor \
         phosphor-gpio-monitor-monitor \
         vlan \
+        phosphor-host-postd \
         "
