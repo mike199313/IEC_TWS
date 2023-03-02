@@ -31,40 +31,40 @@
 		ranges;
 
 		gfx_memory: framebuffer {
-				size = <0x01000000>;
-				alignment = <0x01000000>;
-				compatible = "shared-dma-pool";
-				reusable;
+			size = <0x01000000>;
+			alignment = <0x01000000>;
+			compatible = "shared-dma-pool";
+			reusable;
 		};
 
 		video_engine_memory: jpegbuffer {
-				size = <0x04000000>; /*64MB*/
-				alignment = <0x01000000>;
-				compatible = "shared-dma-pool";
-				reusable;
+			size = <0x04000000>; /*64MB*/
+			alignment = <0x01000000>;
+			compatible = "shared-dma-pool";
+			reusable;
 		};
 
 		ssp_memory: ssp_memory {
-				size = <0x00200000>;
-				alignment = <0x00100000>;
-				compatible = "shared-dma-pool";
-				no-map;
+			size = <0x00200000>;
+			alignment = <0x00100000>;
+			compatible = "shared-dma-pool";
+			no-map;
 		};
 #if 0
 		espi_peripheral_memory: espi_peripheral_memory {
-				no-map;
-				reg = <0x98000000 0x04000000>; /* 64M */
-				size = <0x01000000>;
-				alignment = <0x01000000>;
-				compatible = "shared-dma-pool";
-				reusable;
+			no-map;
+			reg = <0x98000000 0x04000000>; /* 64M */
+			size = <0x01000000>;
+			alignment = <0x01000000>;
+			compatible = "shared-dma-pool";
+			reusable;
 		};
 #endif
 };
 
 	vga-shared-memory {
-			compatible = "aspeed,ast2500-vga-sharedmem";
-			reg = <0xbff00000 0x10000>;
+		compatible = "aspeed,ast2500-vga-sharedmem";
+		reg = <0xbff00000 0x10000>;
 	};
 
 	vcc_sdhci0: regulator-vcc-sdhci0 {
@@ -150,42 +150,42 @@
 	status = "okay";
 	num-cs = <1>;
 	flash@0 {
-			status = "okay";
-			m25p,fast-read;
-			label = "bmc";
-			spi-max-frequency = <33000000>;
-			spi-tx-bus-width = <2>;
-			spi-rx-bus-width = <2>;
-			partitions {
-					compatible = "fixed-partitions";
-					#address-cells = <0x1>;
-					#size-cells = <0x1>;
+		status = "okay";
+		m25p,fast-read;
+		label = "bmc";
+		spi-max-frequency = <33000000>;
+		spi-tx-bus-width = <2>;
+		spi-rx-bus-width = <2>;
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <0x1>;
+			#size-cells = <0x1>;
 
-					u-boot@0 {
-							reg = <0x0 0xe0000>;
-							label = "u-boot";
-					};
-
-					u-boot-env@e0000 {
-							reg = <0xe0000 0x20000>;
-							label = "u-boot-env";
-					};
-
-					kernel@100000 {
-							reg = <0x100000 0x900000>;
-							label = "kernel";
-					};
-
-					rofs@a00000 {
-							reg = <0xa00000 0x2000000>;
-							label = "rofs";
-					};
-
-					rwfs@2a00000 {
-							reg = <0x2a00000 0x1600000>;
-							label = "rwfs";
-					};
+			u-boot@0 {
+				reg = <0x0 0xe0000>;
+				label = "u-boot";
 			};
+
+			u-boot-env@e0000 {
+				reg = <0xe0000 0x20000>;
+				label = "u-boot-env";
+			};
+
+			kernel@100000 {
+				reg = <0x100000 0x900000>;
+				label = "kernel";
+			};
+
+			rofs@a00000 {
+				reg = <0xa00000 0x2000000>;
+				label = "rofs";
+			};
+
+			rwfs@2a00000 {
+				reg = <0x2a00000 0x1600000>;
+				label = "rwfs";
+			};
+		};
 	};
 };
 
@@ -194,12 +194,12 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_spi1_default>;
 	flash@0 {
-			status = "okay";
-			m25p,fast-read;
-			label = "bios";
-			spi-max-frequency = <33000000>;
-			spi-tx-bus-width = <1>;
-			spi-rx-bus-width = <1>;
+		status = "okay";
+		m25p,fast-read;
+		label = "bios";
+		spi-max-frequency = <33000000>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
 	};
 };
 
@@ -232,156 +232,152 @@
 	// I2C EXPANDER
 	status = "okay";
 	i2c-switch@70 {
-			compatible = "nxp,pca9546";
+		compatible = "nxp,pca9546";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x70>;
+
+		hsbp_picpwr0: i2c@0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <0x70>;
+			reg = <0>;
 
-			hsbp_picpwr0: i2c@0 {
+			hsbp_picpwr0_cpld: i2c@0 {
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0>;
-
-				hsbp_picpwr0_cpld: i2c@0 {
-					#address-cells = <1>;
-					#size-cells = <0>;
-					reg = <0>;					
-				};
-
-				hsbp_picpwr0_non_cpld: i2c@1 {
-					#address-cells = <1>;
-					#size-cells = <0>;
-					reg = <1>;
-
-					//FRU
-					eeprom@51 {
-						compatible = "atmel,24c512";
-						reg = <0x51>;
-						pagesize = <128>;
-					};
-
-					// I2C EXPANDER
-					i2c-switch@71 {
-						compatible = "nxp,pca9546";
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <0x71>;
-
-						hsbp_picpwr0_non_cpld_0: i2c@0 {
-							//E3.S
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <0>;
-						};
-
-						hsbp_picpwr0_non_cpld_1: i2c@1 {
-							//E3.S
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <1>;
-						};
-
-						hsbp_picpwr0_non_cpld_2: i2c@2 {
-							//CPLD_UPGRADE
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <2>;
-						};
-
-						hsbp_picpwr0_non_cpld_3: i2c@3 {
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <3>;
-							//PWR MON INA220
-							ina220@40 {
-								compatible = "ti,ina220";
-								reg = <0x40>;
-								shunt-resistor = <500>;
-							};							
-						};				
-			
-					};
-
-				};
 			};
-			
-			hsbp_picpwr1: i2c@1 {
+
+			hsbp_picpwr0_non_cpld: i2c@1 {
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <1>;
 
-				hsbp_picpwr1_cpld: i2c@0 {
-					#address-cells = <1>;
-					#size-cells = <0>;
-					reg = <0>;					
+				//FRU
+				eeprom@51 {
+					compatible = "atmel,24c512";
+					reg = <0x51>;
+					pagesize = <128>;
 				};
 
-				hsbp_picpwr1_non_cpld: i2c@1 {
+				// I2C EXPANDER
+				i2c-switch@71 {
+					compatible = "nxp,pca9546";
 					#address-cells = <1>;
 					#size-cells = <0>;
-					reg = <1>;
-					eeprom@51 {
-						compatible = "atmel,24c512";
-						reg = <0x51>;
-						pagesize = <128>;
-					};
-					i2c-switch@71 {
-						compatible = "nxp,pca9546";
+					reg = <0x71>;
+
+					hsbp_picpwr0_non_cpld_0: i2c@0 {
+						//E3.S
 						#address-cells = <1>;
 						#size-cells = <0>;
-						reg = <0x71>;
-
-						hsbp_picpwr1_non_cpld_0: i2c@0 {
-							//E3.S
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <0>;
-						};
-
-						hsbp_picpwr1_non_cpld_1: i2c@1 {
-							//E3.S
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <1>;
-						};
-
-						hsbp_picpwr1_non_cpld_2: i2c@2 {
-							//CPLD_UPGRADE
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <2>;
-						};
-
-						hsbp_picpwr1_non_cpld_3: i2c@3 {
-							#address-cells = <1>;
-							#size-cells = <0>;
-							reg = <3>;
-							//PWR MON INA220
-							ina220@40 {
-								compatible = "ti,ina220";
-								reg = <0x40>;
-								shunt-resistor = <500>;
-							};							
-						};				
-			
+						reg = <0>;
 					};
 
+					hsbp_picpwr0_non_cpld_1: i2c@1 {
+						//E3.S
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <1>;
+					};
+
+					hsbp_picpwr0_non_cpld_2: i2c@2 {
+						//CPLD_UPGRADE
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <2>;
+					};
+
+					hsbp_picpwr0_non_cpld_3: i2c@3 {
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <3>;
+						//PWR MON INA220
+						ina220@40 {
+							compatible = "ti,ina220";
+							reg = <0x40>;
+							shunt-resistor = <500>;
+						};
+					};
 				};
 			};
+		};
+
+		hsbp_picpwr1: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+
+			hsbp_picpwr1_cpld: i2c@0 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0>;
+			};
+
+			hsbp_picpwr1_non_cpld: i2c@1 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <1>;
+				eeprom@51 {
+					compatible = "atmel,24c512";
+					reg = <0x51>;
+					pagesize = <128>;
+				};
+				i2c-switch@71 {
+					compatible = "nxp,pca9546";
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <0x71>;
+
+					hsbp_picpwr1_non_cpld_0: i2c@0 {
+						//E3.S
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <0>;
+					};
+
+					hsbp_picpwr1_non_cpld_1: i2c@1 {
+						//E3.S
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <1>;
+					};
+
+					hsbp_picpwr1_non_cpld_2: i2c@2 {
+						//CPLD_UPGRADE
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <2>;
+					};
+
+					hsbp_picpwr1_non_cpld_3: i2c@3 {
+						#address-cells = <1>;
+						#size-cells = <0>;
+						reg = <3>;
+						//PWR MON INA220
+						ina220@40 {
+							compatible = "ti,ina220";
+							reg = <0x40>;
+							shunt-resistor = <500>;
+						};
+					};
+				};
+			};
+		};
 	};
 };	
 
 &i2c6 {
 	status = "okay";
 	tmp75@48 {
-			compatible = "ti,tmp75";
-			reg = <0x48>;
+		compatible = "ti,tmp75";
+		reg = <0x48>;
 	};
 
 	tmp75@49 {
-			compatible = "ti,tmp75";
-			reg = <0x49>;
-		};
+		compatible = "ti,tmp75";
+		reg = <0x49>;
+	};
 };
 
 &i2c7 {
@@ -391,23 +387,18 @@
 &i2c8 {
 	status = "okay";
 
-	//lm75@4d {
-	//	compatible = "national,lm75";
-	//	reg = <0x4d>;
-	//};
-	
-	    // FRU AT24C512C-SSHM-T
-    	eeprom@50 {
-                compatible = "atmel,24c64";
-                reg = <0x50>;
-                pagesize = <32>;
-        };
+	// FRU AT24C512C-SSHM-T
+	eeprom@50 {
+		compatible = "atmel,24c64";
+		reg = <0x50>;
+		pagesize = <32>;
+	};
 
-        eeprom@51 {
-                compatible = "atmel,24c512";
-                reg = <0x51>;
-                pagesize = <128>;
-        };
+	eeprom@51 {
+		compatible = "atmel,24c512";
+		reg = <0x51>;
+		pagesize = <128>;
+	};
 };
 
 &i2c9 {
@@ -422,52 +413,52 @@
 	// I2C EXPANDER
 	status = "okay";
 	i2c-switch@70 {
-			compatible = "nxp,pca9546";
+		compatible = "nxp,pca9546";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x70>;
+
+		cem_side: i2c@0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <0x70>;
-		
-			cem_side: i2c@0 {
-					#address-cells = <1>;
-					#size-cells = <0>;
-					reg = <0>;
+			reg = <0>;
 
-					tmp75@48 {
-						compatible = "ti,tmp75";
-						reg = <0x48>;
-					};	
-
-					eeprom@50 {
-							compatible = "atmel,24c512";
-							reg = <0x50>;
-							pagesize = <128>;
-					};
+			tmp75@48 {
+				compatible = "ti,tmp75";
+				reg = <0x48>;
 			};
-			fan_side: i2c@1 {
-					#address-cells = <1>;
-					#size-cells = <0>;
-					reg = <1>;
 
-					tmp75@48 {
-						compatible = "ti,tmp75";
-						reg = <0x48>;
-					};
-
-					max31790@20 {
-						compatible = "maxim,max31790";
-						reg = <0x20>;
-					};
-
-					max31790@21 {
-						compatible = "maxim,max31790";
-						reg = <0x21>;
-					};
-
-					emc2302@2e {
-						compatible = "emc2302";
-						reg = <0x2e>;
-					};
+			eeprom@50 {
+				compatible = "atmel,24c512";
+				reg = <0x50>;
+				pagesize = <128>;
 			};
+		};
+		fan_side: i2c@1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+
+			tmp75@48 {
+				compatible = "ti,tmp75";
+				reg = <0x48>;
+			};
+
+			max31790@20 {
+				compatible = "maxim,max31790";
+				reg = <0x20>;
+			};
+
+			max31790@21 {
+				compatible = "maxim,max31790";
+				reg = <0x21>;
+			};
+
+			emc2302@2e {
+				compatible = "emc2302";
+				reg = <0x2e>;
+			};
+		};
 	};
 };
 
@@ -483,107 +474,107 @@
 	// I2C EXPANDER
 	status = "okay";
 	i2c-switch@70 {
-			compatible = "nxp,pca9546";
+		compatible = "nxp,pca9546";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x70>;
+
+		switch_mux0: i2c0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <0x70>;
+			reg = <0>;
 
-			switch_mux0: i2c0 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <0>;	
-
-				switch_mux0_pvccin_vr: xdpe19284b@60 {/* XDPE19284B - PVCCIN VR */
-					compatible = "infineon,xdpe12284";
-					reg = <0x60>;
-				};	
-				
-				switch_mux0_pvccfa_ehv_fivra: xdpe19284b@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
-					compatible = "infineon,xdpe12284";
-					reg = <0x62>;
-				};	
-				
-				switch_mux0_pvccd0_d1_vr: xdpe19284b@76 {/* XDPE19284B - PVCCD0 & D1 VR */
-					compatible = "infineon,xdpe12284";
-					reg = <0x76>;
-				};	
-				
-				switch_mux0_pvcca_ehv_pvnn_vr: xdpe19284b@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
-					compatible = "infineon,xdpe12284";
-					reg = <0x74>;
-				};
-
-				//PWR MON INA219
-				ina219@40 {
-					compatible = "ti,ina219";
-					reg = <0x40>;
-					shunt-resistor = <500>;
-				};		
-
-				//PWR MON INA219
-				ina219@41 {
-					compatible = "ti,ina219";
-					reg = <0x41>;
-					shunt-resistor = <500>;
-				};	
+			switch_mux0_pvccin_vr: xdpe19284b@60 {/* XDPE19284B - PVCCIN VR */
+				compatible = "infineon,xdpe12284";
+				reg = <0x60>;
 			};
 
-			switch_mux1: i2c1 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <1>;	
-
-				switch_mux1_pvccin_vr: xdpe19284b@60 {/* XDPE19284B - PVCCIN VR */
-					compatible = "infineon,xdpe12284";
-					reg = <0x60>;
-				};	
-				
-				switch_mux1_pvccfa_ehv_fivra: xdpe19284b@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
-					compatible = "infineon,xdpe12284";
-					reg = <0x62>;
-				};	
-				
-				switch_mux1_pvccd0_d1_vr: xdpe19284b@76 {/* XDPE19284B - PVCCD0 & D1 VR */
-					compatible = "infineon,xdpe12284";
-					reg = <0x76>;
-				};	
-				
-				switch_mux1_pvcca_ehv_pvnn_vr: xdpe19284b@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
-					compatible = "infineon,xdpe12284";
-					reg = <0x74>;
-				};
-
-				//Voltage Sensor MAX1139
-				adc: voltage-sensor@35 {
-					compatible = "maxim,max1139";
-					reg = <0x35>;
-					#io-channel-cells = <1>;
-				};		
+			switch_mux0_pvccfa_ehv_fivra: xdpe19284b@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
+				compatible = "infineon,xdpe12284";
+				reg = <0x62>;
 			};
 
-			switch_mux2: i2c2 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <2>;
-
-				//PSU1
-				switch_mux2_psu: psu0@58 {
-					compatible = "pmbus";
-					reg = <0x58>;
-				};
+			switch_mux0_pvccd0_d1_vr: xdpe19284b@76 {/* XDPE19284B - PVCCD0 & D1 VR */
+				compatible = "infineon,xdpe12284";
+				reg = <0x76>;
 			};
 
-			switch_mux3: i2c3 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <3>;
-
-				//PSU2
-				switch_mux3_psu: psu0@58 {
-					compatible = "pmbus";
-					reg = <0x58>;
-				};
+			switch_mux0_pvcca_ehv_pvnn_vr: xdpe19284b@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
+				compatible = "infineon,xdpe12284";
+				reg = <0x74>;
 			};
+
+			//PWR MON INA219
+			ina219@40 {
+				compatible = "ti,ina219";
+				reg = <0x40>;
+				shunt-resistor = <500>;
+			};
+
+			//PWR MON INA219
+			ina219@41 {
+				compatible = "ti,ina219";
+				reg = <0x41>;
+				shunt-resistor = <500>;
+			};
+		};
+
+		switch_mux1: i2c1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+
+			switch_mux1_pvccin_vr: xdpe19284b@60 {/* XDPE19284B - PVCCIN VR */
+				compatible = "infineon,xdpe12284";
+				reg = <0x60>;
+			};
+
+			switch_mux1_pvccfa_ehv_fivra: xdpe19284b@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
+				compatible = "infineon,xdpe12284";
+				reg = <0x62>;
+			};
+
+			switch_mux1_pvccd0_d1_vr: xdpe19284b@76 {/* XDPE19284B - PVCCD0 & D1 VR */
+				compatible = "infineon,xdpe12284";
+				reg = <0x76>;
+			};
+
+			switch_mux1_pvcca_ehv_pvnn_vr: xdpe19284b@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
+				compatible = "infineon,xdpe12284";
+				reg = <0x74>;
+			};
+
+			//Voltage Sensor MAX1139
+			adc: voltage-sensor@35 {
+				compatible = "maxim,max1139";
+				reg = <0x35>;
+				#io-channel-cells = <1>;
+			};
+		};
+
+		switch_mux2: i2c2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+
+			//PSU1
+			switch_mux2_psu: psu0@58 {
+				compatible = "pmbus";
+				reg = <0x58>;
+			};
+		};
+
+		switch_mux3: i2c3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+
+			//PSU2
+			switch_mux3_psu: psu0@58 {
+				compatible = "pmbus";
+				reg = <0x58>;
+			};
+		};
 	};
 };
 
@@ -591,149 +582,146 @@
 	// I2C EXPANDER
 	status = "okay";
 	i2c-switch@70 { /* MUX 0xE0 */
-			compatible = "nxp,pca9546";
+		compatible = "nxp,pca9546";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x70>;
+
+		ocp_nic: i2c@0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <0x70>;
+			reg = <0>;
 
-			ocp_nic: i2c@0 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <0>;
-				
-				//OCP NIC P0 PE3
+			//OCP NIC P0 PE3
+		};
+
+		pcie_riser1: i2c@1 { /* Riser1 P0 PE0 */
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;
+
+			eeprom@50 {//Riser1 FRU
+				compatible = "atmel,24c512";
+				reg = <0x50>;
+				pagesize = <128>;
 			};
 
-			pcie_riser1: i2c@1 { /* Riser1 P0 PE0 */
+			i2c-switch@70 {//Riser1 MUX
+				compatible = "nxp,pca9546";
 				#address-cells = <1>;
 				#size-cells = <0>;
-				reg = <1>;		
-				
-				eeprom@50 {//Riser1 FRU
-					compatible = "atmel,24c512";
-					reg = <0x50>;
-					pagesize = <128>;			
-				};		
-			
-				i2c-switch@70 {//Riser1 MUX
-					compatible = "nxp,pca9546";
+				reg = <0x70>;
+
+				pcie_riser1_mux0: i2c@0 {
 					#address-cells = <1>;
 					#size-cells = <0>;
-					reg = <0x70>;
+					reg = <0>;
 
-					pcie_riser1_mux0: i2c@0 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <0>;
-
-						//pcie slot1					
-					};
-				
-					pcie_riser1_mux1: i2c@1 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <1>;
-
-						//pcie slot2					
-					};			
-
-					pcie_riser1_mux2: i2c@2 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <2>;
-
-						//PWR MON INA220
-						ina220@40 {
-							compatible = "ti,ina220";
-							reg = <0x40>;
-							shunt-resistor = <500>;
-						};						
-					};	
-
-					pcie_riser1_mux3: i2c@3 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <3>;
-
-						//TMP75
-						tmp75@49 {
-							compatible = "ti,tmp75";
-							reg = <0x49>;
-						};				
-					};	
-
+					//pcie slot1
 				};
-			};
 
-			pcie_riser2: i2c@2 { /* Riser2 P0 PE2 */
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <2>;		
-				
-				eeprom@50 {//Riser1 FRU
-					compatible = "atmel,24c512";
-					reg = <0x50>;
-					pagesize = <128>;			
-				};		
-			
-				i2c-switch@70 {//Riser1 MUX
-					compatible = "nxp,pca9546";
+				pcie_riser1_mux1: i2c@1 {
 					#address-cells = <1>;
 					#size-cells = <0>;
-					reg = <0x70>;
+					reg = <1>;
 
-					pcie_riser2_mux0: i2c@0 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <0>;
+					//pcie slot2
+				};
 
-						//pcie slot1					
+				pcie_riser1_mux2: i2c@2 {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <2>;
+
+					//PWR MON INA220
+					ina220@40 {
+						compatible = "ti,ina220";
+						reg = <0x40>;
+						shunt-resistor = <500>;
 					};
-				
-					pcie_riser2_mux1: i2c@1 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <1>;
+				};
 
-						//pcie slot2					
-					};			
+				pcie_riser1_mux3: i2c@3 {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <3>;
 
-					pcie_riser2_mux2: i2c@2 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <2>;
-
-						//PWR MON INA220
-						ina220@40 {
-							compatible = "ti,ina220";
-							reg = <0x40>;
-							shunt-resistor = <500>;
-						};						
-					};	
-
-					pcie_riser2_mux3: i2c@3 {
-						#address-cells = <1>;
-						#size-cells = <0>;
-						reg = <3>;
-
-						//TMP75
-						tmp75@49 {
-							compatible = "ti,tmp75";
-							reg = <0x49>;
-						};				
-					};	
-
+					//TMP75
+					tmp75@49 {
+						compatible = "ti,tmp75";
+						reg = <0x49>;
+					};
 				};
 			};
-			
-			m_2: i2c@3 {
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <3>;
-				
-				//M.2 P0 PE1
+		};
+
+		pcie_riser2: i2c@2 { /* Riser2 P0 PE2 */
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+
+			eeprom@50 {//Riser1 FRU
+				compatible = "atmel,24c512";
+				reg = <0x50>;
+				pagesize = <128>;
 			};
 
+			i2c-switch@70 {//Riser1 MUX
+				compatible = "nxp,pca9546";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0x70>;
+
+				pcie_riser2_mux0: i2c@0 {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <0>;
+
+					//pcie slot1
+				};
+
+				pcie_riser2_mux1: i2c@1 {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <1>;
+
+					//pcie slot2
+				};
+
+				pcie_riser2_mux2: i2c@2 {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <2>;
+
+					//PWR MON INA220
+					ina220@40 {
+						compatible = "ti,ina220";
+						reg = <0x40>;
+						shunt-resistor = <500>;
+					};
+				};
+
+				pcie_riser2_mux3: i2c@3 {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					reg = <3>;
+
+					//TMP75
+					tmp75@49 {
+						compatible = "ti,tmp75";
+						reg = <0x49>;
+					};
+				};
+			};
+		};
+
+		m_2: i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+
+			//M.2 P0 PE1
+		};
 	};
 
 	i2c-switch@71 { /* MUX 0xE2 */
@@ -745,36 +733,36 @@
 		pcie_riser3: i2c@0 { /* Riser3 P1 PE3 */
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <0>;		
-			
+			reg = <0>;
+
 			eeprom@50 {//Riser1 FRU
 				compatible = "atmel,24c512";
 				reg = <0x50>;
-				pagesize = <128>;			
-			};		
-		
+				pagesize = <128>;
+			};
+
 			i2c-switch@70 {//Riser1 MUX
 				compatible = "nxp,pca9546";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x70>;
-	
+
 				pcie_riser3_mux0: i2c@0 {
 					#address-cells = <1>;
 					#size-cells = <0>;
 					reg = <0>;
-	
-					//pcie slot1					
+
+					//pcie slot1
 				};
 			
 				pcie_riser3_mux1: i2c@1 {
 					#address-cells = <1>;
 					#size-cells = <0>;
 					reg = <1>;
-	
-					//pcie slot2					
-				};			
-	
+
+					//pcie slot2
+				};
+
 				pcie_riser3_mux2: i2c@2 {
 					#address-cells = <1>;
 					#size-cells = <0>;
@@ -785,34 +773,33 @@
 						compatible = "ti,ina220";
 						reg = <0x40>;
 						shunt-resistor = <500>;
-					};						
-				};	
-	
+					};
+				};
+
 				pcie_riser3_mux3: i2c@3 {
 					#address-cells = <1>;
 					#size-cells = <0>;
 					reg = <3>;
-	
+
 					//TMP75
 					tmp75@49 {
 						compatible = "ti,tmp75";
 						reg = <0x49>;
-					};				
-				};	
-	
+					};
+				};
 			};
 		};
 
 		pcie_riser4: i2c@1 { /* Riser4 P1 PE0 */
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <1>;		
+			reg = <1>;
 			
 			eeprom@50 {//Riser1 FRU
 				compatible = "atmel,24c512";
 				reg = <0x50>;
-				pagesize = <128>;			
-			};		
+				pagesize = <128>;
+			};
 		
 			i2c-switch@70 {//Riser1 MUX
 				compatible = "nxp,pca9546";
@@ -825,7 +812,7 @@
 					#size-cells = <0>;
 					reg = <0>;
 
-					//pcie slot1					
+					//pcie slot1
 				};
 			
 				pcie_riser4_mux1: i2c@1 {
@@ -833,8 +820,8 @@
 					#size-cells = <0>;
 					reg = <1>;
 
-					//pcie slot2					
-				};			
+					//pcie slot2
+				};
 
 				pcie_riser4_mux2: i2c@2 {
 					#address-cells = <1>;
@@ -846,8 +833,8 @@
 						compatible = "ti,ina220";
 						reg = <0x40>;
 						shunt-resistor = <500>;
-					};						
-				};	
+					};
+				};
 
 				pcie_riser4_mux3: i2c@3 {
 					#address-cells = <1>;
@@ -858,8 +845,8 @@
 					tmp75@49 {
 						compatible = "ti,tmp75";
 						reg = <0x49>;
-					};				
-				};	
+					};
+				};
 
 			};
 		};
@@ -867,14 +854,14 @@
 		pcie_riser5: i2c@2 { /* Riser5 P1 PE2 */
 			#address-cells = <1>;
 			#size-cells = <0>;
-			reg = <2>;		
-			
+			reg = <2>;
+
 			eeprom@50 {//Riser1 FRU
 				compatible = "atmel,24c512";
 				reg = <0x50>;
-				pagesize = <128>;			
-			};		
-		
+				pagesize = <128>;
+			};
+
 			i2c-switch@70 {//Riser1 MUX
 				compatible = "nxp,pca9546";
 				#address-cells = <1>;
@@ -886,16 +873,16 @@
 					#size-cells = <0>;
 					reg = <0>;
 
-					//pcie slot1					
+					//pcie slot1
 				};
-			
+
 				pcie_riser5_mux1: i2c@1 {
 					#address-cells = <1>;
 					#size-cells = <0>;
 					reg = <1>;
 
-					//pcie slot2					
-				};			
+					//pcie slot2
+				};
 
 				pcie_riser5_mux2: i2c@2 {
 					#address-cells = <1>;
@@ -907,7 +894,7 @@
 						compatible = "ti,ina220";
 						reg = <0x40>;
 						shunt-resistor = <500>;
-					};						
+					};
 				};	
 
 				pcie_riser5_mux3: i2c@3 {
@@ -919,9 +906,8 @@
 					tmp75@49 {
 						compatible = "ti,tmp75";
 						reg = <0x49>;
-					};				
-				};	
-
+					};
+				};
 			};
 		};
 
@@ -929,19 +915,69 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <3>;
-			
+
 			//MCIO P1 PE1
 		};
-		
 	};
 };
 
 &gpio0 {
 	status = "okay";
+	gpio-line-names =
+	/*A0-A7*/   "","","","","","","","",
+	/*B0-B7*/   "","","","","","","","",
+	/*C0-C7*/   "","","","","","","","",
+	/*D0-D7*/   "","","","","","","","",
+	/*E0-E7*/   "","","","","","","","",
+	/*F0-F7*/   "","","","","","","","",
+	/*G0-G7*/   "","","","","","","","",
+	/*H0-H7*/   "","","","","","","","",
+	/*I0-I7*/   "","","","","","","","",
+	/*J0-J7*/   "","","","","","","","",
+	/*K0-K7*/   "","","","","","","","",
+	/*L0-L7*/   "","","","","","","","",
+	/*M0-M7*/   "","","","","","","","",
+	/*N0-N7*/   "","","","","","","","",
+	/*O0-O7*/   "","","","","","","","",
+	/*P0-P7*/   "","","","","","","","",
+	/*Q0-Q7*/   "","","","","","","","",
+	/*R0-R7*/   "","","","","","","","BMC_READY",
+	/*S0-S7*/   "","","","","","","","",
+	/*T0-T7*/   "","","","","","","","",
+	/*U0-U7*/   "","","","","","","","",
+	/*V0-V7*/   "RST_BMC_SGPIO","","","","","","","",
+	/*W0-W7*/   "","","","","","","","",
+	/*X0-X7*/   "","","","","","","","",
+	/*Y0-Y7*/   "","","","","","","","",
+	/*Z0-Z7*/   "","","","","","","","",
+	/*AA0-AA7*/ "","","","","","","","",
+	/*AB0-AB7*/ "","","","","","","","",
+	/*AC0-AC7*/ "","","","","","","","";
 };
 
 &sgpiom0 {
 	status = "okay";
+	max-ngpios = <64>;
+	ngpios = <64>;
+	bus-frequency = <1000000>;
+	gpio-line-names =
+	/*in - out - in - out */
+	/*A0-A7*/   "FAN1_INSTALL_R_N","LED_PORT80_0_N","MLB_BRD_REV_ID1","LED_PORT80_1_N","MLB_BRD_REV_ID0","LED_PORT80_2_N","MLB_BRD_SKU_ID3","LED_PORT80_3_N",
+	/*A0-A7*/   "MLB_BRD_SKU_ID2","LED_PORT80_4_N","MLB_BRD_SKU_ID1","LED_PORT80_5_N","MLB_BRD_SKU_ID0","LED_PORT80_6_N","FM_TPM_PRSNT_N","LED_PORT80_7_N",
+	/*B0-B7*/   "PE_M2_ALERT_R_N","CPLD_JTAG_OE_R_N","PASSWORD_CLEAR_N","RST_PE_SLOT_I2C_MUX_N","IRQ_PSYS_CRIT_N","","FAN6_INSTALL_R_N","",
+	/*B0-B7*/   "FAN5_INSTALL_R_N","","FAN4_INSTALL_R_N","","FAN3_INSTALL_R_N","","FAN2_INSTALL_R_N","",
+	/*C0-C7*/   "RISER4_ID2_R","","RISER4_ID1_R","","RISER4_ID0_R","","RISER5_ID2_R","",
+	/*C0-C7*/   "RISER5_ID1_R","","RISER5_ID0_R","","","","","",
+	/*D0-D7*/   "RISER1_ID1_R","","RISER1_ID0_R","","RISER2_ID2_R","","RISER2_ID1_R","",
+	/*D0-D7*/   "RISER2_ID0_R","","RISER3_ID2_R","","RISER3_ID1_R","","RISER3_ID0_R","",
+	/*E0-E7*/   "PRSNT_RISER3_SLOT1_N","","PRSNT_RISER4_SLOT3_N","","PRSNT_RISER4_SLOT2_N","","PRSNT_RISER4_SLOT1_N","",
+	/*E0-E7*/   "PRSNT_RISER5_SLOT3_N","","PRSNT_RISER5_SLOT2_N","","PRSNT_RISER5_SLOT1_N","","RISER1_ID2_R","",
+	/*F0-F7*/   "PRSNT_RISER1_SLOT3_N","","PRSNT_RISER1_SLOT2_N","","PRSNT_RISER1_SLOT1_N","","PRSNT_RISER2_SLOT3_N","",
+	/*F0-F7*/   "PRSNT_RISER2_SLOT2_N","","PRSNT_RISER2_SLOT1_N","","PRSNT_RISER3_SLOT3_N","","PRSNT_RISER3_SLOT2_N","",
+	/*G0-G7*/   "CPU1_CD_INIT_ERROR","","PWRGD_CPU0_S0_PWROK_R","","PWRGD_CPU1_S0_PWROK_R","","RISER1_PRSNT_N_R","",
+	/*G0-G7*/   "RISER2_PRSNT_N_R","","RISER3_PRSNT_N_R","","RISER4_PRSNT_N_R","","RISER5_PRSNT_N_R","",
+	/*H0-H7*/   "CPU0_PRSNT_N","","CPU1_PRSNT_N","","CPU0_PWR_GOOD","","CPU1_PWR_GOOD","",
+	/*H0-H7*/   "PGD_SYS_PWROK","","","","","","CPU0_CD_INIT_ERROR","";
 };
 
 &fsim0 {
