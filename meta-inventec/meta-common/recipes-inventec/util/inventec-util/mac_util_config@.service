@@ -1,0 +1,9 @@
+[Unit]
+Description=mac_util set mac addr and modify config
+Before=systemd-networkd.service
+
+[Service]
+ExecStart=/usr/bin/mac_util_config.sh %i
+
+[Install]
+WantedBy=multi-user.target
