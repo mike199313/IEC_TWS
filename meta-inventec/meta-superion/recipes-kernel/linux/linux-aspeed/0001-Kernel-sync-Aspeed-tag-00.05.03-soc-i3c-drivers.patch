@@ -1,8 +1,45 @@
-From ab432f8fcce8f354767cb0361d4debd7b8ce5415 Mon Sep 17 00:00:00 2001
+From 81f081d5ed842392af46f24ea5b3c20f1813c73f Mon Sep 17 00:00:00 2001
 From: mikec <Cheng.Mike@inventec.com>
 Date: Tue, 13 Dec 2022 17:31:14 +0800
-Subject: [PATCH 1/1] Kernel-sync-Aspeed-tag-00.05.03-soc-i3c-drivers.patch
+Subject: [PATCH] Kernel-sync-Aspeed-tag-00.05.03-soc-i3c-drivers
 
+Sympton/Reason:
+    Sync codebase with AspeedTech-BMC/linux with tag 00.05.03
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    i3c drivers
+	- i3cdev
+	- master
+	- i3c-ibi-mqueue
+	- i3c-hub
+	- i3c-slave-mqueue
+	- i3c-slave-eeprom
+	- i3c-mux-imx3102
+	- master/ast2600-i3c-global
+	- master/ast2600-i3c-master
+	- master/mipi-i3c-hci
+	- i3c-mctp
+	- i3c-target-mctp
+
+    soc drivers
+	- speed-bmc-dev
+	- aspeed-espi
+	- aspeed-host-bmc-dev
+	- aspeed-lpc
+	- aspeed-mctp
+	- aspeed-otp
+	- aspeed-ssp
+	- aspeed-udma
+	- aspeed-usb-ahp
+	- aspeed-usb-phy
+	- ast_video
+	- rvas
+
+Entry Test:
+    N/A
 ---
  .../boot/dts/aspeed-bmc-inventec-superion.dts |  403 ++
  drivers/i3c/Kconfig                           |   78 +
@@ -31236,5 +31273,5 @@ index 8288b5382f08..6351b6af7aca 100644
  		  PTR_TO_BTF_ID_OR_NULL },
  	},
 -- 
-2.25.1
+2.17.1
 

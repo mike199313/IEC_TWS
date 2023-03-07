@@ -1,8 +1,43 @@
-From 1acf9884f346223d9da9dae7c99ee7076ea025ca Mon Sep 17 00:00:00 2001
+From 03b5a3c269b05eb0a3d723f00e5e32fcc6c19e3f Mon Sep 17 00:00:00 2001
 From: mikec <Cheng.Mike@inventec.com>
 Date: Thu, 15 Dec 2022 14:00:29 +0800
-Subject: [PATCH 1/1] Kernel-sync-Aspeed-tag-00.05.03-misc-drivers
+Subject: [PATCH] Kernel-sync-Aspeed-tag-00.05.03-misc-drivers
 
+Sympton/Reason:
+    Sync codebase with AspeedTech-BMC/linux with tag 00.05.03
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    hwmon drivers
+	- aspeed-chassis
+	- nct6775-core
+	- nct6775-i2c
+	- nct6775-platform
+	- peci-cpupower
+	- peci-cputemp
+	- peci-dimmpower
+	- peci-dimmtemp
+	- tach-aspeed-ast2600
+
+    jtag drivers
+	- jtag-aspeed-internal
+	- jtag
+
+    pwm driver
+	- pwm-aspeed-ast2600
+
+    spi driver
+	- spi-aspeed
+	- fmc_spi
+	- spi-aspeed-smc
+
+    uart driver
+	- 8250_aspeed
+
+Entry Test:
+    N/A
 ---
  .../bindings/hwmon/aspeed,ast2600-tach.yaml   |   68 +
  .../bindings/hwmon/nuvoton,nct6775.yaml       |   57 +
@@ -28,9 +63,7 @@ Subject: [PATCH 1/1] Kernel-sync-Aspeed-tag-00.05.03-misc-drivers
  drivers/spi/spi-aspeed-smc.c                  | 1210 +++++
  drivers/spi/spi-aspeed.c                      | 1441 ++++++
  drivers/tty/serial/8250/8250_aspeed.c         |  498 ++
- oe-logs                                       |    1 +
- oe-workdir                                    |    1 +
- 26 files changed, 15385 insertions(+)
+ 24 files changed, 15383 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/hwmon/aspeed,ast2600-tach.yaml
  create mode 100644 Documentation/devicetree/bindings/hwmon/nuvoton,nct6775.yaml
  create mode 100644 Documentation/devicetree/bindings/mfd/aspeed,ast2600-pwm-tach.yaml
@@ -55,12 +88,10 @@ Subject: [PATCH 1/1] Kernel-sync-Aspeed-tag-00.05.03-misc-drivers
  create mode 100644 drivers/spi/spi-aspeed-smc.c
  create mode 100644 drivers/spi/spi-aspeed.c
  create mode 100644 drivers/tty/serial/8250/8250_aspeed.c
- create mode 120000 oe-logs
- create mode 120000 oe-workdir
 
 diff --git a/Documentation/devicetree/bindings/hwmon/aspeed,ast2600-tach.yaml b/Documentation/devicetree/bindings/hwmon/aspeed,ast2600-tach.yaml
 new file mode 100644
-index 0000000000000..dded50a049fb6
+index 000000000000..dded50a049fb
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/hwmon/aspeed,ast2600-tach.yaml
 @@ -0,0 +1,68 @@
@@ -134,7 +165,7 @@ index 0000000000000..dded50a049fb6
 +    - reg
 diff --git a/Documentation/devicetree/bindings/hwmon/nuvoton,nct6775.yaml b/Documentation/devicetree/bindings/hwmon/nuvoton,nct6775.yaml
 new file mode 100644
-index 0000000000000..358b262431fc5
+index 000000000000..358b262431fc
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/hwmon/nuvoton,nct6775.yaml
 @@ -0,0 +1,57 @@
@@ -197,7 +228,7 @@ index 0000000000000..358b262431fc5
 +    };
 diff --git a/Documentation/devicetree/bindings/mfd/aspeed,ast2600-pwm-tach.yaml b/Documentation/devicetree/bindings/mfd/aspeed,ast2600-pwm-tach.yaml
 new file mode 100644
-index 0000000000000..1eaf6fab27523
+index 000000000000..1eaf6fab2752
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/mfd/aspeed,ast2600-pwm-tach.yaml
 @@ -0,0 +1,76 @@
@@ -279,7 +310,7 @@ index 0000000000000..1eaf6fab27523
 +    };
 diff --git a/Documentation/devicetree/bindings/pwm/aspeed,ast2600-pwm.yaml b/Documentation/devicetree/bindings/pwm/aspeed,ast2600-pwm.yaml
 new file mode 100644
-index 0000000000000..f501f8a769df5
+index 000000000000..f501f8a769df
 --- /dev/null
 +++ b/Documentation/devicetree/bindings/pwm/aspeed,ast2600-pwm.yaml
 @@ -0,0 +1,64 @@
@@ -349,7 +380,7 @@ index 0000000000000..f501f8a769df5
 +    - reg
 diff --git a/drivers/hwmon/aspeed-chassis.c b/drivers/hwmon/aspeed-chassis.c
 new file mode 100644
-index 0000000000000..483c622c8545a
+index 000000000000..483c622c8545
 --- /dev/null
 +++ b/drivers/hwmon/aspeed-chassis.c
 @@ -0,0 +1,220 @@
@@ -575,7 +606,7 @@ index 0000000000000..483c622c8545a
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/hwmon/nct6775-core.c b/drivers/hwmon/nct6775-core.c
 new file mode 100644
-index 0000000000000..446964cbae4c0
+index 000000000000..446964cbae4c
 --- /dev/null
 +++ b/drivers/hwmon/nct6775-core.c
 @@ -0,0 +1,4205 @@
@@ -4786,7 +4817,7 @@ index 0000000000000..446964cbae4c0
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/hwmon/nct6775-i2c.c b/drivers/hwmon/nct6775-i2c.c
 new file mode 100644
-index 0000000000000..e1bcd11461913
+index 000000000000..e1bcd1146191
 --- /dev/null
 +++ b/drivers/hwmon/nct6775-i2c.c
 @@ -0,0 +1,195 @@
@@ -4987,7 +5018,7 @@ index 0000000000000..e1bcd11461913
 +MODULE_IMPORT_NS(HWMON_NCT6775);
 diff --git a/drivers/hwmon/nct6775-platform.c b/drivers/hwmon/nct6775-platform.c
 new file mode 100644
-index 0000000000000..c2f76af735a26
+index 000000000000..c2f76af735a2
 --- /dev/null
 +++ b/drivers/hwmon/nct6775-platform.c
 @@ -0,0 +1,1226 @@
@@ -6219,7 +6250,7 @@ index 0000000000000..c2f76af735a26
 +module_exit(sensors_nct6775_platform_exit);
 diff --git a/drivers/hwmon/nct6775.h b/drivers/hwmon/nct6775.h
 new file mode 100644
-index 0000000000000..93f708148e658
+index 000000000000..93f708148e65
 --- /dev/null
 +++ b/drivers/hwmon/nct6775.h
 @@ -0,0 +1,252 @@
@@ -6477,7 +6508,7 @@ index 0000000000000..93f708148e658
 +#endif /* __HWMON_NCT6775_H__ */
 diff --git a/drivers/hwmon/peci-cpupower.c b/drivers/hwmon/peci-cpupower.c
 new file mode 100644
-index 0000000000000..972a76a9ad1ee
+index 000000000000..972a76a9ad1e
 --- /dev/null
 +++ b/drivers/hwmon/peci-cpupower.c
 @@ -0,0 +1,717 @@
@@ -7200,7 +7231,7 @@ index 0000000000000..972a76a9ad1ee
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/hwmon/peci-cputemp.c b/drivers/hwmon/peci-cputemp.c
 new file mode 100644
-index 0000000000000..37ba56838aae1
+index 000000000000..37ba56838aae
 --- /dev/null
 +++ b/drivers/hwmon/peci-cputemp.c
 @@ -0,0 +1,550 @@
@@ -7756,7 +7787,7 @@ index 0000000000000..37ba56838aae1
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/hwmon/peci-dimmpower.c b/drivers/hwmon/peci-dimmpower.c
 new file mode 100644
-index 0000000000000..a86b48feaeda2
+index 000000000000..a86b48feaeda
 --- /dev/null
 +++ b/drivers/hwmon/peci-dimmpower.c
 @@ -0,0 +1,640 @@
@@ -8402,7 +8433,7 @@ index 0000000000000..a86b48feaeda2
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
 new file mode 100644
-index 0000000000000..4569911697169
+index 000000000000..456991169716
 --- /dev/null
 +++ b/drivers/hwmon/peci-dimmtemp.c
 @@ -0,0 +1,554 @@
@@ -8962,7 +8993,7 @@ index 0000000000000..4569911697169
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/hwmon/peci-hwmon.h b/drivers/hwmon/peci-hwmon.h
 new file mode 100644
-index 0000000000000..02c001ee037e9
+index 000000000000..02c001ee037e
 --- /dev/null
 +++ b/drivers/hwmon/peci-hwmon.h
 @@ -0,0 +1,641 @@
@@ -9609,7 +9640,7 @@ index 0000000000000..02c001ee037e9
 +#endif /* __PECI_HWMON_H */
 diff --git a/drivers/hwmon/tach-aspeed-ast2600.c b/drivers/hwmon/tach-aspeed-ast2600.c
 new file mode 100644
-index 0000000000000..3ef14b3417c2f
+index 000000000000..3ef14b3417c2
 --- /dev/null
 +++ b/drivers/hwmon/tach-aspeed-ast2600.c
 @@ -0,0 +1,382 @@
@@ -9997,7 +10028,7 @@ index 0000000000000..3ef14b3417c2f
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/jtag/Kconfig b/drivers/jtag/Kconfig
 new file mode 100644
-index 0000000000000..d6a1d6a8c679f
+index 000000000000..d6a1d6a8c679
 --- /dev/null
 +++ b/drivers/jtag/Kconfig
 @@ -0,0 +1,31 @@
@@ -10034,7 +10065,7 @@ index 0000000000000..d6a1d6a8c679f
 +	  be called jtag-aspeed.
 diff --git a/drivers/jtag/Makefile b/drivers/jtag/Makefile
 new file mode 100644
-index 0000000000000..a5880cb48cfab
+index 000000000000..a5880cb48cfa
 --- /dev/null
 +++ b/drivers/jtag/Makefile
 @@ -0,0 +1,2 @@
@@ -10043,7 +10074,7 @@ index 0000000000000..a5880cb48cfab
 \ No newline at end of file
 diff --git a/drivers/jtag/jtag-aspeed-internal.c b/drivers/jtag/jtag-aspeed-internal.c
 new file mode 100644
-index 0000000000000..02b4a60f7b4f5
+index 000000000000..02b4a60f7b4f
 --- /dev/null
 +++ b/drivers/jtag/jtag-aspeed-internal.c
 @@ -0,0 +1,1079 @@
@@ -11128,7 +11159,7 @@ index 0000000000000..02b4a60f7b4f5
 +MODULE_LICENSE("GPL");
 diff --git a/drivers/jtag/jtag.c b/drivers/jtag/jtag.c
 new file mode 100644
-index 0000000000000..1fb8715a2380a
+index 000000000000..1fb8715a2380
 --- /dev/null
 +++ b/drivers/jtag/jtag.c
 @@ -0,0 +1,350 @@
@@ -11484,7 +11515,7 @@ index 0000000000000..1fb8715a2380a
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/pwm/pwm-aspeed-ast2600.c b/drivers/pwm/pwm-aspeed-ast2600.c
 new file mode 100644
-index 0000000000000..707834015412e
+index 000000000000..707834015412
 --- /dev/null
 +++ b/drivers/pwm/pwm-aspeed-ast2600.c
 @@ -0,0 +1,366 @@
@@ -11856,7 +11887,7 @@ index 0000000000000..707834015412e
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/spi/fmc_spi.c b/drivers/spi/fmc_spi.c
 new file mode 100644
-index 0000000000000..90ecbf2166272
+index 000000000000..90ecbf216627
 --- /dev/null
 +++ b/drivers/spi/fmc_spi.c
 @@ -0,0 +1,559 @@
@@ -12421,7 +12452,7 @@ index 0000000000000..90ecbf2166272
 +
 diff --git a/drivers/spi/spi-aspeed-smc.c b/drivers/spi/spi-aspeed-smc.c
 new file mode 100644
-index 0000000000000..496f3e1e9079b
+index 000000000000..496f3e1e9079
 --- /dev/null
 +++ b/drivers/spi/spi-aspeed-smc.c
 @@ -0,0 +1,1210 @@
@@ -13637,7 +13668,7 @@ index 0000000000000..496f3e1e9079b
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/spi/spi-aspeed.c b/drivers/spi/spi-aspeed.c
 new file mode 100644
-index 0000000000000..351833879b3f3
+index 000000000000..351833879b3f
 --- /dev/null
 +++ b/drivers/spi/spi-aspeed.c
 @@ -0,0 +1,1441 @@
@@ -15084,7 +15115,7 @@ index 0000000000000..351833879b3f3
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/tty/serial/8250/8250_aspeed.c b/drivers/tty/serial/8250/8250_aspeed.c
 new file mode 100644
-index 0000000000000..8eefd7260a46d
+index 000000000000..8eefd7260a46
 --- /dev/null
 +++ b/drivers/tty/serial/8250/8250_aspeed.c
 @@ -0,0 +1,498 @@
@@ -15586,22 +15617,6 @@ index 0000000000000..8eefd7260a46d
 +MODULE_AUTHOR("Chia-Wei Wang <chiawei_wang@aspeedtech.com>");
 +MODULE_LICENSE("GPL");
 +MODULE_DESCRIPTION("Aspeed UART Driver");
-diff --git a/oe-logs b/oe-logs
-new file mode 120000
-index 0000000000000..8216e8687d5ed
---- /dev/null
-+++ b/oe-logs
-@@ -0,0 +1 @@
-+/home/mikec/openbmc_superion/openbmc/build/superion/tmp/work/superion-openbmc-linux-gnueabi/linux-aspeed/5.15.36+git999-r0/temp
-\ No newline at end of file
-diff --git a/oe-workdir b/oe-workdir
-new file mode 120000
-index 0000000000000..4fa7b1aabf564
---- /dev/null
-+++ b/oe-workdir
-@@ -0,0 +1 @@
-+/home/mikec/openbmc_superion/openbmc/build/superion/tmp/work/superion-openbmc-linux-gnueabi/linux-aspeed/5.15.36+git999-r0
-\ No newline at end of file
 -- 
-2.25.1
+2.17.1
 
