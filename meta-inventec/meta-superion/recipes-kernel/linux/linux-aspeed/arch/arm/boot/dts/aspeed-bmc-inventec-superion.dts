@@ -193,7 +193,9 @@
 	status = "okay";
 	snoop-ports = <0x80>;
 };
-
+&espi {
+        status = "okay";
+};
 &spi1 {
 	status = "okay";
 	pinctrl-names = "default";
