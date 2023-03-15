@@ -1,0 +1,11 @@
+[Unit]
+Description=Common routines after boot up
+After=phosphor-ipmi-host.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/post_bootup.sh
+
+[Install]
+WantedBy=multi-user.target

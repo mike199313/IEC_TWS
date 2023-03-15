@@ -1,0 +1,9 @@
+[Unit]
+Before=systemd-networkd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/inventec-mac-config.sh
+
+[Install]
+WantedBy=multi-user.target

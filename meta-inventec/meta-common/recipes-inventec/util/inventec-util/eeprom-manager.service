@@ -1,0 +1,8 @@
+[Unit]
+Description=Service for accessing EEPROM configurations
+
+[Service]
+ExecStart=/usr/bin/eeprom_util
+
+[Install]
+WantedBy=multi-user.target

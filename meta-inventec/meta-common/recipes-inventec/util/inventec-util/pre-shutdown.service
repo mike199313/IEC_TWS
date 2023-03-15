@@ -1,0 +1,10 @@
+[Unit]
+Description=Common routines before system shutdown or reset
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStop=/usr/bin/pre_shutdown.sh
+
+[Install]
+WantedBy=multi-user.target
