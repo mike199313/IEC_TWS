@@ -14,6 +14,10 @@
 
 	aliases {
 		serial4 = &uart5;
+		i2c20 = &cem_side;
+		i2c21 = &fan_side;
+		i2c22 = &i2c11_mux_02;
+		i2c23 = &i2c11_mux_03;
 	};
 
 	chosen {
@@ -465,6 +469,16 @@
 				compatible = "emc2302";
 				reg = <0x2e>;
 			};
+		};
+		i2c11_mux_02: i2c@2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+		};
+		i2c11_mux_03: i2c@3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
 		};
 	};
 };
