@@ -1,4 +1,4 @@
-From 7be478964fc7bfa166b7118db5c495722393ef35 Mon Sep 17 00:00:00 2001
+From 7c9a971b8f1ac760f5f2cc9474ea6ef47891e885 Mon Sep 17 00:00:00 2001
 From: ykchiu <Chiu.YK@inventec.com>
 Date: Thu, 16 Feb 2023 09:42:33 +0000
 Subject: [PATCH] Kernel sync intel peci drivers
@@ -25,7 +25,7 @@ Entry Test:
     N/A
 ---
  drivers/Kconfig                   |    2 +
- drivers/Makefile                  |    1 +
+ drivers/Makefile                  |    3 +-
  drivers/hwmon/Kconfig             |   56 +
  drivers/hwmon/Makefile            |    4 +
  drivers/peci/Kconfig              |   37 +
@@ -38,7 +38,7 @@ Entry Test:
  drivers/peci/busses/peci-npcm.c   |  406 ++++++
  drivers/peci/peci-core.c          | 2194 +++++++++++++++++++++++++++++
  drivers/peci/peci-dev.c           |  359 +++++
- 14 files changed, 4365 insertions(+)
+ 14 files changed, 4366 insertions(+), 1 deletion(-)
  create mode 100644 drivers/peci/Kconfig
  create mode 100644 drivers/peci/Makefile
  create mode 100644 drivers/peci/busses/Kconfig
@@ -51,25 +51,29 @@ Entry Test:
  create mode 100644 drivers/peci/peci-dev.c
 
 diff --git a/drivers/Kconfig b/drivers/Kconfig
-index 0d399ddaa185..8708bedc549d 100644
+index 23954f66b6ef..18ad3f384ad8 100644
 --- a/drivers/Kconfig
 +++ b/drivers/Kconfig
-@@ -236,4 +236,6 @@ source "drivers/interconnect/Kconfig"
- source "drivers/counter/Kconfig"
- 
+@@ -238,4 +238,6 @@ source "drivers/counter/Kconfig"
  source "drivers/most/Kconfig"
+ 
+ source "drivers/jtag/Kconfig"
 +
 +source "drivers/peci/Kconfig"
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
-index a110338c860c..020780b6b4d2 100644
+index 2befec4ef491..cbc9bb20983f 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
-@@ -187,3 +187,4 @@ obj-$(CONFIG_GNSS)		+= gnss/
+@@ -187,4 +187,5 @@ obj-$(CONFIG_GNSS)		+= gnss/
  obj-$(CONFIG_INTERCONNECT)	+= interconnect/
  obj-$(CONFIG_COUNTER)		+= counter/
  obj-$(CONFIG_MOST)		+= most/
+-obj-$(CONFIG_JTAG)		+= jtag/
+\ No newline at end of file
++obj-$(CONFIG_JTAG)		+= jtag/
 +obj-$(CONFIG_PECI)		+= peci/
+\ No newline at end of file
 diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
 index ccdaeafed0bb..4912a30c3e85 100644
 --- a/drivers/hwmon/Kconfig

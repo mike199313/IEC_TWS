@@ -1,4 +1,4 @@
-From 03b5a3c269b05eb0a3d723f00e5e32fcc6c19e3f Mon Sep 17 00:00:00 2001
+From db3b2f5ea20607fdcd70a43bc1ecba8d4fb78ed1 Mon Sep 17 00:00:00 2001
 From: mikec <Cheng.Mike@inventec.com>
 Date: Thu, 15 Dec 2022 14:00:29 +0800
 Subject: [PATCH] Kernel-sync-Aspeed-tag-00.05.03-misc-drivers
@@ -43,6 +43,8 @@ Entry Test:
  .../bindings/hwmon/nuvoton,nct6775.yaml       |   57 +
  .../bindings/mfd/aspeed,ast2600-pwm-tach.yaml |   76 +
  .../bindings/pwm/aspeed,ast2600-pwm.yaml      |   64 +
+ drivers/Kconfig                               |    2 +
+ drivers/Makefile                              |    1 +
  drivers/hwmon/aspeed-chassis.c                |  220 +
  drivers/hwmon/nct6775-core.c                  | 4205 +++++++++++++++++
  drivers/hwmon/nct6775-i2c.c                   |  195 +
@@ -63,7 +65,7 @@ Entry Test:
  drivers/spi/spi-aspeed-smc.c                  | 1210 +++++
  drivers/spi/spi-aspeed.c                      | 1441 ++++++
  drivers/tty/serial/8250/8250_aspeed.c         |  498 ++
- 24 files changed, 15383 insertions(+)
+ 26 files changed, 15386 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/hwmon/aspeed,ast2600-tach.yaml
  create mode 100644 Documentation/devicetree/bindings/hwmon/nuvoton,nct6775.yaml
  create mode 100644 Documentation/devicetree/bindings/mfd/aspeed,ast2600-pwm-tach.yaml
@@ -378,6 +380,27 @@ index 000000000000..f501f8a769df
 +
 +  required:
 +    - reg
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index 0d399ddaa185..23954f66b6ef 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -236,4 +236,6 @@ source "drivers/interconnect/Kconfig"
+ source "drivers/counter/Kconfig"
+ 
+ source "drivers/most/Kconfig"
++
++source "drivers/jtag/Kconfig"
+ endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+index a110338c860c..2befec4ef491 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -187,3 +187,4 @@ obj-$(CONFIG_GNSS)		+= gnss/
+ obj-$(CONFIG_INTERCONNECT)	+= interconnect/
+ obj-$(CONFIG_COUNTER)		+= counter/
+ obj-$(CONFIG_MOST)		+= most/
++obj-$(CONFIG_JTAG)		+= jtag/
+\ No newline at end of file
 diff --git a/drivers/hwmon/aspeed-chassis.c b/drivers/hwmon/aspeed-chassis.c
 new file mode 100644
 index 000000000000..483c622c8545
