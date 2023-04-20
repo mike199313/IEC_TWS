@@ -491,114 +491,6 @@
 	status = "okay";
 };
 
-&i2c14 {
-	// I2C EXPANDER
-	status = "okay";
-	i2c-switch@70 {
-		compatible = "nxp,pca9546";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0x70>;
-
-		switch_mux0: i2c0 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0>;
-
-			switch_mux0_pvccin_vr: xdpe19284b@60 {/* XDPE19284B - PVCCIN VR */
-				compatible = "infineon,xdpe12284";
-				reg = <0x60>;
-			};
-
-			switch_mux0_pvccfa_ehv_fivra: xdpe19284b@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
-				compatible = "infineon,xdpe12284";
-				reg = <0x62>;
-			};
-
-			switch_mux0_pvccd0_d1_vr: xdpe19284b@76 {/* XDPE19284B - PVCCD0 & D1 VR */
-				compatible = "infineon,xdpe12284";
-				reg = <0x76>;
-			};
-
-			switch_mux0_pvcca_ehv_pvnn_vr: xdpe19284b@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
-				compatible = "infineon,xdpe12284";
-				reg = <0x74>;
-			};
-
-			//PWR MON INA219
-			ina219@40 {
-				compatible = "ti,ina219";
-				reg = <0x40>;
-				shunt-resistor = <500>;
-			};
-
-			//PWR MON INA219
-			ina219@41 {
-				compatible = "ti,ina219";
-				reg = <0x41>;
-				shunt-resistor = <500>;
-			};
-		};
-
-		switch_mux1: i2c1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <1>;
-
-			switch_mux1_pvccin_vr: xdpe19284b@60 {/* XDPE19284B - PVCCIN VR */
-				compatible = "infineon,xdpe12284";
-				reg = <0x60>;
-			};
-
-			switch_mux1_pvccfa_ehv_fivra: xdpe19284b@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
-				compatible = "infineon,xdpe12284";
-				reg = <0x62>;
-			};
-
-			switch_mux1_pvccd0_d1_vr: xdpe19284b@76 {/* XDPE19284B - PVCCD0 & D1 VR */
-				compatible = "infineon,xdpe12284";
-				reg = <0x76>;
-			};
-
-			switch_mux1_pvcca_ehv_pvnn_vr: xdpe19284b@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
-				compatible = "infineon,xdpe12284";
-				reg = <0x74>;
-			};
-
-			//Voltage Sensor MAX1139
-			adc: voltage-sensor@35 {
-				compatible = "maxim,max1139";
-				reg = <0x35>;
-				#io-channel-cells = <1>;
-			};
-		};
-
-		switch_mux2: i2c2 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <2>;
-
-			//PSU1
-			switch_mux2_psu: psu0@58 {
-				compatible = "pmbus";
-				reg = <0x58>;
-			};
-		};
-
-		switch_mux3: i2c3 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <3>;
-
-			//PSU2
-			switch_mux3_psu: psu0@58 {
-				compatible = "pmbus";
-				reg = <0x58>;
-			};
-		};
-	};
-};
-
 &i2c15 {
 	// I2C EXPANDER
 	status = "okay";
@@ -952,17 +844,17 @@
 	/*E0-E7*/   "","","","","","","","",
 	/*F0-F7*/   "","","","","","","","",
 	/*G0-G7*/   "","","","","","","","",
-	/*H0-H7*/   "","","","","","","","",
-	/*I0-I7*/   "","","","","","","","",
+	/*H0-H7*/   "","","","","RST_BTN_BMC_OUT","","","",
+	/*I0-I7*/   "","","","","","","BMC_PWR_BTN_OUT","",
 	/*J0-J7*/   "","","","","","","","",
 	/*K0-K7*/   "","","","","","","","",
 	/*L0-L7*/   "","","","","","","","",
 	/*M0-M7*/   "","","","","","","","",
-	/*N0-N7*/   "","","","","","","","",
-	/*O0-O7*/   "","","","","","","","",
+	/*N0-N7*/   "","","","","","FM_SPD_SWITCH_CTRL","","",
+	/*O0-O7*/   "","","","","","","I3C_SPDMUX_SELECT1","",
 	/*P0-P7*/   "","","","","","","","",
 	/*Q0-Q7*/   "","SPI_BIOS_MUXA_SEL","","SPI_BIOS_MUXB_SEL","","","","",
-	/*R0-R7*/   "","","","","","","","BMC_READY",
+	/*R0-R7*/   "","","","","I3C_SPDMUX_SELECT0","","","BMC_READY",
 	/*S0-S7*/   "","","","","","","","",
 	/*T0-T7*/   "","","","","","","","",
 	/*U0-U7*/   "","","","","","","","",
