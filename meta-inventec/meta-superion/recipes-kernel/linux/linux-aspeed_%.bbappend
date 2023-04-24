@@ -9,6 +9,7 @@ SRC_URI:append = " file://superion.cfg \
                    file://0005-Add-SPI_ASPEED-driver-and-add-a-new-Macronix-flash.patch \
                    file://0006-Kernel-sync-intel-peci-drivers.patch \
                    file://0007-Add-cpu-ids-to-support-new-cpu-in-intel-peci-client.patch \
+                   file://0008-Update-xdpe152xx-Family-for-kernel-driver.patch \
                  "
 
 do_add_overwrite_files () {
