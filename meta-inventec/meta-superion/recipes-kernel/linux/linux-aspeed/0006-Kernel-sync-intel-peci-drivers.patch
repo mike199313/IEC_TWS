@@ -1,6 +1,6 @@
-From 7c9a971b8f1ac760f5f2cc9474ea6ef47891e885 Mon Sep 17 00:00:00 2001
+From 753932559bb905a84898686ba2da5986c2867e0a Mon Sep 17 00:00:00 2001
 From: ykchiu <Chiu.YK@inventec.com>
-Date: Thu, 16 Feb 2023 09:42:33 +0000
+Date: Thu, 20 Apr 2023 03:38:59 +0000
 Subject: [PATCH] Kernel sync intel peci drivers
 
 Sympton/Reason:
@@ -20,25 +20,34 @@ Solution/Change:
 		- peci-npcm
 		- peci-core
 		- peci-dev
+	mfd driver
+		- intel-peci-client
 
 Entry Test:
     N/A
 ---
- drivers/Kconfig                   |    2 +
- drivers/Makefile                  |    3 +-
- drivers/hwmon/Kconfig             |   56 +
- drivers/hwmon/Makefile            |    4 +
- drivers/peci/Kconfig              |   37 +
- drivers/peci/Makefile             |   11 +
- drivers/peci/busses/Kconfig       |   60 +
- drivers/peci/busses/Makefile      |    9 +
- drivers/peci/busses/peci-aspeed.c |  522 +++++++
- drivers/peci/busses/peci-i3c.c    |  254 ++++
- drivers/peci/busses/peci-mctp.c   |  450 ++++++
- drivers/peci/busses/peci-npcm.c   |  406 ++++++
- drivers/peci/peci-core.c          | 2194 +++++++++++++++++++++++++++++
- drivers/peci/peci-dev.c           |  359 +++++
- 14 files changed, 4366 insertions(+), 1 deletion(-)
+ drivers/Kconfig                       |    2 +
+ drivers/Makefile                      |    3 +-
+ drivers/hwmon/Kconfig                 |   56 +
+ drivers/hwmon/Makefile                |    4 +
+ drivers/mfd/Kconfig                   |   17 +
+ drivers/mfd/Makefile                  |    1 +
+ drivers/mfd/intel-peci-client.c       |  166 ++
+ drivers/peci/Kconfig                  |   37 +
+ drivers/peci/Makefile                 |   11 +
+ drivers/peci/busses/Kconfig           |   60 +
+ drivers/peci/busses/Makefile          |    9 +
+ drivers/peci/busses/peci-aspeed.c     |  522 ++++++
+ drivers/peci/busses/peci-i3c.c        |  254 +++
+ drivers/peci/busses/peci-mctp.c       |  450 +++++
+ drivers/peci/busses/peci-npcm.c       |  406 +++++
+ drivers/peci/peci-core.c              | 2194 +++++++++++++++++++++++++
+ drivers/peci/peci-dev.c               |  359 ++++
+ include/linux/mfd/intel-peci-client.h |  163 ++
+ include/linux/peci.h                  |  153 ++
+ include/uapi/linux/peci-ioctl.h       |  703 ++++++++
+ 20 files changed, 5569 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/mfd/intel-peci-client.c
  create mode 100644 drivers/peci/Kconfig
  create mode 100644 drivers/peci/Makefile
  create mode 100644 drivers/peci/busses/Kconfig
@@ -49,6 +58,9 @@ Entry Test:
  create mode 100644 drivers/peci/busses/peci-npcm.c
  create mode 100644 drivers/peci/peci-core.c
  create mode 100644 drivers/peci/peci-dev.c
+ create mode 100644 include/linux/mfd/intel-peci-client.h
+ create mode 100644 include/linux/peci.h
+ create mode 100644 include/uapi/linux/peci-ioctl.h
 
 diff --git a/drivers/Kconfig b/drivers/Kconfig
 index 23954f66b6ef..18ad3f384ad8 100644
@@ -75,12 +87,12 @@ index 2befec4ef491..cbc9bb20983f 100644
 +obj-$(CONFIG_PECI)		+= peci/
 \ No newline at end of file
 diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
-index ccdaeafed0bb..4912a30c3e85 100644
+index ccdaeafed0bb..8222f1553352 100644
 --- a/drivers/hwmon/Kconfig
 +++ b/drivers/hwmon/Kconfig
-@@ -1517,6 +1517,62 @@ config SENSORS_PCF8591
- 	  These devices are hard to detect and rarely found on mainstream
- 	  hardware. If unsure, say N.
+@@ -1519,6 +1519,62 @@ config SENSORS_PCF8591
+ 
+ source "drivers/hwmon/pmbus/Kconfig"
  
 +config SENSORS_PECI_CPUTEMP
 +	tristate "PECI CPU temperature monitoring client"
@@ -138,9 +150,9 @@ index ccdaeafed0bb..4912a30c3e85 100644
 +	  This driver can also be built as a module. If so, the module
 +	  will be called peci-dimmpower.
 +
- source "drivers/hwmon/pmbus/Kconfig"
- 
  config SENSORS_PWM_FAN
+ 	tristate "PWM fan"
+ 	depends on (PWM && OF) || COMPILE_TEST
 diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
 index 162940270661..a46cdaf58efc 100644
 --- a/drivers/hwmon/Makefile
@@ -156,6 +168,218 @@ index 162940270661..a46cdaf58efc 100644
  obj-$(CONFIG_SENSORS_POWR1220)  += powr1220.o
  obj-$(CONFIG_SENSORS_PWM_FAN)	+= pwm-fan.o
  obj-$(CONFIG_SENSORS_RASPBERRYPI_HWMON)	+= raspberrypi-hwmon.o
+diff --git a/drivers/mfd/Kconfig b/drivers/mfd/Kconfig
+index d2f345245538..ac76f5cf7ceb 100644
+--- a/drivers/mfd/Kconfig
++++ b/drivers/mfd/Kconfig
+@@ -676,6 +676,23 @@ config MFD_INTEL_LPSS_PCI
+ 	  I2C, SPI and HS-UART starting from Intel Sunrisepoint (Intel Skylake
+ 	  PCH) in PCI mode.
+ 
++config MFD_INTEL_PECI_CLIENT
++	tristate "Intel PECI client"
++	depends on (PECI || COMPILE_TEST)
++	select MFD_CORE
++	help
++	  If you say yes to this option, support will be included for the
++	  Intel PECI (Platform Environment Control Interface) client. PECI is a
++	  one-wire bus interface that provides a communication channel from PECI
++	  clients in Intel processors and chipset components to external
++	  monitoring or control devices.
++
++	  Additional drivers must be enabled in order to use the functionality
++	  of the device.
++
++	  This driver can also be built as a module. If so, the module
++	  will be called intel-peci-client.
++
+ config MFD_INTEL_PMC_BXT
+ 	tristate "Intel PMC Driver for Broxton"
+ 	depends on X86
+diff --git a/drivers/mfd/Makefile b/drivers/mfd/Makefile
+index 2ba6646e874c..b940be7d8aea 100644
+--- a/drivers/mfd/Makefile
++++ b/drivers/mfd/Makefile
+@@ -211,6 +211,7 @@ obj-$(CONFIG_MFD_ATMEL_SMC)	+= atmel-smc.o
+ obj-$(CONFIG_MFD_INTEL_LPSS)	+= intel-lpss.o
+ obj-$(CONFIG_MFD_INTEL_LPSS_PCI)	+= intel-lpss-pci.o
+ obj-$(CONFIG_MFD_INTEL_LPSS_ACPI)	+= intel-lpss-acpi.o
++obj-$(CONFIG_MFD_INTEL_PECI_CLIENT)	+= intel-peci-client.o
+ obj-$(CONFIG_MFD_INTEL_PMC_BXT)	+= intel_pmc_bxt.o
+ obj-$(CONFIG_MFD_INTEL_PMT)	+= intel_pmt.o
+ obj-$(CONFIG_MFD_PALMAS)	+= palmas.o
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+new file mode 100644
+index 000000000000..69834a230998
+--- /dev/null
++++ b/drivers/mfd/intel-peci-client.c
+@@ -0,0 +1,166 @@
++// SPDX-License-Identifier: GPL-2.0
++// Copyright (c) 2018-2019 Intel Corporation
++
++#include <linux/bitfield.h>
++#include <linux/mfd/core.h>
++#include <linux/mfd/intel-peci-client.h>
++#include <linux/module.h>
++#include <linux/of_device.h>
++#include <linux/peci.h>
++
++#define CPU_ID_MODEL_MASK	GENMASK(7, 4)
++#define CPU_ID_FAMILY_MASK	GENMASK(11, 8)
++#define CPU_ID_EXT_MODEL_MASK	GENMASK(19, 16)
++#define CPU_ID_EXT_FAMILY_MASK	GENMASK(27, 20)
++
++#define LOWER_NIBBLE_MASK	GENMASK(3, 0)
++#define UPPER_NIBBLE_MASK	GENMASK(7, 4)
++#define LOWER_BYTE_MASK		GENMASK(7, 0)
++#define UPPER_BYTE_MASK		GENMASK(16, 8)
++
++static struct mfd_cell peci_functions[] = {
++	{ .name = "peci-cputemp", },
++	{ .name = "peci-dimmtemp", },
++	{ .name = "peci-cpupower", },
++	{ .name = "peci-dimmpower", },
++};
++
++static const struct cpu_gen_info cpu_gen_info_table[] = {
++	{ /* Haswell Xeon */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_HASWELL_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_HSX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_HSX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_HSX },
++	{ /* Broadwell Xeon */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_BROADWELL_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_BDX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_BDX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_BDX },
++	{ /* Skylake Xeon */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SKYLAKE_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_SKX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SKX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SKX },
++	{ /* Skylake Xeon D */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SKYLAKE_XD,
++		.core_mask_bits = CORE_MASK_BITS_ON_SKXD,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SKXD,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SKXD },
++	{ /* Icelake Xeon */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_ICELAKE_X,
++		.core_mask_bits = CORE_MASK_BITS_ON_ICX,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_ICX,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICX },
++	{ /* Icelake Xeon D */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_ICELAKE_XD,
++		.core_mask_bits = CORE_MASK_BITS_ON_ICXD,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_ICXD,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICXD },
++};
++
++static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
++{
++	struct device *dev = &priv->client->dev;
++	u32 cpu_id;
++	u16 family;
++	u8 model;
++	int ret;
++	int i;
++
++	ret = peci_get_cpu_id(priv->client->adapter, priv->client->addr,
++			      priv->client->domain_id, &cpu_id);
++	if (ret)
++		return ret;
++
++	family = FIELD_PREP(LOWER_BYTE_MASK,
++			    FIELD_GET(CPU_ID_FAMILY_MASK, cpu_id)) |
++		 FIELD_PREP(UPPER_BYTE_MASK,
++			    FIELD_GET(CPU_ID_EXT_FAMILY_MASK, cpu_id));
++	model = FIELD_PREP(LOWER_NIBBLE_MASK,
++			   FIELD_GET(CPU_ID_MODEL_MASK, cpu_id)) |
++		FIELD_PREP(UPPER_NIBBLE_MASK,
++			   FIELD_GET(CPU_ID_EXT_MODEL_MASK, cpu_id));
++
++	for (i = 0; i < ARRAY_SIZE(cpu_gen_info_table); i++) {
++		const struct cpu_gen_info *cpu_info = &cpu_gen_info_table[i];
++
++		if (family == cpu_info->family && model == cpu_info->model) {
++			priv->gen_info = cpu_info;
++			break;
++		}
++	}
++
++	if (!priv->gen_info) {
++		dev_err(dev, "Can't support this CPU: 0x%x\n", cpu_id);
++		ret = -ENODEV;
++	}
++
++	return ret;
++}
++
++static int peci_client_probe(struct peci_client *client)
++{
++	struct device *dev = &client->dev;
++	u8 cpu_id = client->addr - PECI_BASE_ADDR;
++	u8 domain_id = client->domain_id;
++	u8 adapter_nr = client->adapter->nr;
++	struct peci_client_manager *priv;
++	int device_id;
++	int ret;
++
++	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	dev_set_drvdata(dev, priv);
++	priv->client = client;
++
++	ret = peci_client_get_cpu_gen_info(priv);
++	if (ret)
++		return ret;
++
++	device_id = (adapter_nr << 8) | (cpu_id << 4) | domain_id;
++
++	ret = devm_mfd_add_devices(dev, device_id, peci_functions,
++				   ARRAY_SIZE(peci_functions), NULL, 0, NULL);
++	if (ret < 0) {
++		dev_err(dev, "Failed to register child devices: %d\n", ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++#ifdef CONFIG_OF
++static const struct of_device_id peci_client_of_table[] = {
++	{ .compatible = "intel,peci-client" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, peci_client_of_table);
++#endif
++
++static const struct peci_device_id peci_client_ids[] = {
++	{ .name = "peci-client" },
++	{ }
++};
++MODULE_DEVICE_TABLE(peci, peci_client_ids);
++
++static struct peci_driver peci_client_driver = {
++	.probe		= peci_client_probe,
++	.id_table	= peci_client_ids,
++	.driver		= {
++		.name		= KBUILD_MODNAME,
++		.of_match_table	= of_match_ptr(peci_client_of_table),
++	},
++};
++module_peci_driver(peci_client_driver);
++
++MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
++MODULE_DESCRIPTION("PECI client driver");
++MODULE_LICENSE("GPL v2");
 diff --git a/drivers/peci/Kconfig b/drivers/peci/Kconfig
 new file mode 100644
 index 000000000000..a64fed7bb367
@@ -1955,7 +2179,7 @@ index 000000000000..bdebbf1ec7f1
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/peci/peci-core.c b/drivers/peci/peci-core.c
 new file mode 100644
-index 000000000000..b3328d6d1c6f
+index 000000000000..58279bc5c909
 --- /dev/null
 +++ b/drivers/peci/peci-core.c
 @@ -0,0 +1,2194 @@
@@ -3255,9 +3479,8 @@ index 000000000000..b3328d6d1c6f
 +static int peci_detect(struct peci_adapter *adapter, u8 addr)
 +{
 +	struct peci_ping_msg msg;
-+
++	int ret = 0;
 +	msg.addr = addr;
-+
 +	return peci_command(adapter, PECI_CMD_PING, sizeof(msg), &msg);
 +}
 +
@@ -3472,6 +3695,7 @@ index 000000000000..b3328d6d1c6f
 +
 +	ret = device_for_each_child(&adapter->dev, client,
 +				    peci_check_client_busy);
++
 +	if (ret)
 +		goto err_free_client;
 +
@@ -4518,6 +4742,1045 @@ index 000000000000..f02666984ce7
 +MODULE_AUTHOR("Jae Hyun Yoo <jae.hyun.yoo@linux.intel.com>");
 +MODULE_DESCRIPTION("PECI /dev entries driver");
 +MODULE_LICENSE("GPL v2");
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+new file mode 100644
+index 000000000000..0a069b87f733
+--- /dev/null
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -0,0 +1,163 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (c) 2018-2020 Intel Corporation */
++
++#ifndef __LINUX_MFD_INTEL_PECI_CLIENT_H
++#define __LINUX_MFD_INTEL_PECI_CLIENT_H
++
++#include <linux/peci.h>
++
++#if IS_ENABLED(CONFIG_X86)
++#include <asm/intel-family.h>
++#else
++/*
++ * Architectures other than x86 cannot include the header file so define these
++ * at here. These are needed for detecting type of client x86 CPUs behind a PECI
++ * connection.
++ */
++#define INTEL_FAM6_HASWELL_X		0x3F
++#define INTEL_FAM6_BROADWELL_X		0x4F
++#define INTEL_FAM6_SKYLAKE_X		0x55
++#define INTEL_FAM6_SKYLAKE_XD		0x56
++#define INTEL_FAM6_ICELAKE_X		0x6A
++#define INTEL_FAM6_ICELAKE_XD		0x6C
++#endif
++
++#define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
++
++#define CORE_MASK_BITS_ON_HSX  18
++#define CHAN_RANK_MAX_ON_HSX   8  /* Max number of channel ranks on Haswell */
++#define DIMM_IDX_MAX_ON_HSX    3  /* Max DIMM index per channel on Haswell */
++
++#define CORE_MASK_BITS_ON_BDX  24
++#define CHAN_RANK_MAX_ON_BDX   4  /* Max number of channel ranks on Broadwell */
++#define DIMM_IDX_MAX_ON_BDX    3  /* Max DIMM index per channel on Broadwell */
++
++#define CORE_MASK_BITS_ON_SKX  28
++#define CHAN_RANK_MAX_ON_SKX   6  /* Max number of channel ranks on Skylake */
++#define DIMM_IDX_MAX_ON_SKX    2  /* Max DIMM index per channel on Skylake */
++
++#define CORE_MASK_BITS_ON_SKXD 28
++#define CHAN_RANK_MAX_ON_SKXD  2  /* Max number of channel ranks on Skylake D */
++#define DIMM_IDX_MAX_ON_SKXD   2  /* Max DIMM index per channel on Skylake D */
++
++#define CORE_MASK_BITS_ON_ICX  64
++#define CHAN_RANK_MAX_ON_ICX   8  /* Max number of channel ranks on Icelake */
++#define DIMM_IDX_MAX_ON_ICX    2  /* Max DIMM index per channel on Icelake */
++
++#define CORE_MASK_BITS_ON_ICXD 64
++#define CHAN_RANK_MAX_ON_ICXD  4  /* Max number of channel ranks on Icelake D */
++#define DIMM_IDX_MAX_ON_ICXD   2  /* Max DIMM index per channel on Icelake D */
++
++#define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_ICX
++#define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
++#define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
++#define DIMM_NUMS_MAX          (CHAN_RANK_MAX * DIMM_IDX_MAX)
++
++/**
++ * struct cpu_gen_info - CPU generation specific information
++ * @family: CPU family ID
++ * @model: CPU model
++ * @core_mask_bits: number of resolved core bits
++ * @chan_rank_max: max number of channel ranks
++ * @dimm_idx_max: max number of DIMM indices
++ *
++ * CPU generation specific information to identify maximum number of cores and
++ * DIMM slots.
++ */
++struct cpu_gen_info {
++	u16  family;
++	u8   model;
++	uint core_mask_bits;
++	uint chan_rank_max;
++	uint dimm_idx_max;
++};
++
++/**
++ * struct peci_client_manager - PECI client manager information
++ * @client; pointer to the PECI client
++ * @name: PECI client manager name
++ * @gen_info: CPU generation info of the detected CPU
++ *
++ * PECI client manager information for managing PECI sideband functions on a CPU
++ * client.
++ */
++struct peci_client_manager {
++	struct peci_client *client;
++	char name[PECI_NAME_SIZE];
++	const struct cpu_gen_info *gen_info;
++};
++
++/**
++ * peci_client_read_package_config - read from the Package Configuration Space
++ * @priv: driver private data structure
++ * @index: encoding index for the requested service
++ * @param: parameter to specify the exact data being requested
++ * @data: data buffer to store the result
++ * Context: can sleep
++ *
++ * A generic PECI command that provides read access to the
++ * "Package Configuration Space" that is maintained by the PCU, including
++ * various power and thermal management functions. Typical PCS read services
++ * supported by the processor may include access to temperature data, energy
++ * status, run time information, DIMM temperatures and so on.
++ *
++ * Return: zero on success, else a negative error code.
++ */
++static inline int
++peci_client_read_package_config(struct peci_client_manager *priv,
++				u8 index, u16 param, u8 *data)
++{
++	struct peci_rd_pkg_cfg_msg msg;
++	int ret;
++
++	msg.addr = priv->client->addr;
++	msg.index = index;
++	msg.param = param;
++	msg.rx_len = 4;
++	msg.domain_id = priv->client->domain_id;
++
++	ret = peci_command(priv->client->adapter, PECI_CMD_RD_PKG_CFG, sizeof(msg), &msg);
++	if (msg.cc != PECI_DEV_CC_SUCCESS)
++		ret = -EAGAIN;
++	if (ret)
++		return ret;
++
++	memcpy(data, msg.pkg_config, 4);
++
++	return 0;
++}
++
++/**
++ * peci_client_write_package_config - write to the Package Configuration Space
++ * @priv: driver private data structure
++ * @index: encoding index for the requested service
++ * @param: parameter to specify the exact data being requested
++ * @data: data to write
++ * Context: can sleep
++ *
++ * Return: zero on success, else a negative error code.
++ */
++static inline int
++peci_client_write_package_config(struct peci_client_manager *priv,
++				 u8 index, u16 param, u32 data)
++{
++	struct peci_wr_pkg_cfg_msg msg;
++	int ret;
++
++	msg.addr = priv->client->addr;
++	msg.index = index;
++	msg.param = param;
++	msg.tx_len = 4u;
++	msg.value = data;
++	msg.domain_id = priv->client->domain_id;
++
++	ret = peci_command(priv->client->adapter, PECI_CMD_WR_PKG_CFG, sizeof(msg), &msg);
++	if (!ret) {
++		if (msg.cc != PECI_DEV_CC_SUCCESS)
++			ret = -EAGAIN;
++	}
++
++	return ret;
++}
++
++#endif /* __LINUX_MFD_INTEL_PECI_CLIENT_H */
+diff --git a/include/linux/peci.h b/include/linux/peci.h
+new file mode 100644
+index 000000000000..435ab522f32c
+--- /dev/null
++++ b/include/linux/peci.h
+@@ -0,0 +1,153 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright (c) 2018-2019 Intel Corporation */
++
++#ifndef __LINUX_PECI_H
++#define __LINUX_PECI_H
++
++#include <linux/device.h>
++#include <linux/mutex.h>
++#include <linux/peci-ioctl.h>
++
++#define PECI_NAME_SIZE   32
++
++struct peci_board_info {
++	char			type[PECI_NAME_SIZE];
++	u8			addr;	/* CPU client address */
++	u8			domain_id;
++	struct device_node	*of_node;
++};
++
++/**
++ * struct peci_adapter - represent a PECI adapter
++ * @owner: owner module of the PECI adpater
++ * @bus_lock: mutex for exclusion of multiple callers
++ * @dev: device interface to this driver
++ * @nr: the bus number to map
++ * @name: name of the adapter
++ * @userspace_clients_lock: mutex for exclusion of clients handling
++ * @userspace_clients: list of registered clients
++ * @xfer: low-level transfer function pointer of the adapter
++ * @cmd_mask: mask for supportable PECI commands
++ * @use_dma: flag for indicating that adapter uses DMA
++ *
++ * Each PECI adapter can communicate with one or more PECI client children.
++ * These make a small bus, sharing a single wired PECI connection.
++ */
++struct peci_adapter {
++	struct module		*owner;
++	struct mutex		bus_lock; /* mutex for bus locking */
++	struct device		dev;
++	int			nr;
++	char			name[PECI_NAME_SIZE];
++	struct mutex		userspace_clients_lock; /* clients list mutex */
++	struct list_head	userspace_clients;
++	int			(*xfer)(struct peci_adapter *adapter,
++					struct peci_xfer_msg *msg);
++	u32			cmd_mask;
++	bool			use_dma;
++	u8			peci_revision;
++};
++
++static inline struct peci_adapter *to_peci_adapter(void *d)
++{
++	return container_of(d, struct peci_adapter, dev);
++}
++
++static inline void *peci_get_adapdata(const struct peci_adapter *adapter)
++{
++	return dev_get_drvdata(&adapter->dev);
++}
++
++static inline void peci_set_adapdata(struct peci_adapter *adapter, void *data)
++{
++	dev_set_drvdata(&adapter->dev, data);
++}
++
++/**
++ * struct peci_client - represent a PECI client device
++ * @dev: driver model device node for the client
++ * @adapter: manages the bus segment hosting this PECI device
++ * @addr: address used on the PECI bus connected to the parent adapter
++ * @name: indicates the type of the device
++ * @detected: detected PECI clients list
++ *
++ * A peci_client identifies a single device (i.e. CPU) connected to a peci bus.
++ * The behaviour exposed to Linux is defined by the driver managing the device.
++ */
++struct peci_client {
++	struct device		dev;
++	struct peci_adapter	*adapter;
++	u8			addr;
++	u8			domain_id;
++	char			name[PECI_NAME_SIZE];
++	struct list_head	detected;
++};
++
++static inline struct peci_client *to_peci_client(void *d)
++{
++	return container_of(d, struct peci_client, dev);
++}
++
++struct peci_device_id {
++	char	name[PECI_NAME_SIZE];
++	ulong	driver_data;	/* Data private to the driver */
++};
++
++/**
++ * struct peci_driver - represent a PECI device driver
++ * @probe: callback for device binding
++ * @remove: callback for device unbinding
++ * @shutdown: callback for device shutdown
++ * @driver: device driver model driver
++ * @id_table: list of PECI devices supported by this driver
++ *
++ * The driver.owner field should be set to the module owner of this driver.
++ * The driver.name field should be set to the name of this driver.
++ */
++struct peci_driver {
++	int				(*probe)(struct peci_client *client);
++	int				(*remove)(struct peci_client *client);
++	void				(*shutdown)(struct peci_client *client);
++	struct device_driver		driver;
++	const struct peci_device_id	*id_table;
++};
++
++static inline struct peci_driver *to_peci_driver(void *d)
++{
++	return container_of(d, struct peci_driver, driver);
++}
++
++/**
++ * module_peci_driver - Helper macro for registering a modular PECI driver
++ * @__peci_driver: peci_driver struct
++ *
++ * Helper macro for PECI drivers which do not do anything special in module
++ * init/exit. This eliminates a lot of boilerplate. Each module may only
++ * use this macro once, and calling it replaces module_init() and module_exit()
++ */
++#define module_peci_driver(__peci_driver) \
++	module_driver(__peci_driver, peci_add_driver, peci_del_driver)
++
++/* use a define to avoid include chaining to get THIS_MODULE */
++#define peci_add_driver(driver) peci_register_driver(THIS_MODULE, driver)
++
++extern struct bus_type peci_bus_type;
++extern struct device_type peci_adapter_type;
++extern struct device_type peci_client_type;
++
++int  peci_register_driver(struct module *owner, struct peci_driver *drv);
++void peci_del_driver(struct peci_driver *driver);
++struct peci_client *peci_verify_client(struct device *dev);
++struct peci_adapter *peci_alloc_adapter(struct device *dev, uint size);
++struct peci_adapter *peci_get_adapter(int nr);
++void peci_put_adapter(struct peci_adapter *adapter);
++int  peci_add_adapter(struct peci_adapter *adapter);
++void peci_del_adapter(struct peci_adapter *adapter);
++struct peci_adapter *peci_verify_adapter(struct device *dev);
++int  peci_for_each_dev(void *data, int (*fn)(struct device *, void *));
++struct peci_xfer_msg *peci_get_xfer_msg(u8 tx_len, u8 rx_len);
++void peci_put_xfer_msg(struct peci_xfer_msg *msg);
++int  peci_command(struct peci_adapter *adpater, enum peci_cmd cmd, uint msg_len, void *vmsg);
++int  peci_get_cpu_id(struct peci_adapter *adapter, u8 addr, u8 domain_id, u32 *cpu_id);
++
++#endif /* __LINUX_PECI_H */
+\ No newline at end of file
+diff --git a/include/uapi/linux/peci-ioctl.h b/include/uapi/linux/peci-ioctl.h
+new file mode 100644
+index 000000000000..8dd5897333d1
+--- /dev/null
++++ b/include/uapi/linux/peci-ioctl.h
+@@ -0,0 +1,703 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/* Copyright (c) 2018-2020 Intel Corporation */
++
++#ifndef __PECI_IOCTL_H
++#define __PECI_IOCTL_H
++
++#include <linux/ioctl.h>
++#include <linux/types.h>
++
++/* The PECI client's default address of 0x30 */
++#define PECI_BASE_ADDR					0x30
++
++/* Max number of CPU clients */
++#define PECI_OFFSET_MAX					8
++
++/* Max number of domains per CPU */
++#define DOMAIN_OFFSET_MAX				16
++
++/* PECI read/write data buffer size max */
++#define PECI_BUFFER_SIZE				255
++
++/* Device Specific Completion Code (CC) Definition */
++#define PECI_DEV_CC_SUCCESS				0x40
++#define PECI_DEV_CC_NEED_RETRY				0x80
++#define PECI_DEV_CC_OUT_OF_RESOURCE			0x81
++#define PECI_DEV_CC_UNAVAIL_RESOURCE			0x82
++#define PECI_DEV_CC_INVALID_REQ				0x90
++#define PECI_DEV_CC_MCA_ERROR				0x91
++#define PECI_DEV_CC_CATASTROPHIC_MCA_ERROR		0x93
++#define PECI_DEV_CC_FATAL_MCA_DETECTED			0x94
++#define PECI_DEV_CC_PARITY_ERROR_ON_GPSB_OR_PMSB	0x98
++#define PECI_DEV_CC_PARITY_ERROR_ON_GPSB_OR_PMSB_IERR	0x9B
++#define PECI_DEV_CC_PARITY_ERROR_ON_GPSB_OR_PMSB_MCA	0x9C
++
++/* Completion Code mask to check retry needs */
++#define PECI_DEV_CC_RETRY_CHECK_MASK			0xf0
++
++#define PECI_DEV_RETRY_TIMEOUT				msecs_to_jiffies(700)
++#define PECI_DEV_RETRY_INTERVAL_MIN_USEC		100
++#define PECI_DEV_RETRY_INTERVAL_MAX_USEC		(128 * 1000)
++#define PECI_DEV_RETRY_BIT				0x01
++
++/**
++ * enum peci_cmd - PECI client commands
++ * @PECI_CMD_XFER: raw PECI transfer
++ * @PECI_CMD_PING: ping, a required message for all PECI devices
++ * @PECI_CMD_GET_DIB: get DIB (Device Info Byte)
++ * @PECI_CMD_GET_TEMP: get maximum die temperature
++ * @PECI_CMD_RD_PKG_CFG: read access to the PCS (Package Configuration Space)
++ * @PECI_CMD_WR_PKG_CFG: write access to the PCS (Package Configuration Space)
++ * @PECI_CMD_RD_IA_MSR: read access to MSRs (Model Specific Registers)
++ * @PECI_CMD_WR_IA_MSR: write access to MSRs (Model Specific Registers)
++ * @PECI_CMD_RD_IA_MSREX: read access to MSRs (Model Specific Registers)
++ * @PECI_CMD_RD_PCI_CFG: sideband read access to the PCI configuration space
++ *	maintained in downstream devices external to the processor
++ * @PECI_CMD_WR_PCI_CFG: sideband write access to the PCI configuration space
++ *	maintained in downstream devices external to the processor
++ * @PECI_CMD_RD_PCI_CFG_LOCAL: sideband read access to the PCI configuration
++ *	space that resides within the processor
++ * @PECI_CMD_WR_PCI_CFG_LOCAL: sideband write access to the PCI configuration
++ *	space that resides within the processor
++ *
++ * Available commands depend on client's PECI revision.
++ */
++enum peci_cmd {
++	PECI_CMD_XFER = 0,
++	PECI_CMD_PING,
++	PECI_CMD_GET_DIB,
++	PECI_CMD_GET_TEMP,
++	PECI_CMD_RD_PKG_CFG,
++	PECI_CMD_WR_PKG_CFG,
++	PECI_CMD_RD_IA_MSR,
++	PECI_CMD_WR_IA_MSR,
++	PECI_CMD_RD_IA_MSREX,
++	PECI_CMD_RD_PCI_CFG,
++	PECI_CMD_WR_PCI_CFG,
++	PECI_CMD_RD_PCI_CFG_LOCAL,
++	PECI_CMD_WR_PCI_CFG_LOCAL,
++	PECI_CMD_RD_END_PT_CFG,
++	PECI_CMD_WR_END_PT_CFG,
++	PECI_CMD_CRASHDUMP_DISC,
++	PECI_CMD_CRASHDUMP_GET_FRAME,
++	PECI_CMD_MAX
++};
++
++/**
++ * struct peci_xfer_msg - raw PECI transfer command
++ * @addr; address of the client
++ * @tx_len: number of data to be written in bytes
++ * @rx_len: number of data to be read in bytes
++ * @tx_buf: data to be written, or NULL
++ * @rx_buf: data to be read, or NULL
++ *
++ * raw PECI transfer
++ */
++struct peci_xfer_msg {
++	__u8	addr;
++	__u8	tx_len;
++	__u8	rx_len;
++	__u8	padding;
++	__u8	*tx_buf;
++	__u8	*rx_buf;
++} __attribute__((__packed__));
++
++/**
++ * struct peci_ping_msg - ping command
++ * @addr: address of the client
++ *
++ * Ping() is a required message for all PECI devices. This message is used to
++ * enumerate devices or determine if a device has been removed, been
++ * powered-off, etc.
++ */
++struct peci_ping_msg {
++	__u8	addr;
++	__u8	padding[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_get_dib_msg - GetDIB command
++ * @addr: address of the client
++ * @dib: DIB data to be read
++ *
++ * The processor PECI client implementation of GetDIB() includes an 8-byte
++ * response and provides information regarding client revision number and the
++ * number of supported domains. All processor PECI clients support the GetDIB()
++ * command.
++ */
++struct peci_get_dib_msg {
++#define PECI_GET_DIB_WR_LEN	1
++#define PECI_GET_DIB_RD_LEN	8
++#define PECI_GET_DIB_CMD	0xf7
++
++	__u8	addr;
++	__u8	padding[3];
++	__u64	dib;
++} __attribute__((__packed__));
++
++/**
++ * struct peci_get_temp_msg - GetTemp command
++ * @addr: address of the client
++ * @temp_raw: raw temperature data to be read
++ *
++ * The GetTemp() command is used to retrieve the maximum die temperature from a
++ * target PECI address. The temperature is used by the external thermal
++ * management system to regulate the temperature on the die. The data is
++ * returned as a negative value representing the number of degrees centigrade
++ * below the maximum processor junction temperature.
++ */
++struct peci_get_temp_msg {
++#define PECI_GET_TEMP_WR_LEN	1
++#define PECI_GET_TEMP_RD_LEN	2
++#define PECI_GET_TEMP_CMD	0x01
++
++	__u8	addr;
++	__u8	padding;
++	__s16	temp_raw;
++} __attribute__((__packed__));
++
++/**
++ * struct peci_rd_pkg_cfg_msg - RdPkgConfig command
++ * @addr: address of the client
++ * @index: encoding index for the requested service
++ * @param: specific data being requested
++ * @rx_len: number of data to be read in bytes
++ * @cc: completion code
++ * @pkg_config: package config data to be read
++ * @domain_id: domain ID of the client
++ *
++ * The RdPkgConfig() command provides read access to the Package Configuration
++ * Space (PCS) within the processor, including various power and thermal
++ * management functions. Typical PCS read services supported by the processor
++ * may include access to temperature data, energy status, run time information,
++ * DIMM temperatures and so on.
++ */
++struct peci_rd_pkg_cfg_msg {
++#define PECI_RDPKGCFG_WRITE_LEN			5
++#define PECI_RDPKGCFG_READ_LEN_BASE		1
++#define PECI_RDPKGCFG_CMD			0xa1
++
++	__u8	addr;
++	__u8	index;
++#define PECI_MBX_INDEX_CPU_ID			0  /* Package Identifier Read */
++#define PECI_MBX_INDEX_VR_DEBUG			1  /* VR Debug */
++#define PECI_MBX_INDEX_PKG_TEMP_READ		2  /* Package Temperature Read */
++#define PECI_MBX_INDEX_ENERGY_COUNTER		3  /* Energy counter */
++#define PECI_MBX_INDEX_ENERGY_STATUS		4  /* DDR Energy Status */
++#define PECI_MBX_INDEX_WAKE_MODE_BIT		5  /* "Wake on PECI" Mode bit */
++#define PECI_MBX_INDEX_EPI			6  /* Efficient Performance Indication */
++#define PECI_MBX_INDEX_PKG_RAPL_PERF		8  /* Pkg RAPL Performance Status Read */
++#define PECI_MBX_INDEX_MODULE_TEMP		9  /* Module Temperature Read */
++#define PECI_MBX_INDEX_DTS_MARGIN		10 /* DTS thermal margin */
++#define PECI_MBX_INDEX_SKT_PWR_THRTL_DUR	11 /* Socket Power Throttled Duration */
++#define PECI_MBX_INDEX_CFG_TDP_CONTROL		12 /* TDP Config Control */
++#define PECI_MBX_INDEX_CFG_TDP_LEVELS		13 /* TDP Config Levels */
++#define PECI_MBX_INDEX_DDR_DIMM_TEMP		14 /* DDR DIMM Temperature */
++#define PECI_MBX_INDEX_CFG_ICCMAX		15 /* Configurable ICCMAX */
++#define PECI_MBX_INDEX_TEMP_TARGET		16 /* Temperature Target Read */
++#define PECI_MBX_INDEX_CURR_CFG_LIMIT		17 /* Current Config Limit */
++#define PECI_MBX_INDEX_DIMM_TEMP_READ		20 /* Package Thermal Status Read */
++#define PECI_MBX_INDEX_DRAM_IMC_TMP_READ	22 /* DRAM IMC Temperature Read */
++#define PECI_MBX_INDEX_DDR_CH_THERM_STAT	23 /* DDR Channel Thermal Status */
++#define PECI_MBX_INDEX_PKG_POWER_LIMIT1		26 /* Package Power Limit1 */
++#define PECI_MBX_INDEX_PKG_POWER_LIMIT2		27 /* Package Power Limit2 */
++#define PECI_MBX_INDEX_TDP			28 /* Thermal design power minimum */
++#define PECI_MBX_INDEX_TDP_HIGH			29 /* Thermal design power maximum */
++#define PECI_MBX_INDEX_TDP_UNITS		30 /* Units for power/energy registers */
++#define PECI_MBX_INDEX_RUN_TIME			31 /* Accumulated Run Time */
++#define PECI_MBX_INDEX_CONSTRAINED_TIME		32 /* Thermally Constrained Time Read */
++#define PECI_MBX_INDEX_TURBO_RATIO		33 /* Turbo Activation Ratio */
++#define PECI_MBX_INDEX_DDR_RAPL_PL1		34 /* DDR RAPL PL1 */
++#define PECI_MBX_INDEX_DDR_PWR_INFO_HIGH	35 /* DRAM Power Info Read (high) */
++#define PECI_MBX_INDEX_DDR_PWR_INFO_LOW		36 /* DRAM Power Info Read (low) */
++#define PECI_MBX_INDEX_DDR_RAPL_PL2		37 /* DDR RAPL PL2 */
++#define PECI_MBX_INDEX_DDR_RAPL_STATUS		38 /* DDR RAPL Performance Status */
++#define PECI_MBX_INDEX_DDR_HOT_ABSOLUTE		43 /* DDR Hottest Dimm Absolute Temp */
++#define PECI_MBX_INDEX_DDR_HOT_RELATIVE		44 /* DDR Hottest Dimm Relative Temp */
++#define PECI_MBX_INDEX_DDR_THROTTLE_TIME	45 /* DDR Throttle Time */
++#define PECI_MBX_INDEX_DDR_THERM_STATUS		46 /* DDR Thermal Status */
++#define PECI_MBX_INDEX_TIME_AVG_TEMP		47 /* Package time-averaged temperature */
++#define PECI_MBX_INDEX_TURBO_RATIO_LIMIT	49 /* Turbo Ratio Limit Read */
++#define PECI_MBX_INDEX_HWP_AUTO_OOB		53 /* HWP Autonomous Out-of-band */
++#define PECI_MBX_INDEX_DDR_WARM_BUDGET		55 /* DDR Warm Power Budget */
++#define PECI_MBX_INDEX_DDR_HOT_BUDGET		56 /* DDR Hot Power Budget */
++#define PECI_MBX_INDEX_PKG_PSYS_PWR_LIM3	57 /* Package/Psys Power Limit3 */
++#define PECI_MBX_INDEX_PKG_PSYS_PWR_LIM1	58 /* Package/Psys Power Limit1 */
++#define PECI_MBX_INDEX_PKG_PSYS_PWR_LIM2	59 /* Package/Psys Power Limit2 */
++#define PECI_MBX_INDEX_PKG_PSYS_PWR_LIM4	60 /* Package/Psys Power Limit4 */
++#define PECI_MBX_INDEX_PERF_LIMIT_REASON	65 /* Performance Limit Reasons */
++
++	__u16	param;
++/* When index is PECI_MBX_INDEX_CPU_ID */
++#define PECI_PKG_ID_CPU_ID			0x0000  /* CPUID Info */
++#define PECI_PKG_POWER_SKU_UNIT		0x0000 /* Time, Energy, Power units */
++#define PECI_PKG_ID_PLATFORM_ID			0x0001  /* Platform ID */
++#define PECI_PKG_ID_UNCORE_ID			0x0002  /* Uncore Device ID */
++#define PECI_PKG_ID_MAX_THREAD_ID		0x0003  /* Max Thread ID */
++#define PECI_PKG_ID_MICROCODE_REV		0x0004  /* CPU Microcode Update Revision */
++#define PECI_PKG_ID_MACHINE_CHECK_STATUS	0x0005  /* Machine Check Status */
++#define PECI_PKG_ID_CPU_PACKAGE		0x00ff  /* CPU package ID*/
++#define PECI_PKG_ID_DIMM			0x00ff  /* DIMM ID*/
++#define PECI_PKG_ID_PLATFORM			0x00fe  /* Entire platform ID */
++
++	__u8	rx_len;
++	__u8	cc;
++	__u8	padding[2];
++	__u8	pkg_config[4];
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_wr_pkg_cfg_msg - WrPkgConfig command
++ * @addr: address of the client
++ * @index: encoding index for the requested service
++ * @param: specific data being requested
++ * @tx_len: number of data to be written in bytes
++ * @cc: completion code
++ * @value: package config data to be written
++ * @domain_id: domain ID of the client
++ *
++ * The WrPkgConfig() command provides write access to the Package Configuration
++ * Space (PCS) within the processor, including various power and thermal
++ * management functions. Typical PCS write services supported by the processor
++ * may include power limiting, thermal averaging constant programming and so
++ * on.
++ */
++struct peci_wr_pkg_cfg_msg {
++#define PECI_WRPKGCFG_WRITE_LEN_BASE	6
++#define PECI_WRPKGCFG_READ_LEN		1
++#define PECI_WRPKGCFG_CMD		0xa5
++
++	__u8	addr;
++	__u8	index;
++#define PECI_MBX_INDEX_DIMM_AMBIENT	19
++#define PECI_MBX_INDEX_DIMM_TEMP	24
++
++	__u16	param;
++	__u8	tx_len;
++	__u8	cc;
++	__u8	padding[2];
++	__u32	value;
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_rd_ia_msr_msg - RdIAMSR command
++ * @addr: address of the client
++ * @thread_id: ID of the specific logical processor
++ * @address: address of MSR to read from
++ * @cc: completion code
++ * @value: data to be read
++ * @domain_id: domain ID of the client
++ *
++ * The RdIAMSR() PECI command provides read access to Model Specific Registers
++ * (MSRs) defined in the processor's Intel Architecture (IA).
++ */
++struct peci_rd_ia_msr_msg {
++#define PECI_RDIAMSR_WRITE_LEN		5
++#define PECI_RDIAMSR_READ_LEN		9
++#define PECI_RDIAMSR_CMD		0xb1
++
++	__u8	addr;
++	__u8	thread_id;
++	__u16	address;
++	__u8	cc;
++	__u8	padding[3];
++	__u64	value;
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_wr_ia_msr_msg - WrIAMSR command
++ * @addr: address of the client
++ * @thread_id: ID of the specific logical processor
++ * @address: address of MSR to write to
++ * @tx_len: number of data to be written in bytes
++ * @cc: completion code
++ * @value: data to be written
++ * @domain_id: domain ID of the client
++ *
++ * The WrIAMSR() PECI command provides write access to Model Specific Registers
++ * (MSRs) defined in the processor's Intel Architecture (IA).
++ */
++struct peci_wr_ia_msr_msg {
++#define PECI_WRIAMSR_CMD		0xb5
++
++	__u8	addr;
++	__u8	thread_id;
++	__u16	address;
++	__u8	tx_len;
++	__u8	cc;
++	__u8	padding[2];
++	__u64	value;
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_rd_ia_msrex_msg - RdIAMSREX command
++ * @addr: address of the client
++ * @thread_id: ID of the specific logical processor
++ * @address: address of MSR to read from
++ * @cc: completion code
++ * @value: data to be read
++ * @domain_id: domain ID of the client
++ *
++ * The RdIAMSREX() PECI command provides read access to Model Specific
++ * Registers (MSRs) defined in the processor's Intel Architecture (IA).
++ * The differences between RdIAMSREX() and RdIAMSR() are that:
++ * (1)RdIAMSR() can only read MC registers, RdIAMSREX() can read all MSRs
++ * (2)thread_id of RdIAMSR() is u8, thread_id of RdIAMSREX() is u16
++ */
++struct peci_rd_ia_msrex_msg {
++#define PECI_RDIAMSREX_WRITE_LEN	6
++#define PECI_RDIAMSREX_READ_LEN		9
++#define PECI_RDIAMSREX_CMD		0xd1
++
++	__u8	addr;
++	__u8	padding0;
++	__u16	thread_id;
++	__u16	address;
++	__u8	cc;
++	__u8	padding1;
++	__u64	value;
++	__u8	domain_id;
++	__u8	padding2[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_rd_pci_cfg_msg - RdPCIConfig command
++ * @addr: address of the client
++ * @bus: PCI bus number
++ * @device: PCI device number
++ * @function: specific function to read from
++ * @reg: specific register to read from
++ * @cc: completion code
++ * @pci_config: config data to be read
++ * @domain_id: domain ID of the client
++ *
++ * The RdPCIConfig() command provides sideband read access to the PCI
++ * configuration space maintained in downstream devices external to the
++ * processor.
++ */
++struct peci_rd_pci_cfg_msg {
++#define PECI_RDPCICFG_WRITE_LEN		6
++#define PECI_RDPCICFG_READ_LEN		5
++#define PECI_RDPCICFG_READ_LEN_MAX	24
++#define PECI_RDPCICFG_CMD		0x61
++
++	__u8	addr;
++	__u8	bus;
++#define PECI_PCI_BUS0_CPU0		0x00
++#define PECI_PCI_BUS0_CPU1		0x80
++#define PECI_PCI_CPUBUSNO_BUS		0x00
++#define PECI_PCI_CPUBUSNO_DEV		0x08
++#define PECI_PCI_CPUBUSNO_FUNC		0x02
++#define PECI_PCI_CPUBUSNO		0xcc
++#define PECI_PCI_CPUBUSNO_1		0xd0
++#define PECI_PCI_CPUBUSNO_VALID		0xd4
++
++	__u8	device;
++	__u8	function;
++	__u16	reg;
++	__u8	cc;
++	__u8	padding[1];
++	__u8	pci_config[4];
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_wr_pci_cfg_msg - WrPCIConfig command
++ * @addr: address of the client
++ * @bus: PCI bus number
++ * @device: PCI device number
++ * @function: specific function to write to
++ * @reg: specific register to write to
++ * @tx_len: number of data to be written in bytes
++ * @cc: completion code
++ * @pci_config: config data to be written
++ * @domain_id: domain ID of the client
++ *
++ * The RdPCIConfig() command provides sideband write access to the PCI
++ * configuration space maintained in downstream devices external to the
++ * processor.
++ */
++struct peci_wr_pci_cfg_msg {
++#define PECI_WRPCICFG_CMD		0x65
++
++	__u8	addr;
++	__u8	bus;
++	__u8	device;
++	__u8	function;
++	__u16	reg;
++	__u8	tx_len;
++	__u8	cc;
++	__u8	pci_config[4];
++	__u8	domain_id;
++	__u8	padding[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_rd_pci_cfg_local_msg - RdPCIConfigLocal command
++ * @addr: address of the client
++ * @bus: PCI bus number
++ * @device: PCI device number
++ * @function: specific function to read from
++ * @reg: specific register to read from
++ * @rx_len: number of data to be read in bytes
++ * @cc: completion code
++ * @pci_config: config data to be read
++ * @domain_id: domain ID of the client
++ *
++ * The RdPCIConfigLocal() command provides sideband read access to the PCI
++ * configuration space that resides within the processor. This includes all
++ * processor IIO and uncore registers within the PCI configuration space.
++ */
++struct peci_rd_pci_cfg_local_msg {
++#define PECI_RDPCICFGLOCAL_WRITE_LEN		5
++#define PECI_RDPCICFGLOCAL_READ_LEN_BASE	1
++#define PECI_RDPCICFGLOCAL_CMD			0xe1
++
++	__u8	addr;
++	__u8	bus;
++	__u8	device;
++	__u8	function;
++	__u16	reg;
++	__u8	rx_len;
++	__u8	cc;
++	__u8	pci_config[4];
++	__u8	domain_id;
++	__u8	padding[3];
++} __attribute__((__packed__));
++
++/**
++ * struct peci_wr_pci_cfg_local_msg - WrPCIConfigLocal command
++ * @addr: address of the client
++ * @bus: PCI bus number
++ * @device: PCI device number
++ * @function: specific function to read from
++ * @reg: specific register to read from
++ * @tx_len: number of data to be written in bytes
++ * @cc: completion code
++ * @value: config data to be written
++ * @domain_id: domain ID of the client
++ *
++ * The WrPCIConfigLocal() command provides sideband write access to the PCI
++ * configuration space that resides within the processor. PECI originators can
++ * access this space even before BIOS enumeration of the system buses.
++ */
++struct peci_wr_pci_cfg_local_msg {
++#define PECI_WRPCICFGLOCAL_WRITE_LEN_BASE	6
++#define PECI_WRPCICFGLOCAL_READ_LEN		1
++#define PECI_WRPCICFGLOCAL_CMD			0xe5
++
++	__u8	addr;
++	__u8	bus;
++	__u8	device;
++	__u8	function;
++	__u16	reg;
++	__u8	tx_len;
++	__u8	cc;
++	__u32	value;
++	__u8	domain_id;
++	__u8	padding[3];
++} __attribute__((__packed__));
++
++struct peci_rd_end_pt_cfg_msg {
++#define PECI_RDENDPTCFG_PCI_WRITE_LEN		12
++#define PECI_RDENDPTCFG_MMIO_D_WRITE_LEN	14
++#define PECI_RDENDPTCFG_MMIO_Q_WRITE_LEN	18
++#define PECI_RDENDPTCFG_READ_LEN_BASE		1
++#define PECI_RDENDPTCFG_CMD			0xc1
++
++	__u8	addr;
++	__u8	msg_type;
++#define PECI_ENDPTCFG_TYPE_LOCAL_PCI		0x03
++#define PECI_ENDPTCFG_TYPE_PCI			0x04
++#define PECI_ENDPTCFG_TYPE_MMIO			0x05
++
++	union {
++		struct {
++			__u8	seg;
++			__u8	bus;
++			__u8	device;
++			__u8	function;
++			__u16	reg;
++		} pci_cfg;
++		struct {
++			__u8	seg;
++			__u8	bus;
++			__u8	device;
++			__u8	function;
++			__u8	bar;
++			__u8	addr_type;
++#define PECI_ENDPTCFG_ADDR_TYPE_PCI		0x04
++#define PECI_ENDPTCFG_ADDR_TYPE_MMIO_D		0x05
++#define PECI_ENDPTCFG_ADDR_TYPE_MMIO_Q		0x06
++
++			__u64	offset;
++		} mmio;
++	} params;
++	__u8	rx_len;
++	__u8	cc;
++	__u8	padding[2];
++	__u8	data[8];
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++struct peci_wr_end_pt_cfg_msg {
++#define PECI_WRENDPTCFG_PCI_WRITE_LEN_BASE	13
++#define PECI_WRENDPTCFG_MMIO_D_WRITE_LEN_BASE	15
++#define PECI_WRENDPTCFG_MMIO_Q_WRITE_LEN_BASE	19
++#define PECI_WRENDPTCFG_READ_LEN		1
++#define PECI_WRENDPTCFG_CMD			0xc5
++
++	__u8	addr;
++	__u8	msg_type;
++	/* See msg_type in struct peci_rd_end_pt_cfg_msg */
++
++	union {
++		struct {
++			__u8	seg;
++			__u8	bus;
++			__u8	device;
++			__u8	function;
++			__u16	reg;
++		} pci_cfg;
++		struct {
++			__u8	seg;
++			__u8	bus;
++			__u8	device;
++			__u8	function;
++			__u8	bar;
++			__u8	addr_type;
++			/* See addr_type in struct peci_rd_end_pt_cfg_msg */
++
++			__u64	offset;
++		} mmio;
++	} params;
++	__u8	tx_len;
++	__u8	cc;
++	__u8	padding[2];
++	__u64	value;
++	__u8	domain_id;
++	__u8	padding1[3];
++} __attribute__((__packed__));
++
++/* Crashdump Agent */
++#define PECI_CRASHDUMP_CORE		0x00
++#define PECI_CRASHDUMP_TOR		0x01
++
++/* Crashdump Agent Param */
++#define PECI_CRASHDUMP_PAYLOAD_SIZE	0x00
++
++/* Crashdump Agent Data Param */
++#define PECI_CRASHDUMP_AGENT_ID		0x00
++#define PECI_CRASHDUMP_AGENT_PARAM	0x01
++
++struct peci_crashdump_disc_msg {
++	__u8	addr;
++	__u8	subopcode;
++#define PECI_CRASHDUMP_ENABLED		0x00
++#define PECI_CRASHDUMP_NUM_AGENTS	0x01
++#define PECI_CRASHDUMP_AGENT_DATA	0x02
++
++	__u8	cc;
++	__u8	param0;
++	__u16	param1;
++	__u8	param2;
++	__u8	rx_len;
++	__u8	data[8];
++	__u8	domain_id;
++	__u8	padding[3];
++} __attribute__((__packed__));
++
++struct peci_crashdump_get_frame_msg {
++#define PECI_CRASHDUMP_DISC_WRITE_LEN		9
++#define PECI_CRASHDUMP_DISC_READ_LEN_BASE	1
++#define PECI_CRASHDUMP_DISC_VERSION		0
++#define PECI_CRASHDUMP_DISC_OPCODE		1
++#define PECI_CRASHDUMP_GET_FRAME_WRITE_LEN	10
++#define PECI_CRASHDUMP_GET_FRAME_READ_LEN_BASE	1
++#define PECI_CRASHDUMP_GET_FRAME_VERSION	0
++#define PECI_CRASHDUMP_GET_FRAME_OPCODE		3
++#define PECI_CRASHDUMP_CMD			0x71
++
++	__u8	addr;
++	__u8	padding0;
++	__u16	param0;
++	__u16	param1;
++	__u16	param2;
++	__u8	rx_len;
++	__u8	cc;
++	__u8	padding1[2];
++	__u8	data[16];
++	__u8	domain_id;
++	__u8	padding2[3];
++} __attribute__((__packed__));
++
++#define PECI_IOC_BASE	0xb8
++
++#define PECI_IOC_XFER \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_XFER, struct peci_xfer_msg)
++
++#define PECI_IOC_PING \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_PING, struct peci_ping_msg)
++
++#define PECI_IOC_GET_DIB \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_GET_DIB, struct peci_get_dib_msg)
++
++#define PECI_IOC_GET_TEMP \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_GET_TEMP, struct peci_get_temp_msg)
++
++#define PECI_IOC_RD_PKG_CFG \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_RD_PKG_CFG, struct peci_rd_pkg_cfg_msg)
++
++#define PECI_IOC_WR_PKG_CFG \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_WR_PKG_CFG, struct peci_wr_pkg_cfg_msg)
++
++#define PECI_IOC_RD_IA_MSR \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_RD_IA_MSR, struct peci_rd_ia_msr_msg)
++
++#define PECI_IOC_WR_IA_MSR \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_WR_IA_MSR, struct peci_wr_ia_msr_msg)
++
++#define PECI_IOC_RD_IA_MSREX \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_RD_IA_MSREX, struct peci_rd_ia_msrex_msg)
++
++#define PECI_IOC_RD_PCI_CFG \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_RD_PCI_CFG, struct peci_rd_pci_cfg_msg)
++
++#define PECI_IOC_WR_PCI_CFG \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_WR_PCI_CFG, struct peci_wr_pci_cfg_msg)
++
++#define PECI_IOC_RD_PCI_CFG_LOCAL \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_RD_PCI_CFG_LOCAL, \
++	      struct peci_rd_pci_cfg_local_msg)
++
++#define PECI_IOC_WR_PCI_CFG_LOCAL \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_WR_PCI_CFG_LOCAL, \
++	      struct peci_wr_pci_cfg_local_msg)
++
++#define PECI_IOC_RD_END_PT_CFG \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_RD_END_PT_CFG, \
++	      struct peci_rd_end_pt_cfg_msg)
++
++#define PECI_IOC_WR_END_PT_CFG \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_WR_END_PT_CFG, \
++	      struct peci_wr_end_pt_cfg_msg)
++
++#define PECI_IOC_CRASHDUMP_DISC \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_CRASHDUMP_DISC, \
++	      struct peci_crashdump_disc_msg)
++
++#define PECI_IOC_CRASHDUMP_GET_FRAME \
++	_IOWR(PECI_IOC_BASE, PECI_CMD_CRASHDUMP_GET_FRAME, \
++	      struct peci_crashdump_get_frame_msg)
++
++#endif /* __PECI_IOCTL_H */
+\ No newline at end of file
 -- 
 2.17.1
 

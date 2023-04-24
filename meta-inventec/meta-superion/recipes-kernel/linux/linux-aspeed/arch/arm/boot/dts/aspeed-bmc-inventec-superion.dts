@@ -834,6 +834,22 @@
 	};
 };
 
+&peci{
+	peci0: peci-bus@0{
+		status = "okay";
+
+		peci-client@30 {
+			compatible = "intel,peci-client";
+			reg = <0x30>;
+		};
+
+		peci-client@31 {
+			compatible = "intel,peci-client";
+			reg = <0x31>;
+		};
+	};
+};
+
 &gpio0 {
 	status = "okay";
 	gpio-line-names =
