@@ -484,7 +484,111 @@
 };
 
 &i2c12 {
+	// I2C EXPANDER
 	status = "okay";
+	i2c-switch@70 {
+		compatible = "nxp,pca9546";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x70>;
+
+		switch_mux0: i2c0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;	
+
+			switch_mux0_pvccin_vr: xdpe152c4@60 {/* XDPE19284B - PVCCIN VR */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x60>;
+			};	
+			
+			switch_mux0_pvccfa_ehv_fivra: xdpe152c4@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x62>;
+			};	
+			
+			switch_mux0_pvccd0_d1_vr: xdpe152c4@76 {/* XDPE19284B - PVCCD0 & D1 VR */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x76>;
+			};	
+			
+			switch_mux0_pvcca_ehv_pvnn_vr: xdpe152c4@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x74>;
+			};
+
+			//PWR MON INA219
+			ina219@40 {
+				compatible = "ti,ina219";
+				reg = <0x40>;
+				shunt-resistor = <500>;
+			};		
+
+			//PWR MON INA219
+			ina219@41 {
+				compatible = "ti,ina219";
+				reg = <0x41>;
+				shunt-resistor = <500>;
+			};	
+		};
+
+		switch_mux1: i2c1 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <1>;	
+
+			switch_mux1_pvccin_vr: xdpe152c4@60 {/* XDPE19284B - PVCCIN VR */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x60>;
+			};	
+			
+			switch_mux1_pvccfa_ehv_fivra: xdpe152c4@62 {/* XDPE19284B - PVCCFA EHV FIVRA */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x62>;
+			};	
+			
+			switch_mux1_pvccd0_d1_vr: xdpe152c4@76 {/* XDPE19284B - PVCCD0 & D1 VR */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x76>;
+			};	
+			
+			switch_mux1_pvcca_ehv_pvnn_vr: xdpe152c4@74 {/* XDPE19284B - PVCCA EHV PVNN VR */
+				compatible = "infineon,xdpe152c4";
+				reg = <0x74>;
+			};
+
+			//Voltage Sensor MAX1139
+			adc: voltage-sensor@35 {
+				compatible = "maxim,max1139";
+				reg = <0x35>;
+				#io-channel-cells = <1>;
+			};		
+		};
+
+		switch_mux2: i2c2 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <2>;
+
+			//PSU1
+			switch_mux2_psu: psu0@52 {
+				compatible = "pmbus";
+				reg = <0x52>;
+			};
+		};
+
+		switch_mux3: i2c3 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <3>;
+
+			//PSU2
+			switch_mux3_psu: psu0@5a {
+				compatible = "pmbus";
+				reg = <0x5a>;
+			};
+		};
+	};
 };
 
 &i2c13 {
