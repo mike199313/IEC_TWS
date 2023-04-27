@@ -1,0 +1,14 @@
+{
+    "vgpios": [
+        {
+            "Name": "TEST0",
+            "Index": 0,
+            "Direction": "in"
+        },
+        {
+            "Name": "TEST1",
+            "Index": 4,
+            "Direction": "out"
+        }
+    ]
+}
