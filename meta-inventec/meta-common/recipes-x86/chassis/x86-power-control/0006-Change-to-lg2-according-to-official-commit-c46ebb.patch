@@ -1,0 +1,108 @@
+From e782f619b7334b31b426416572e4ff25fbb62cb9 Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Tue, 18 Oct 2022 02:53:16 +0000
+Subject: [PATCH] Change to lg2 according to official commit c46ebb
+
+---
+ src/power_control.cpp | 30 +++++++++---------------------
+ 1 file changed, 9 insertions(+), 21 deletions(-)
+
+diff --git a/src/power_control.cpp b/src/power_control.cpp
+index 6b7b87e..d7c74b2 100644
+--- a/src/power_control.cpp
++++ b/src/power_control.cpp
+@@ -621,9 +621,7 @@ static void setPowerState(const PowerState state)
+             [](boost::system::error_code ec) {
+                 if (ec)
+                 {
+-                    phosphor::logging::log<
+-                        phosphor::logging::level::INFO>(
+-                        "failed to set LastPowerEvent property");
++                    lg2::info("failed to set LastPowerEvent property");
+                 }
+             },
+             "xyz.openbmc_project.State.Chassis",
+@@ -632,7 +630,7 @@ static void setPowerState(const PowerState state)
+             "xyz.openbmc_project.State.Chassis", "LastPowerEvent",
+             std::variant<std::uint32_t>(event));
+     }
+-	
++
+     // Save the power state for the restore policy
+     savePowerState(state);
+ }
+@@ -1714,9 +1712,7 @@ void systemReset()
+         [](boost::system::error_code ec) {
+             if (ec)
+             {
+-                phosphor::logging::log<phosphor::logging::level::ERR>(
+-                    "Failed to call chassis system reset",
+-                    phosphor::logging::entry("ERR=%s", ec.message().c_str()));
++                lg2::error("Failed to call chassis system reset {ERR}", "ERR", ec.message());
+             }
+         },
+         systemdBusname, systemdPath, systemdInterface, "StartUnit",
+@@ -1730,9 +1726,7 @@ void systemHostPowerOn()
+         [](boost::system::error_code ec) {
+             if (ec)
+             {
+-                phosphor::logging::log<phosphor::logging::level::ERR>(
+-                    "host-power-on.target",
+-                    phosphor::logging::entry("ERR=%s", ec.message().c_str()));
++                lg2::error("host-power-on.target {ERR}", "ERR", ec.message());
+             }
+         },
+         systemdBusname, systemdPath, systemdInterface, "StartUnit",
+@@ -1745,9 +1739,7 @@ void systemHostPowerOff()
+         [](boost::system::error_code ec) {
+             if (ec)
+             {
+-                phosphor::logging::log<phosphor::logging::level::ERR>(
+-                    "host-power-off.target",
+-                    phosphor::logging::entry("ERR=%s", ec.message().c_str()));
++                lg2::error("host-power-off.target", "ERR", ec.message());
+             }
+         },
+         systemdBusname, systemdPath, systemdInterface, "StartUnit",
+@@ -1879,8 +1871,7 @@ static void powerStateGracefulWaitForPSPowerOK(const Event event)
+             setPowerState(PowerState::on);
+             break;
+         default:
+-            phosphor::logging::log<phosphor::logging::level::INFO>(
+-                "No action taken.");
++            lg2::info("No action taken.");
+             break;
+     }
+ }
+@@ -2070,8 +2061,7 @@ static void powerStateGracefulCycleOff(const Event event)
+             powerOn();
+             break;
+         default:
+-            phosphor::logging::log<phosphor::logging::level::INFO>(
+-                "No action taken.");
++            lg2::info("No action taken.");
+             break;
+     }
+ }
+@@ -2564,16 +2554,14 @@ static int updateConfigValues(const std::string& name, auto val)
+     std::ifstream configFile(configFilePath.c_str());
+     if (!configFile.is_open())
+     {
+-        phosphor::logging::log<phosphor::logging::level::ERR>(
+-        "updateConfigValues : Cannot open config path\n ");
++        lg2::error("updateConfigValues : Cannot open config path\n ");
+         return -1;
+     }
+     auto data = nlohmann::json::parse(configFile, nullptr);
+ 
+     if (data.is_discarded())
+     {
+-        phosphor::logging::log<phosphor::logging::level::ERR>(
+-        "Power config readings JSON parser failure");
++        lg2::error("Power config readings JSON parser failure");
+         return -1;
+     }
+     auto gpios = data["gpio_configs"];
+-- 
+2.33.0
+

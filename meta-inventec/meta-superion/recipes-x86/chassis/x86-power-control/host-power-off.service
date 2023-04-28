@@ -1,0 +1,10 @@
+[Unit]
+Description=System unit to for host power off
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/sbin/host-power-off.sh
+
+[Install]
+WantedBy=host-power-off.target

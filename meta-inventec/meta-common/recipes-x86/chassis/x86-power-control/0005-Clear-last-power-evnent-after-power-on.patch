@@ -1,0 +1,63 @@
+From a06803ebf6a8ac19169c2b996019c7d1ca8b6c2e Mon Sep 17 00:00:00 2001
+From: Matt Cheng <cheng.matt@inventec.com>
+Date: Mon, 19 Sep 2022 10:58:39 +0800
+Subject: [PATCH 5/5] Clear last power evnent after power on
+
+Symptom/Reason:
+	Power Overload is always true.
+
+Root Cause:
+	Use the redfish to turn on the host power then the event of the LastPowerEvent is not reset.
+
+Solution/Change:
+	[x86-power-contorl]
+		Clear the LastPowerEvent after the host power is turned on.
+	[phosphor-impi-host]
+		Remove the original setLastPowerEvent function from ipmi-host and move to the power control to set the property.
+
+Entry Test:
+	ipmitool dcmi power deactivate
+	ipmitool dcmi power set_limit limit 100
+	ipmitool dcmi power activate
+	Wait 10s
+	ipmitool dcmi power deactivate
+	curl -u root:0penBmc -k -X POST https://10.6.141.88/redfish/v1/Systems/system/Actions/ComputerSystem.Reset/ -d '{"ResetType": "On"}'
+	ipmitool chassis status
+---
+ src/power_control.cpp | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/src/power_control.cpp b/src/power_control.cpp
+index b3a1613..6b7b87e 100644
+--- a/src/power_control.cpp
++++ b/src/power_control.cpp
+@@ -613,6 +613,26 @@ static void setPowerState(const PowerState state)
+                                std::string(getChassisState(powerState)));
+     chassisIface->set_property("LastStateChangeTime", getCurrentTimeMs());
+ 
++    //Clear the event of LastPowerEvent property
++    if (state == PowerState::on)
++    {
++        std::uint32_t event = 1<<4;
++        conn->async_method_call(
++            [](boost::system::error_code ec) {
++                if (ec)
++                {
++                    phosphor::logging::log<
++                        phosphor::logging::level::INFO>(
++                        "failed to set LastPowerEvent property");
++                }
++            },
++            "xyz.openbmc_project.State.Chassis",
++            "/xyz/openbmc_project/state/chassis0",
++            "org.freedesktop.DBus.Properties", "Set",
++            "xyz.openbmc_project.State.Chassis", "LastPowerEvent",
++            std::variant<std::uint32_t>(event));
++    }
++	
+     // Save the power state for the restore policy
+     savePowerState(state);
+ }
+-- 
+2.33.0
+

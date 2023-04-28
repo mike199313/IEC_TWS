@@ -1,0 +1,10 @@
+[Unit]
+Description=System unit to for host power off
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=echo Please add custom command for host power off
+
+[Install]
+WantedBy=host-power-off.target
