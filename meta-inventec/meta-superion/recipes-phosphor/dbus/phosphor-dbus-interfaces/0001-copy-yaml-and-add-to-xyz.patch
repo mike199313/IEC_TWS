@@ -1,0 +1,90 @@
+From 756b297775f5b403d88dff5c9e93c821088a9b1b Mon Sep 17 00:00:00 2001
+From: Sophia Yang <yang.sophiasf@inventec.com>
+Date: Fri, 3 Mar 2023 16:07:04 +0800
+Subject: [PATCH 1/1] copy yaml and add to xyz/
+
+---
+ .../Control/OCOTShutdownPolicy/meson.build    | 14 +++++++++++
+ gen/xyz/openbmc_project/Control/meson.build   | 14 +++++++++++
+ .../Control/OCOTShutdownPolicy.interface.yaml | 23 +++++++++++++++++++
+ 3 files changed, 51 insertions(+)
+ create mode 100644 gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+ create mode 100644 yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+
+diff --git a/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+new file mode 100644
+index 0000000..f777d4a
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/OCOTShutdownPolicy__cpp'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/OCOTShutdownPolicy',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Control/meson.build b/gen/xyz/openbmc_project/Control/meson.build
+index 6bb8917..250632e 100644
+--- a/gen/xyz/openbmc_project/Control/meson.build
++++ b/gen/xyz/openbmc_project/Control/meson.build
+@@ -150,6 +150,20 @@ generated_others += custom_target(
+     ],
+ )
+ 
++subdir('OCOTShutdownPolicy')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/OCOTShutdownPolicy__markdown'.underscorify(),
++    input: [ '../../../../yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml',  ],
++    output: [ 'OCOTShutdownPolicy.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../yaml',
++        'xyz/openbmc_project/Control/OCOTShutdownPolicy',
++    ],
++)
++
+ subdir('Power')
+ subdir('PowerSupplyAttributes')
+ generated_others += custom_target(
+diff --git a/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+new file mode 100644
+index 0000000..86d239e
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+@@ -0,0 +1,23 @@
++description: >
++    An interface for node shutdown policy on multi-node products. It is used by
++    Intel OEM IPMI command.
++properties:
++    - name: OCOTPolicy
++      type: enum[self.Policy]
++      description: >
++          Node shutdown policy on a power supply over current(OC) or over
++          temperature(OT) event, Only available on multi-node products.
++
++      default: "NoShutdownOnOCOT"
++
++enumerations:
++    - name: Policy
++      description: >
++          The type of shutdown policy.
++      values:
++          - name: "NoShutdownOnOCOT"
++            description: >
++                Do not shutdown node on an OC/OT event.
++          - name: "ShutdownOnOCOT"
++            description: >
++                Shutdown node on an OC/OT event.
+-- 
+2.34.1
+
