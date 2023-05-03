@@ -20,4 +20,4 @@ OBMC_IMAGE_EXTRA_INSTALL:append = " libmctp-intel"
 OBMC_IMAGE_EXTRA_INSTALL:append = " mctpd"
 OBMC_IMAGE_EXTRA_INSTALL:append = " mctp-wrapper"
 OBMC_IMAGE_EXTRA_INSTALL:append = " mctpwplus"
-
+OBMC_IMAGE_EXTRA_INSTALL:append = " intel-ipmi-oem"

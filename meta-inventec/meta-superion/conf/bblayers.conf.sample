@@ -15,7 +15,7 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-openembedded/meta-webserver \
   ##OEROOT##/meta-phosphor \
   ##OEROOT##/meta-aspeed \
-  ##OEROOT##/meta-openpower \
+  ##OEROOT##/meta-intel-openbmc \
   ##OEROOT##/meta-inventec \
   ##OEROOT##/meta-inventec/meta-superion \
 "
