@@ -1,0 +1,219 @@
+From 0f429ad1e3ec52eca6fd42c247c41e8569d21a26 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Wed, 2 Mar 2022 07:08:05 +0000
+Subject: [PATCH 2/5] Common - Add host-power-off and host-power-on hook
+ service
+
+Symptom/Reason:
+    To add service to handle the actions to do after host power on/off
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    Add systemHostPowrOn and systemHostPowerOff to call the service
+
+Entry Test:
+
+Power Off:
+sysadmin@transformers:/sys/class/hwmon# journalctl -u host-power-off.service
+-- Journal begins at Tue 2020-09-01 00:54:06 GMT, ends at Tue 2027-03-23 06:16:45 GMT. --
+Aug 18 09:37:16 transformers systemd[1]: Starting System unit to for host power off...
+Aug 18 09:37:16 transformers host-power-off.sh[996]: host-power-off start
+Aug 18 09:37:16 transformers systemd[1]: host-power-off.service: Succeeded.
+Aug 18 09:37:16 transformers systemd[1]: Finished System unit to for host power off.
+
+Power On:
+Mar 23 05:27:09 transformers systemd[1]: Starting System unit to for host power on...
+Mar 23 05:27:09 transformers host-power-on.sh[2317]: host-power-on start
+Mar 23 05:27:20 transformers systemd[1]: host-power-on.service: Succeeded.
+Mar 23 05:27:20 transformers systemd[1]: Finished System unit to for host power on.
+---
+ src/power_control.cpp | 88 ++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 67 insertions(+), 21 deletions(-)
+
+diff --git a/src/power_control.cpp b/src/power_control.cpp
+index 3e0892a..1965afc 100644
+--- a/src/power_control.cpp
++++ b/src/power_control.cpp
+@@ -1659,12 +1659,69 @@ static void sioPowerGoodWatchdogTimerStart()
+     });
+ }
+ 
++/* Inventec - Add host-power-off and host-power-on hook service*/
++static constexpr auto systemdBusname = "org.freedesktop.systemd1";
++static constexpr auto systemdPath = "/org/freedesktop/systemd1";
++static constexpr auto systemdInterface = "org.freedesktop.systemd1.Manager";
++static constexpr auto systemTargetName = "chassis-system-reset.target";
++static constexpr auto systemHostOnTargetName = "host-power-on.target";
++static constexpr auto systemHostOffTargetName = "host-power-off.target";
++
++#ifdef CHASSIS_SYSTEM_RESET
++void systemReset()
++{
++    conn->async_method_call(
++        [](boost::system::error_code ec) {
++            if (ec)
++            {
++                phosphor::logging::log<phosphor::logging::level::ERR>(
++                    "Failed to call chassis system reset",
++                    phosphor::logging::entry("ERR=%s", ec.message().c_str()));
++            }
++        },
++        systemdBusname, systemdPath, systemdInterface, "StartUnit",
++        systemTargetName, "replace");
++}
++#endif
++
++void systemHostPowerOn()
++{
++    conn->async_method_call(
++        [](boost::system::error_code ec) {
++            if (ec)
++            {
++                phosphor::logging::log<phosphor::logging::level::ERR>(
++                    "host-power-on.target",
++                    phosphor::logging::entry("ERR=%s", ec.message().c_str()));
++            }
++        },
++        systemdBusname, systemdPath, systemdInterface, "StartUnit",
++        systemHostOnTargetName, "replace");
++}
++
++void systemHostPowerOff()
++{
++    conn->async_method_call(
++        [](boost::system::error_code ec) {
++            if (ec)
++            {
++                phosphor::logging::log<phosphor::logging::level::ERR>(
++                    "host-power-off.target",
++                    phosphor::logging::entry("ERR=%s", ec.message().c_str()));
++            }
++        },
++        systemdBusname, systemdPath, systemdInterface, "StartUnit",
++        systemHostOffTargetName, "replace");
++}
++
++
+ static void powerStateOn(const Event event)
+ {
+     logEvent(__FUNCTION__, event);
+     switch (event)
+     {
+         case Event::psPowerOKDeAssert:
++            systemHostPowerOff();
+             setPowerState(PowerState::off);
+             // DC power is unexpectedly lost, beep
+             beep(beepPowerFail);
+@@ -1730,6 +1787,7 @@ static void powerStateWaitForPSPowerOK(const Event event)
+             }
+             else
+             {
++                systemHostPowerOn();
+                 setPowerState(PowerState::on);
+             }
+             break;
+@@ -1740,6 +1798,7 @@ static void powerStateWaitForPSPowerOK(const Event event)
+             break;
+         case Event::sioPowerGoodAssert:
+             psPowerOKWatchdogTimer.cancel();
++            systemHostPowerOn();
+             setPowerState(PowerState::on);
+             break;
+         default:
+@@ -1755,6 +1814,7 @@ static void powerStateWaitForSIOPowerGood(const Event event)
+     {
+         case Event::sioPowerGoodAssert:
+             sioPowerGoodWatchdogTimer.cancel();
++            systemHostPowerOn();
+             setPowerState(PowerState::on);
+             break;
+         case Event::sioPowerGoodWatchdogTimerExpired:
+@@ -1781,6 +1841,7 @@ static void powerStateOff(const Event event)
+             }
+             else
+             {
++                systemHostPowerOn();
+                 setPowerState(PowerState::on);
+             }
+             break;
+@@ -1789,6 +1850,7 @@ static void powerStateOff(const Event event)
+             setPowerState(PowerState::waitForPSPowerOK);
+             break;
+         case Event::sioPowerGoodAssert:
++            systemHostPowerOn();
+             setPowerState(PowerState::on);
+             break;
+         case Event::powerButtonPressed:
+@@ -1814,6 +1876,7 @@ static void powerStateTransitionToOff(const Event event)
+         case Event::psPowerOKDeAssert:
+             // Cancel any GPIO assertions held during the transition
+             gpioAssertTimer.cancel();
++            systemHostPowerOff();
+             setPowerState(PowerState::off);
+             break;
+         default:
+@@ -1829,6 +1892,7 @@ static void powerStateGracefulTransitionToOff(const Event event)
+     {
+         case Event::psPowerOKDeAssert:
+             gracefulPowerOffTimer.cancel();
++            systemHostPowerOff();
+             setPowerState(PowerState::off);
+             break;
+         case Event::gracefulPowerOffTimerExpired:
+@@ -1902,6 +1966,7 @@ static void powerStateTransitionToCycleOff(const Event event)
+         case Event::psPowerOKDeAssert:
+             // Cancel any GPIO assertions held during the transition
+             gpioAssertTimer.cancel();
++            systemHostPowerOff();
+             setPowerState(PowerState::cycleOff);
+             powerCycleTimerStart();
+             break;
+@@ -1918,6 +1983,7 @@ static void powerStateGracefulTransitionToCycleOff(const Event event)
+     {
+         case Event::psPowerOKDeAssert:
+             gracefulPowerOffTimer.cancel();
++            systemHostPowerOff();
+             setPowerState(PowerState::cycleOff);
+             powerCycleTimerStart();
+             break;
+@@ -1959,6 +2025,7 @@ static void powerStateCheckForWarmReset(const Event event)
+             break;
+         case Event::psPowerOKDeAssert:
+             warmResetCheckTimer.cancel();
++            systemHostPowerOff();
+             setPowerState(PowerState::off);
+             // DC power is unexpectedly lost, beep
+             beep(beepPowerFail);
+@@ -2031,27 +2098,6 @@ static void resetButtonHandler(bool state)
+     }
+ }
+ 
+-#ifdef CHASSIS_SYSTEM_RESET
+-static constexpr auto systemdBusname = "org.freedesktop.systemd1";
+-static constexpr auto systemdPath = "/org/freedesktop/systemd1";
+-static constexpr auto systemdInterface = "org.freedesktop.systemd1.Manager";
+-static constexpr auto systemTargetName = "chassis-system-reset.target";
+-
+-void systemReset()
+-{
+-    conn->async_method_call(
+-        [](boost::system::error_code ec) {
+-            if (ec)
+-            {
+-                lg2::error("Failed to call chassis system reset: {ERR}", "ERR",
+-                           ec.message());
+-            }
+-        },
+-        systemdBusname, systemdPath, systemdInterface, "StartUnit",
+-        systemTargetName, "replace");
+-}
+-#endif
+-
+ static void nmiSetEnableProperty(bool value)
+ {
+     conn->async_method_call(
+-- 
+2.33.0
+

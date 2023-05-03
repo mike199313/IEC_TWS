@@ -1,0 +1,98 @@
+From 20e77fcc7cac1e64be4ad7cb73067e2177a9c4c3 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Wed, 2 Mar 2022 05:47:53 +0000
+Subject: [PATCH 1/5] Common - Add RequestedPowerIntervalMs property
+
+Symptom/Reason:
+    To support Set Power Cycle Interval command.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    [phosphor-dbus-interfaces]
+        - Add RequestedPowerIntervalMs property
+    [x86-power-control]
+        - Implement RequestedPowerIntervalMs property set function
+    [inv-impi-oem]
+        - Register ipmiChassisSetPowerInterval command handler
+
+Entry Test:
+	sudo ipmitool raw 0x00 0x0b 0x03
+---
+ src/power_control.cpp | 52 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/src/power_control.cpp b/src/power_control.cpp
+index 05aa45c..3e0892a 100644
+--- a/src/power_control.cpp
++++ b/src/power_control.cpp
+@@ -2392,6 +2392,47 @@ static int loadConfigValues()
+     return 0;
+ }
+ 
++/* Inventec - Add RequestedPowerIntervalMs property*/
++static int updateConfigValues(const std::string& name, auto val)
++{
++    const std::string configFilePath =
++        "/usr/share/x86-power-control/power-config-host" + power_control::node + ".json";
++    std::ifstream configFile(configFilePath.c_str());
++    if (!configFile.is_open())
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++        "updateConfigValues : Cannot open config path\n ");
++        return -1;
++    }
++    auto data = nlohmann::json::parse(configFile, nullptr);
++
++    if (data.is_discarded())
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++        "Power config readings JSON parser failure");
++        return -1;
++    }
++    auto gpios = data["gpio_configs"];
++    auto timers = data["timing_configs"];
++
++    if (gpios.contains(name))
++    {
++        gpios[name] = val;
++    }
++    else if (timers.contains(name))
++    {
++        timers[name] = val;
++    }
++
++    data["gpio_configs"] = gpios;
++    data["timing_configs"] = timers;
++    std::ofstream configStream(configFilePath.c_str());
++    configStream << std::setw(4) << data << std::endl;
++
++    return 0;
++}
++
++
+ static bool getDbusMsgGPIOState(sdbusplus::message::message& msg,
+                                 const std::string& lineName, bool& value)
+ {
+@@ -2965,6 +3006,17 @@ int main(int argc, char* argv[])
+                                     std::string(getChassisState(powerState)));
+     chassisIface->register_property("LastStateChangeTime", getCurrentTimeMs());
+ 
++    chassisIface->register_property(
++        "RequestedPowerIntervalMs",
++        TimerMap["PowerCycleMs"],
++        [](const int requested, int& current) {
++            TimerMap["PowerCycleMs"] = requested;
++            updateConfigValues("PowerCycleMs", TimerMap["PowerCycleMs"]);
++            current = requested;
++            return 1;
++        });
++
++
+     chassisIface->initialize();
+ 
+ #ifdef CHASSIS_SYSTEM_RESET
+-- 
+2.33.0
+
