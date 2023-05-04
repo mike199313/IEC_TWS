@@ -9,6 +9,7 @@ SRC_URI:append = " file://superion-ast2600.cfg \
                    file://superion-ast2600_defconfig \
                    file://ast2600-superion.dts \
                    file://0001-Add-U-boot-tree-for-superion.patch \
+                   file://0002-superion-machine-init.patch \
                  "
 
 do_copyfile () {
