@@ -16,3 +16,8 @@ OBMC_IMAGE_EXTRA_INSTALL:append = " inventec-mac-config"
 OBMC_IMAGE_EXTRA_INSTALL:append = " libpeci"
 OBMC_IMAGE_EXTRA_INSTALL:append = " inventec-vgpio"
 OBMC_IMAGE_EXTRA_INSTALL:append = " packagegroup-intel-apps"
+OBMC_IMAGE_EXTRA_INSTALL:append = " libmctp-intel"
+OBMC_IMAGE_EXTRA_INSTALL:append = " mctpd"
+OBMC_IMAGE_EXTRA_INSTALL:append = " mctp-wrapper"
+OBMC_IMAGE_EXTRA_INSTALL:append = " mctpwplus"
+
