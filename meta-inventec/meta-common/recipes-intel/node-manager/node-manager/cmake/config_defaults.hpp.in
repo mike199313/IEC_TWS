@@ -1,0 +1,80 @@
+/*
+ * INTEL CONFIDENTIAL
+ *
+ * Copyright 2020-2021 Intel Corporation.
+ *
+ * This software and the related documents are Intel copyrighted materials,
+ * and your use of them is governed by the express license under which they
+ * were provided to you ("License"). Unless the License provides otherwise,
+ * you may not use, modify, copy, publish, distribute, disclose or transmit
+ * this software or the related documents without Intel's prior written
+ * permission.
+ *
+ * This software and the related documents are provided as is, with
+ * no express or implied warranties, other than those that are expressly
+ * stated in the License.
+ */
+
+#pragma once
+#include <nlohmann/json.hpp>
+
+namespace nodemanager
+{
+struct GeneralPresets
+{
+    bool acTotalPowerDomainPresent = @AC_TOTAL_POWER_DOMAIN_PRESENT@;
+    bool acTotalPowerDomainEnabled = @AC_TOTAL_POWER_DOMAIN_ENABLED@;
+    bool cpuSubsystemDomainPresent = @CPU_SUBSYSTEM_DOMAIN_PRESENT@;
+    bool cpuSubsystemDomainEnabled = @CPU_SUBSYSTEM_DOMAIN_ENABLED@;
+    bool memorySubsystemDomainPresent = @MEMORY_SUBSYSTEM_DOMAIN_PRESENT@;
+    bool memorySubsystemDomainEnabled = @MEMORY_SUBSYSTEM_DOMAIN_ENABLED@;
+    bool hwProtectionDomainPresent = @HW_PROTECTION_DOMAIN_PRESENT@;
+    bool hwProtectionDomainEnabled = @HW_PROTECTION_DOMAIN_ENABLED@;
+    bool pcieDomainPresent = @PCIE_DOMAIN_PRESENT@;
+    bool pcieDomainEnabled = @PCIE_DOMAIN_ENABLED@;
+    bool dcTotalPowerDomainPresent = @DC_TOTAL_POWER_DOMAIN_PRESENT@;
+    bool dcTotalPowerDomainEnabled = @DC_TOTAL_POWER_DOMAIN_ENABLED@;
+    bool performanceDomainPresent = @PERFORMANCE_DOMAIN_PRESENT@;
+    bool performanceDomainEnabled = @PERFORMANCE_DOMAIN_ENABLED@;
+    bool policyControlEnabled = @POLICY_CONTROL_ENABLED@;
+    bool cpuPerformanceOptimization = @CPU_PERFORMANCE_OPTIMIZATION@;
+    uint8_t prochotAssertionRatio = @PROCHOT_ASSERTION_RATIO@;
+    uint8_t nmInitializationMode = @NM_INITIALIZATION_MODE@;
+    std::string acceleratorsInterface = "@ACCELERATORS_INTERFACE@";
+    uint8_t cpuTurboRatioLimit = @CPU_TURBO_RATIO_LIMIT@;
+};
+
+struct Gpio
+{
+    std::string hwProtectionPolicyTriggerGpio = "@HW_PROTECTION_POLICY_TRIGGER_GPIO@";
+};
+
+struct Smart
+{
+    uint32_t psuPollingIntervalMs = @PSU_POLLING_INTERVAL_MS@;
+    uint32_t overtemperatureThrottlingTimeMs = @OVERTEMPERATURE_THROTTLING_TIME_MS@;
+    uint32_t overcurrentThrottlingTimeMs = @OVERCURRENT_THROTTLING_TIME_MS@;
+    uint32_t undervoltageThrottlingTimeMs = @UNDERVOLTAGE_THROTTLING_TIME_MS@;
+    uint32_t maxUndervoltageTimeTimeMs = @MAX_UNDERVOLTAGE_TIME_MS@;
+    uint32_t maxOvertemperatureTimeMs = @MAX_OVERTEMPERATURE_TIME_MS@;
+    uint32_t powergoodPollingIntervalTimeMs = @POWERGOOD_POLLING_INTERVAL_MS@;
+    uint32_t i2cAddrsMax = @I2C_ADDR_MAX@;
+    uint32_t i2cAddrsMin = @I2C_ADDR_MIN@;
+    uint32_t forceSmbalertMaskIntervalTimeMs = @FORCE_SMBALERT_MASK_INTERVAL_TIME_MS@;
+    bool redundancyEnabled = @REDUNDANCY_ENABLED@;
+    bool smartEnabled = @SMART_ENABLED@;
+};
+struct PowerRange {
+  double acMin = @AC_MINIMUM_POWER@;
+  double acMax = @AC_MAXIMUM_POWER@;
+  double dcMin = @DC_MINIMUM_POWER@;
+  double dcMax = @DC_MAXIMUM_POWER@;
+  double cpuMin = @CPU_MINIMUM_POWER@;
+  double cpuMax = @CPU_MAXIMUM_POWER@;
+  double memoryMin = @MEMORY_MINIMUM_POWER@;
+  double memoryMax = @MEMORY_MAXIMUM_POWER@;
+  double pcieMin = @PCIE_MINIMUM_POWER@;
+  double pcieMax = @PCIE_MAXIMUM_POWER@;
+};
+
+} // namespace nodemanager

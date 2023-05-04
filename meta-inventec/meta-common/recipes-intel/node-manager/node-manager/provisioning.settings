@@ -1,0 +1,138 @@
+#  INTEL CONFIDENTIAL
+#
+#  Copyright 2022 Intel Corporation.
+#
+#  This software and the related documents are Intel copyrighted materials,
+#  and your use of them is governed by the express license under which they
+#  were provided to you ("License"). Unless the License provides otherwise,
+#  you may not use, modify, copy, publish, distribute, disclose or transmit
+#  this software or the related documents without Intel's prior written
+#  permission.
+#
+#  This software and the related documents are provided as is, with
+#  no express or implied warranties, other than those that are expressly
+#  stated in the License.
+
+#General presets----------------------------------------------------------------
+
+#Permanently Removes specified domain from the NM if set to false.
+set(AC_TOTAL_POWER_DOMAIN_PRESENT true)
+
+#Permanently Removes specified domain from the NM if set to false.
+set(CPU_SUBSYSTEM_DOMAIN_PRESENT true)
+
+#Permanently Removes specified domain from the NM if set to false.
+set(MEMORY_SUBSYSTEM_DOMAIN_PRESENT true)
+
+#Permanently Removes specified domain from the NM if set to false.
+set(HW_PROTECTION_DOMAIN_PRESENT true)
+
+#Permanently Removes specified domain from the NM if set to false.
+set(PCIE_DOMAIN_PRESENT true)
+
+#Permanently Removes specified domain from the NM if set to false.
+set(DC_TOTAL_POWER_DOMAIN_PRESENT true)
+
+#Permanently Removes specified domain from the NM if set to false.
+set(PERFORMANCE_DOMAIN_PRESENT true)
+
+#Enables/disables policy control in all domains. Applicable to Policy Management.
+set(POLICY_CONTROL_ENABLED true)
+
+#Enables/disables policy control in total domain. Applicable to Policy Management.
+set(AC_TOTAL_POWER_DOMAIN_ENABLED true)
+
+#Enables/disables policy control in total domain. Applicable to Policy Management.
+set(DC_TOTAL_POWER_DOMAIN_ENABLED true)
+
+#Enables/disables policy control in CPU domain. Applicable to Policy Management.
+set(CPU_SUBSYSTEM_DOMAIN_ENABLED true)
+
+#Enables/disables policy control in memory domain. Applicable to Policy Management.
+set(MEMORY_SUBSYSTEM_DOMAIN_ENABLED true)
+
+#Enables/disables policy control in HW Protection domain. Applicable to Policy Management.
+set(HW_PROTECTION_DOMAIN_ENABLED true)
+
+#Enables/disables policy control in PCIe domain. Applicable to Policy Management.
+set(PCIE_DOMAIN_ENABLED true)
+
+#Enables/disables policy control in performance domain. Applicable to Policy Management.
+set(PERFORMANCE_DOMAIN_ENABLED true)
+
+#Enables/disables Dynamic Core Allocation usage by NM. Affects Power Control component.
+set(DCA_ENABLED true)
+
+#Enables/disables PSU Optimization flows (SmaRT&CLST;)
+set(PSU_OPTIMIZATION_ENABLED true)
+
+#Enables/disables shared PSU handling.
+set(SHARED_PSUS false)
+
+#Enables/disables using only HSC readings for AC total power
+set(HSC_ONLY_PLATFORM false)
+
+#Enables/disables algorithm to distribute CPU limits based on efficiency
+set(CPU_PERFORMANCE_OPTIMIZATION true)
+
+#Pre-configured total platform power budget. Defines power envelope that has to be maintained for total domain.
+set(TOTAL_SYSTEM_POWER_BUDGET 0)
+
+#Pre-configured CPU power budget. Defines power envelope that has to be maintained for CPU domain.
+set(CPU_POWER_BUDGET 0)
+
+#Pre-configured memory power budget. Defines power envelope that has to be maintained for memory domain.
+set(MEMORY_POWER_BUDGET 0)
+
+#Pre-configured PCIe power budget. Defines power envelope that has to be maintained for PCIe domain.
+set(PCIE_POWER_BUDGET 0)
+
+#Overrides ratio to which CPU will go to when PROCHOT is asserted. CPU fused default will be used when set to 0.
+set(PROCHOT_ASSERTION_RATIO 0)
+
+#This option determines initialization behavior for OpenBMC Node Manager and its behavior when SPS Node Manager is detected in the platform.
+set(NM_INITIALIZATION_MODE 0)
+
+#Pre-configured interface of PCIe. Default option is PLDM, other is PECI_OVER_SMBUS.
+set(ACCELERATORS_INTERFACE "PLDM")
+
+#Turbo Ratio limit to be configured for CPU. Applicable to Efficiency Control.
+set(CPU_TURBO_RATIO_LIMIT 0)
+
+#NM Power Range-----------------------------------------------------------------
+#User-defined power range for domains. Applicable to PTAM (Policy Management, domain range resolution, see [Domain limit ranges].)
+
+set(AC_MINIMUM_POWER 0)
+set(AC_MAXIMUM_POWER 0)
+set(DC_MINIMUM_POWER 0)
+set(DC_MAXIMUM_POWER 0)
+set(CPU_MINIMUM_POWER 0)
+set(CPU_MAXIMUM_POWER 0)
+set(MEMORY_MINIMUM_POWER 0)
+set(MEMORY_MAXIMUM_POWER 0)
+set(PCIE_MINIMUM_POWER 0)
+set(PCIE_MAXIMUM_POWER 0)
+
+#GPIO---------------------------------------------------------------------------
+
+#Identifies GPIO to which SMB Alert is routed.
+set(SMB_ALERT_GPIO "IRQ_SML1_PMBUS_BMC_ALERT_N")
+
+#Identifies GPIO to be used for HW protection policy trigger. If not set, HW protection policy is to be created with "No trigger"
+set(HW_PROTECTION_POLICY_TRIGGER_GPIO "")
+
+
+#SmaRT Settings-----------------------------------------------------------------
+
+set(PSU_POLLING_INTERVAL_MS 10)
+set(OVERTEMPERATURE_THROTTLING_TIME_MS 500)
+set(OVERCURRENT_THROTTLING_TIME_MS 500)
+set(UNDERVOLTAGE_THROTTLING_TIME_MS 500)
+set(MAX_UNDERVOLTAGE_TIME_MS 500)
+set(MAX_OVERTEMPERATURE_TIME_MS 500)
+set(POWERGOOD_POLLING_INTERVAL_MS 100)
+set(I2C_ADDR_MAX 104)
+set(I2C_ADDR_MIN 88)
+set(FORCE_SMBALERT_MASK_INTERVAL_TIME_MS 10000)
+set(REDUNDANCY_ENABLED true)
+set(SMART_ENABLED true)
