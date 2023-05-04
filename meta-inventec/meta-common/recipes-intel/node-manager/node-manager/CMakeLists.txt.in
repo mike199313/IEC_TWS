@@ -1,0 +1,57 @@
+#  INTEL CONFIDENTIAL
+#
+#  Copyright 2022 Intel Corporation.
+#
+#  This software and the related documents are Intel copyrighted materials,
+#  and your use of them is governed by the express license under which they
+#  were provided to you ("License"). Unless the License provides otherwise,
+#  you may not use, modify, copy, publish, distribute, disclose or transmit
+#  this software or the related documents without Intel's prior written
+#  permission.
+#
+#  This software and the related documents are provided as is, with
+#  no express or implied warranties, other than those that are expressly
+#  stated in the License.
+
+cmake_minimum_required (VERSION 3.5)
+
+include(ExternalProject)
+
+externalproject_add (
+    sdbusplus-project
+    PREFIX ${CMAKE_BINARY_DIR}/sdbusplus-project
+    GIT_REPOSITORY https://github.com/openbmc/sdbusplus.git
+    GIT_TAG c08cf5283b80a071d19506d9a462f6c69e1797f1
+    SOURCE_DIR ${CMAKE_BINARY_DIR}/sdbusplus-src
+    BINARY_DIR ${CMAKE_BINARY_DIR}/sdbusplus-build
+    CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/sdbusplus-src && ./bootstrap.sh && ./configure --enable-transaction
+    BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/sdbusplus-src && make -j libsdbusplus.la
+    INSTALL_COMMAND mkdir -p "${CMAKE_BINARY_DIR}/prefix/lib" && cp -R
+        ${CMAKE_BINARY_DIR}/sdbusplus-src/libsdbusplus.la ${CMAKE_BINARY_DIR}/prefix/lib
+    UPDATE_COMMAND ""
+    LOG_DOWNLOAD ON
+)
+
+externalproject_add (
+    Boost
+    PREFIX ${CMAKE_BINARY_DIR}/boost-project
+    URL https://boostorg.jfrog.io/artifactory/main/release/1.74.0/source/boost_1_74_0.tar.gz
+    URL_HASH SHA256=afff36d392885120bcac079148c177d1f6f7730ec3d47233aa51b0afa4db94a5
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/boost-src"
+    BINARY_DIR "${CMAKE_BINARY_DIR}/boost-build"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND mkdir -p "${CMAKE_BINARY_DIR}/prefix/include/" && cp -R
+        ${CMAKE_BINARY_DIR}/boost-src/boost ${CMAKE_BINARY_DIR}/prefix/include
+)
+
+externalproject_add (
+    googletest
+    PREFIX ${CMAKE_BINARY_DIR}/googletest-project
+    GIT_REPOSITORY "https://github.com/google/googletest.git"
+    GIT_TAG dfa853b63d17c787914b663b50c2095a0c5b706e
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/googletest-src"
+    BINARY_DIR "${CMAKE_BINARY_DIR}/googletest-build"
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/googletest-build
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/prefix
+)
