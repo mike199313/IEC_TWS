@@ -21,7 +21,8 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS4,115200n8";
+		stdout-path = &uart5;
+		bootargs = "console=tty0 console=ttyS4,115200n8 root=/dev/ram rw init=/linuxrc";
 	};
 
 	memory@80000000 {
@@ -197,9 +198,11 @@
 	status = "okay";
 	snoop-ports = <0x80>;
 };
+
 &espi {
         status = "okay";
 };
+
 &spi1 {
 	status = "okay";
 	pinctrl-names = "default";
@@ -214,9 +217,20 @@
 	};
 };
 
+&uart1 {
+        status = "okay";
+};
+
+&uart3 {
+        status = "okay";
+};
+
 &uart5 {
-	// Workaround for A0
-	compatible = "snps,dw-apb-uart";
+	status = "okay";
+};
+
+&uart_routing {
+	status = "okay";
 };
 
 &mctp0 {
