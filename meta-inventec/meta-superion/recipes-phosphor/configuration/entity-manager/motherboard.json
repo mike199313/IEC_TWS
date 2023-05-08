@@ -1,0 +1,302 @@
+{
+    "Exposes": [
+        {
+            "Address": "$address",
+            "Bus": "$bus",
+            "Name": "HPM_24C64",
+            "Type": "EEPROM_24C64"
+        },
+        {
+            "Name": "CUPS",
+            "Polling": {
+            "Interval": 1000,
+            "AveragingPeriod": 10000,
+            "LoadFactorConfiguration": "Static",
+            "CoreLoadFactor": 33,
+            "MemoryLoadFactor": 33,
+            "IioLoadFactor": 34
+            },
+            "Type": "CupsSensor"
+        },
+        {
+            "Bus": 0,
+            "Address": "0x30",
+            "CpuID": 1,
+            "Name": "CPU1",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "DTS",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "Die",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                }
+            ],
+            "Type": "XeonCPU"
+        },
+        {
+            "Bus": 0,
+            "Address": "0x31",
+            "CpuID": 2,
+            "Name": "CPU2",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "DTS",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "Die",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_A1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_B1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_C1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_D1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_E1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_F1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_G1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "DIMM_H1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                }
+            ],
+            "Type": "XeonCPU"
+        }
+    ],
+    "Name": "motherboard",
+    "Probe": "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': 'Inventec superion MB'})",
+    "Type": "Chassis",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "Model": "$BOARD_PRODUCT_NAME",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER",
+        "BuildDate": "$BOARD_MANUFACTURE_DATE"
+    }
+}

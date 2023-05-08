@@ -1,4 +1,4 @@
-From db3b2f5ea20607fdcd70a43bc1ecba8d4fb78ed1 Mon Sep 17 00:00:00 2001
+From 6045db32600b5572889e72591f479f1617fdfd8a Mon Sep 17 00:00:00 2001
 From: mikec <Cheng.Mike@inventec.com>
 Date: Thu, 15 Dec 2022 14:00:29 +0800
 Subject: [PATCH] Kernel-sync-Aspeed-tag-00.05.03-misc-drivers
@@ -65,7 +65,9 @@ Entry Test:
  drivers/spi/spi-aspeed-smc.c                  | 1210 +++++
  drivers/spi/spi-aspeed.c                      | 1441 ++++++
  drivers/tty/serial/8250/8250_aspeed.c         |  498 ++
- 26 files changed, 15386 insertions(+)
+ drivers/tty/serial/8250/Kconfig               |    8 +
+ drivers/tty/serial/8250/Makefile              |    1 +
+ 28 files changed, 15395 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/hwmon/aspeed,ast2600-tach.yaml
  create mode 100644 Documentation/devicetree/bindings/hwmon/nuvoton,nct6775.yaml
  create mode 100644 Documentation/devicetree/bindings/mfd/aspeed,ast2600-pwm-tach.yaml
@@ -15640,6 +15642,37 @@ index 000000000000..8eefd7260a46
 +MODULE_AUTHOR("Chia-Wei Wang <chiawei_wang@aspeedtech.com>");
 +MODULE_LICENSE("GPL");
 +MODULE_DESCRIPTION("Aspeed UART Driver");
+diff --git a/drivers/tty/serial/8250/Kconfig b/drivers/tty/serial/8250/Kconfig
+index 39fc96dc2531..6d46653ba1cf 100644
+--- a/drivers/tty/serial/8250/Kconfig
++++ b/drivers/tty/serial/8250/Kconfig
+@@ -527,6 +527,14 @@ config SERIAL_8250_BCM7271
+ 	  including DMA support and high accuracy BAUD rates, say
+ 	  Y to this option. If unsure, say N.
+ 
++config SERIAL_8250_ASPEED
++	tristate "Aspeed serial port support"
++	depends on SERIAL_8250 && ARCH_ASPEED
++	select ASPEED_UDMA
++	help
++	  If you have a system using an Aspeed ASTXXXX SoCs and wish to make use
++	  of its UARTs, say Y to this option. If unsure, say N.
++
+ config SERIAL_OF_PLATFORM
+ 	tristate "Devicetree based probing for 8250 ports"
+ 	depends on SERIAL_8250 && OF
+diff --git a/drivers/tty/serial/8250/Makefile b/drivers/tty/serial/8250/Makefile
+index b9bcd73c8997..826f1e995306 100644
+--- a/drivers/tty/serial/8250/Makefile
++++ b/drivers/tty/serial/8250/Makefile
+@@ -39,6 +39,7 @@ obj-$(CONFIG_SERIAL_8250_MID)		+= 8250_mid.o
+ obj-$(CONFIG_SERIAL_8250_PXA)		+= 8250_pxa.o
+ obj-$(CONFIG_SERIAL_8250_TEGRA)		+= 8250_tegra.o
+ obj-$(CONFIG_SERIAL_8250_BCM7271)	+= 8250_bcm7271.o
++obj-$(CONFIG_SERIAL_8250_ASPEED)	+= 8250_aspeed.o
+ obj-$(CONFIG_SERIAL_OF_PLATFORM)	+= 8250_of.o
+ 
+ CFLAGS_8250_ingenic.o += -I$(srctree)/scripts/dtc/libfdt
 -- 
 2.17.1
 

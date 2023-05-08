@@ -21,7 +21,8 @@
 	};
 
 	chosen {
-		bootargs = "console=ttyS4,115200n8";
+		stdout-path = &uart5;
+		bootargs = "console=tty0 console=ttyS4,115200n8 root=/dev/ram rw init=/linuxrc";
 	};
 
 	memory@80000000 {
@@ -197,9 +198,11 @@
 	status = "okay";
 	snoop-ports = <0x80>;
 };
+
 &espi {
         status = "okay";
 };
+
 &spi1 {
 	status = "okay";
 	pinctrl-names = "default";
@@ -214,9 +217,20 @@
 	};
 };
 
+&uart1 {
+        status = "okay";
+};
+
+&uart3 {
+        status = "okay";
+};
+
 &uart5 {
-	// Workaround for A0
-	compatible = "snps,dw-apb-uart";
+	status = "okay";
+};
+
+&uart_routing {
+	status = "okay";
 };
 
 &mctp0 {
@@ -595,10 +609,6 @@
 	};
 };
 
-&i2c13 {
-	status = "okay";
-};
-
 &i2c15 {
 	// I2C EXPANDER
 	status = "okay";
@@ -961,7 +971,7 @@
 &gpio0 {
 	status = "okay";
 	gpio-line-names =
-	/*A0-A7*/   "","","","","","","","",
+	/*A0-A7*/   "","","","","","","ASSERT_CPU0_PROCHOT","ASSERT_CPU1_PROCHOT",
 	/*B0-B7*/   "","","","","","","","",
 	/*C0-C7*/   "","","","","","","","",
 	/*D0-D7*/   "","","","","","","","",
@@ -973,20 +983,20 @@
 	/*J0-J7*/   "","","","","","","","",
 	/*K0-K7*/   "","","","","","","","",
 	/*L0-L7*/   "","","","","","","","",
-	/*M0-M7*/   "","","","","","","","",
+	/*M0-M7*/   "","","","DBP_HOOK3_CPU_FBRK_OUT","","","","",
 	/*N0-N7*/   "","","","","","FM_SPD_SWITCH_CTRL","","",
-	/*O0-O7*/   "","","","","","","I3C_SPDMUX_SELECT1","",
-	/*P0-P7*/   "","","","","","","","",
-	/*Q0-Q7*/   "","SPI_BIOS_MUXA_SEL","","SPI_BIOS_MUXB_SEL","","","","",
-	/*R0-R7*/   "","","","","I3C_SPDMUX_SELECT0","","","BMC_READY",
-	/*S0-S7*/   "","","","","","","","",
+	/*O0-O7*/   "","","IRQ_BMC_CPU0_NMI_OUT","","IRQ_BMC_CPU1_NMI_OUT","","I3C_SPDMUX_SELECT1","",
+	/*P0-P7*/   "","","CPU1_BMCINIT","","","","","",
+	/*Q0-Q7*/   "","SPI_BIOS_MUXA_SEL","","SPI_BIOS_MUXB_SEL","","","PSU0_PRESENT","",
+	/*R0-R7*/   "PSU1_PRESENT","NCSI_OCP_CLK_EN","","NCSI_BMC_CLK_EN","I3C_SPDMUX_SELECT0","","","BMC_READY",
+	/*S0-S7*/   "","","BMC_WAKE","","","","","",
 	/*T0-T7*/   "","","","","","","","",
 	/*U0-U7*/   "","","","","","","","",
 	/*V0-V7*/   "RST_BMC_SGPIO","","","","","","","",
 	/*W0-W7*/   "","","","","","","","",
-	/*X0-X7*/   "","","","","","","","",
-	/*Y0-Y7*/   "","","","","","","","",
-	/*Z0-Z7*/   "","","","","","","","",
+	/*X0-X7*/   "","","","","","","","CPU0_BMCINIT",
+	/*Y0-Y7*/   "","","","","","","","CPLD_PWRBRK",
+	/*Z0-Z7*/   "","RST_CPU0_RTCRST_PLD","","","","","","",
 	/*AA0-AA7*/ "","","","","","","","",
 	/*AB0-AB7*/ "","","","","","","","",
 	/*AC0-AC7*/ "","","","","","","","";
