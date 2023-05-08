@@ -11,4 +11,4 @@ RDEPENDS:${PN}-extras += " python3-smbus"
 #Install publickey for image file verification
 RDEPENDS:${PN}-extras += " phosphor-image-signing"
 
-RDEPENDS:${PN}-health-monitor:remove:transformers = "phosphor-health-monitor"
+RDEPENDS:${PN}-health-monitor:remove:${MACHINE} = "phosphor-health-monitor"
