@@ -1,17 +1,17 @@
-From 0494f5a5a9372a49e73897e2630c385b626f79ba Mon Sep 17 00:00:00 2001
+From bf7246af7729145e48c4949f2162188d4eee3df8 Mon Sep 17 00:00:00 2001
 From: mikec <Cheng.Mike@inventec.com>
 Date: Thu, 15 Dec 2022 16:30:29 +0800
-Subject: [PATCH 1/1] Kernel-sync-Aspeed-tag-00.05.03-dsti
+Subject: [PATCH] Kernel-sync-Aspeed-tag-00.05.03-dsti
 
 ---
  arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi  |  216 +++++
- arch/arm/boot/dts/aspeed-g6.dtsi          | 1050 +++++++++++++++++++--
+ arch/arm/boot/dts/aspeed-g6.dtsi          | 1063 +++++++++++++++++++--
  drivers/clk/clk-ast2600.c                 |  558 ++++++++---
  include/dt-bindings/clock/ast2600-clock.h |   52 +-
- 4 files changed, 1654 insertions(+), 222 deletions(-)
+ 4 files changed, 1667 insertions(+), 222 deletions(-)
 
 diff --git a/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi b/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
-index 7cd4f075e3250..d04399b35e39f 100644
+index 7cd4f075e325..d04399b35e39 100644
 --- a/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
 +++ b/arch/arm/boot/dts/aspeed-g6-pinctrl.dtsi
 @@ -2,6 +2,16 @@
@@ -31,7 +31,7 @@ index 7cd4f075e3250..d04399b35e39f 100644
  	pinctrl_adc0_default: adc0_default {
  		function = "ADC0";
  		groups = "ADC0";
-@@ -297,6 +307,66 @@ pinctrl_i2c9_default: i2c9_default {
+@@ -297,6 +307,66 @@
  		groups = "I2C9";
  	};
  
@@ -98,7 +98,7 @@ index 7cd4f075e3250..d04399b35e39f 100644
  	pinctrl_i3c3_default: i3c3_default {
  		function = "I3C3";
  		groups = "I3C3";
-@@ -857,6 +927,11 @@ pinctrl_emmc_default: emmc_default {
+@@ -857,6 +927,11 @@
  		groups = "EMMCG4";
  	};
  
@@ -110,7 +110,7 @@ index 7cd4f075e3250..d04399b35e39f 100644
  	pinctrl_sgpm1_default: sgpm1_default {
  		function = "SGPM1";
  		groups = "SGPM1";
-@@ -952,6 +1027,11 @@ pinctrl_spi2cs2_default: spi2cs2_default {
+@@ -952,6 +1027,11 @@
  		groups = "SPI2CS2";
  	};
  
@@ -122,7 +122,7 @@ index 7cd4f075e3250..d04399b35e39f 100644
  	pinctrl_tach0_default: tach0_default {
  		function = "TACH0";
  		groups = "TACH0";
-@@ -1142,6 +1222,16 @@ pinctrl_usb2bd_default: usb2bd_default {
+@@ -1142,6 +1222,16 @@
  		groups = "USBB";
  	};
  
@@ -139,7 +139,7 @@ index 7cd4f075e3250..d04399b35e39f 100644
  	pinctrl_usb11bhid_default: usb11bhid_default {
  		function = "USB11BHID";
  		groups = "USBB";
-@@ -1181,4 +1271,130 @@ pinctrl_wdtrst4_default: wdtrst4_default {
+@@ -1181,4 +1271,130 @@
  		function = "WDTRST4";
  		groups = "WDTRST4";
  	};
@@ -271,10 +271,10 @@ index 7cd4f075e3250..d04399b35e39f 100644
 +
  };
 diff --git a/arch/arm/boot/dts/aspeed-g6.dtsi b/arch/arm/boot/dts/aspeed-g6.dtsi
-index 4540958912aa5..7d9242f05c130 100644
+index 4540958912aa..a0b4c4253bbf 100644
 --- a/arch/arm/boot/dts/aspeed-g6.dtsi
 +++ b/arch/arm/boot/dts/aspeed-g6.dtsi
-@@ -13,6 +13,12 @@ / {
+@@ -13,6 +13,12 @@
  	interrupt-parent = <&gic>;
  
  	aliases {
@@ -287,7 +287,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		i2c0 = &i2c0;
  		i2c1 = &i2c1;
  		i2c2 = &i2c2;
-@@ -34,8 +40,18 @@ aliases {
+@@ -34,8 +40,18 @@
  		serial2 = &uart3;
  		serial3 = &uart4;
  		serial4 = &uart5;
@@ -308,7 +308,7 @@ index 4540958912aa5..7d9242f05c130 100644
  	};
  
  
-@@ -64,7 +80,6 @@ timer {
+@@ -64,7 +80,6 @@
  			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
  			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
  			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;
@@ -316,7 +316,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		arm,cpu-registers-not-fw-configured;
  		always-on;
  	};
-@@ -92,83 +107,168 @@ gic: interrupt-controller@40461000 {
+@@ -92,83 +107,168 @@
  			    <0x40462000 0x1000>,
  			    <0x40464000 0x2000>,
  			    <0x40466000 0x2000>;
@@ -495,7 +495,7 @@ index 4540958912aa5..7d9242f05c130 100644
  				status = "disabled";
  			};
  		};
-@@ -224,6 +324,7 @@ mac0: ftgmac@1e660000 {
+@@ -224,6 +324,7 @@
  			#size-cells = <0>;
  			interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
  			clocks = <&syscon ASPEED_CLK_GATE_MAC1CLK>;
@@ -503,7 +503,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			status = "disabled";
  		};
  
-@@ -234,6 +335,7 @@ mac1: ftgmac@1e680000 {
+@@ -234,6 +335,7 @@
  			#size-cells = <0>;
  			interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
  			clocks = <&syscon ASPEED_CLK_GATE_MAC2CLK>;
@@ -511,7 +511,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			status = "disabled";
  		};
  
-@@ -244,6 +346,7 @@ mac2: ftgmac@1e670000 {
+@@ -244,6 +346,7 @@
  			#size-cells = <0>;
  			interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
  			clocks = <&syscon ASPEED_CLK_GATE_MAC3CLK>;
@@ -519,7 +519,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			status = "disabled";
  		};
  
-@@ -254,6 +357,7 @@ mac3: ftgmac@1e690000 {
+@@ -254,6 +357,7 @@
  			#size-cells = <0>;
  			interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
  			clocks = <&syscon ASPEED_CLK_GATE_MAC4CLK>;
@@ -527,7 +527,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			status = "disabled";
  		};
  
-@@ -302,13 +406,27 @@ vhub: usb-vhub@1e6a0000 {
+@@ -302,13 +406,27 @@
  			status = "disabled";
  		};
  
@@ -562,7 +562,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			status = "disabled";
  		};
  
-@@ -318,6 +436,28 @@ apb {
+@@ -318,6 +436,28 @@
  			#size-cells = <1>;
  			ranges;
  
@@ -591,7 +591,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			syscon: syscon@1e6e2000 {
  				compatible = "aspeed,ast2600-scu", "syscon", "simple-mfd";
  				reg = <0x1e6e2000 0x1000>;
-@@ -358,11 +498,134 @@ scu_ic1: interrupt-controller@570 {
+@@ -358,11 +498,134 @@
  				};
  			};
  
@@ -731,7 +731,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			};
  
  			gfx: display@1e6e6000 {
-@@ -370,10 +633,14 @@ gfx: display@1e6e6000 {
+@@ -370,10 +633,14 @@
  				reg = <0x1e6e6000 0x1000>;
  				reg-io-width = <4>;
  				clocks = <&syscon ASPEED_CLK_GATE_D1CLK>;
@@ -748,7 +748,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			};
  
  			xdma: xdma@1e6e7000 {
-@@ -389,6 +656,29 @@ xdma: xdma@1e6e7000 {
+@@ -389,6 +656,29 @@
  				status = "disabled";
  			};
  
@@ -778,7 +778,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			adc0: adc@1e6e9000 {
  				compatible = "aspeed,ast2600-adc0";
  				reg = <0x1e6e9000 0x100>;
-@@ -409,6 +699,50 @@ adc1: adc@1e6e9100 {
+@@ -409,6 +699,50 @@
  				status = "disabled";
  			};
  
@@ -829,7 +829,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			sbc: secure-boot-controller@1e6f2000 {
  				compatible = "aspeed,ast2600-sbc";
  				reg = <0x1e6f2000 0x1000>;
-@@ -492,7 +826,7 @@ timer: timer@1e782000 {
+@@ -492,7 +826,7 @@
                          };
  
  			uart1: serial@1e783000 {
@@ -838,7 +838,7 @@ index 4540958912aa5..7d9242f05c130 100644
  				reg = <0x1e783000 0x20>;
  				reg-shift = <2>;
  				reg-io-width = <4>;
-@@ -506,7 +840,7 @@ uart1: serial@1e783000 {
+@@ -506,7 +840,7 @@
  			};
  
  			uart5: serial@1e784000 {
@@ -847,7 +847,7 @@ index 4540958912aa5..7d9242f05c130 100644
  				reg = <0x1e784000 0x1000>;
  				reg-shift = <2>;
  				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
-@@ -537,6 +871,56 @@ wdt4: watchdog@1e7850c0 {
+@@ -537,6 +871,56 @@
  				status = "disabled";
  			};
  
@@ -904,7 +904,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			lpc: lpc@1e789000 {
  				compatible = "aspeed,ast2600-lpc-v2", "simple-mfd", "syscon";
  				reg = <0x1e789000 0x1000>;
-@@ -546,36 +930,36 @@ lpc: lpc@1e789000 {
+@@ -546,36 +930,36 @@
  				#size-cells = <1>;
  				ranges = <0x0 0x1e789000 0x1000>;
  
@@ -956,7 +956,7 @@ index 4540958912aa5..7d9242f05c130 100644
  					status = "disabled";
  				};
  
-@@ -590,7 +974,13 @@ lpc_snoop: lpc-snoop@80 {
+@@ -590,7 +974,13 @@
  					compatible = "aspeed,ast2600-lpc-snoop";
  					reg = <0x80 0x80>;
  					interrupts = <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>;
@@ -971,7 +971,7 @@ index 4540958912aa5..7d9242f05c130 100644
  					status = "disabled";
  				};
  
-@@ -618,6 +1008,76 @@ ibt: ibt@140 {
+@@ -618,6 +1008,76 @@
  					clocks = <&syscon ASPEED_CLK_GATE_LCLK>;
  					status = "disabled";
  				};
@@ -1048,7 +1048,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			};
  
  			sdc: sdc@1e740000 {
-@@ -634,7 +1094,10 @@ sdhci0: sdhci@1e740100 {
+@@ -634,7 +1094,10 @@
  					reg = <0x100 0x100>;
  					interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
  					sdhci,auto-cmd12;
@@ -1059,7 +1059,7 @@ index 4540958912aa5..7d9242f05c130 100644
  					status = "disabled";
  				};
  
-@@ -643,7 +1106,10 @@ sdhci1: sdhci@1e740200 {
+@@ -643,7 +1106,10 @@
  					reg = <0x200 0x100>;
  					interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
  					sdhci,auto-cmd12;
@@ -1070,7 +1070,7 @@ index 4540958912aa5..7d9242f05c130 100644
  					status = "disabled";
  				};
  			};
-@@ -655,78 +1121,54 @@ emmc_controller: sdc@1e750000 {
+@@ -655,78 +1121,54 @@
  				#size-cells = <1>;
  				ranges = <0 0x1e750000 0x10000>;
  				clocks = <&syscon ASPEED_CLK_GATE_EMMCCLK>;
@@ -1158,7 +1158,7 @@ index 4540958912aa5..7d9242f05c130 100644
  				status = "disabled";
  			};
  
-@@ -737,6 +1179,94 @@ i2c: bus@1e78a000 {
+@@ -737,6 +1179,94 @@
  				ranges = <0 0x1e78a000 0x1000>;
  			};
  
@@ -1253,7 +1253,7 @@ index 4540958912aa5..7d9242f05c130 100644
  			fsim0: fsi@1e79b000 {
  				compatible = "aspeed,ast2600-fsi-master", "fsi-master";
  				reg = <0x1e79b000 0x94>;
-@@ -756,23 +1286,112 @@ fsim1: fsi@1e79b100 {
+@@ -756,23 +1286,113 @@
  				clocks = <&syscon ASPEED_CLK_GATE_FSICLK>;
  				status = "disabled";
  			};
@@ -1286,7 +1286,8 @@ index 4540958912aa5..7d9242f05c130 100644
 +			bmc_dev: bmc_dev@1e7e0000 {
 +				compatible = "aspeed,ast2600-bmc-device";
 +				reg = <0x1e7e0000 0xB000>;
-+				interrupts = <GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>;
++				interrupts-extended = <&gic GIC_SPI 99 IRQ_TYPE_LEVEL_HIGH>,
++						      <&scu_ic0 ASPEED_AST2600_SCU_IC0_PCIE_PERST_LO_TO_HI>;
 +				aspeed,scu = <&syscon>;
 +				pcie2lpc;
 +				status = "disabled";
@@ -1367,7 +1368,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c1_default>;
  		status = "disabled";
-@@ -782,12 +1401,13 @@ i2c1: i2c-bus@100 {
+@@ -782,12 +1402,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1382,7 +1383,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c2_default>;
  		status = "disabled";
-@@ -797,12 +1417,13 @@ i2c2: i2c-bus@180 {
+@@ -797,12 +1418,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1397,7 +1398,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c3_default>;
  		status = "disabled";
-@@ -812,12 +1433,13 @@ i2c3: i2c-bus@200 {
+@@ -812,12 +1434,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1412,7 +1413,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c4_default>;
  		status = "disabled";
-@@ -827,12 +1449,13 @@ i2c4: i2c-bus@280 {
+@@ -827,12 +1450,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1427,7 +1428,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c5_default>;
  		status = "disabled";
-@@ -842,12 +1465,13 @@ i2c5: i2c-bus@300 {
+@@ -842,12 +1466,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1442,7 +1443,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c6_default>;
  		status = "disabled";
-@@ -857,12 +1481,13 @@ i2c6: i2c-bus@380 {
+@@ -857,12 +1482,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1457,7 +1458,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c7_default>;
  		status = "disabled";
-@@ -872,12 +1497,13 @@ i2c7: i2c-bus@400 {
+@@ -872,12 +1498,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1472,7 +1473,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c8_default>;
  		status = "disabled";
-@@ -887,12 +1513,13 @@ i2c8: i2c-bus@480 {
+@@ -887,12 +1514,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1487,7 +1488,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c9_default>;
  		status = "disabled";
-@@ -902,12 +1529,13 @@ i2c9: i2c-bus@500 {
+@@ -902,12 +1530,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1502,7 +1503,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c10_default>;
  		status = "disabled";
-@@ -917,12 +1545,13 @@ i2c10: i2c-bus@580 {
+@@ -917,12 +1546,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1517,7 +1518,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c11_default>;
  		status = "disabled";
-@@ -932,12 +1561,13 @@ i2c11: i2c-bus@600 {
+@@ -932,12 +1562,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1532,7 +1533,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c12_default>;
  		status = "disabled";
-@@ -947,12 +1577,13 @@ i2c12: i2c-bus@680 {
+@@ -947,12 +1578,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1547,7 +1548,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c13_default>;
  		status = "disabled";
-@@ -962,12 +1593,13 @@ i2c13: i2c-bus@700 {
+@@ -962,12 +1594,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1562,7 +1563,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c14_default>;
  		status = "disabled";
-@@ -977,12 +1609,13 @@ i2c14: i2c-bus@780 {
+@@ -977,12 +1610,13 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1577,7 +1578,7 @@ index 4540958912aa5..7d9242f05c130 100644
  		pinctrl-names = "default";
  		pinctrl-0 = <&pinctrl_i2c15_default>;
  		status = "disabled";
-@@ -992,14 +1625,243 @@ i2c15: i2c-bus@800 {
+@@ -992,14 +1626,255 @@
  		#address-cells = <1>;
  		#size-cells = <0>;
  		#interrupt-cells = <1>;
@@ -1680,6 +1681,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		#size-cells = <0>;
 +		#interrupt-cells = <1>;
 +
++		i3c_chan = <0>;
 +		reg = <0x2000 0x1000>;
 +		compatible = "aspeed,ast2600-i3c", "syscon";
 +		clocks = <&syscon ASPEED_CLK_GATE_I3C0CLK>;
@@ -1696,6 +1698,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_i3c1_default>;
 +		aspeed,scu = <&syscon>;
++		aspeed,i3cg = <&i3cglobal>;
 +
 +		status = "disabled";
 +	};
@@ -1705,6 +1708,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		#size-cells = <0>;
 +		#interrupt-cells = <1>;
 +
++		i3c_chan = <1>;
 +		reg = <0x3000 0x1000>;
 +		compatible = "aspeed,ast2600-i3c", "syscon";
 +		clocks = <&syscon ASPEED_CLK_GATE_I3C1CLK>;
@@ -1721,6 +1725,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_i3c2_default>;
 +		aspeed,scu = <&syscon>;
++		aspeed,i3cg = <&i3cglobal>;
 +
 +		status = "disabled";
 +	};
@@ -1730,6 +1735,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		#size-cells = <0>;
 +		#interrupt-cells = <1>;
 +
++		i3c_chan = <2>;
 +		reg = <0x4000 0x1000>;
 +		compatible = "aspeed,ast2600-i3c", "syscon";
 +		clocks = <&syscon ASPEED_CLK_GATE_I3C2CLK>;
@@ -1744,6 +1750,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		i3c-od-scl-lo-period-ns = <620>;
 +		interrupts = <GIC_SPI 104 IRQ_TYPE_LEVEL_HIGH>;
 +		aspeed,scu = <&syscon>;
++		aspeed,i3cg = <&i3cglobal>;
 +
 +		status = "disabled";
 +	};
@@ -1753,6 +1760,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		#size-cells = <0>;
 +		#interrupt-cells = <1>;
 +
++		i3c_chan = <3>;
 +		reg = <0x5000 0x1000>;
 +		compatible = "aspeed,ast2600-i3c", "syscon";
 +		clocks = <&syscon ASPEED_CLK_GATE_I3C3CLK>;
@@ -1767,6 +1775,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		i3c-od-scl-lo-period-ns = <620>;
 +		interrupts = <GIC_SPI 105 IRQ_TYPE_LEVEL_HIGH>;
 +		aspeed,scu = <&syscon>;
++		aspeed,i3cg = <&i3cglobal>;
 +
 +		status = "disabled";
 +	};
@@ -1776,6 +1785,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		#size-cells = <0>;
 +		#interrupt-cells = <1>;
 +
++		i3c_chan = <4>;
 +		reg = <0x6000 0x1000>;
 +		compatible = "aspeed,ast2600-i3c", "syscon";
 +		clocks = <&syscon ASPEED_CLK_GATE_I3C4CLK>;
@@ -1792,6 +1802,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_i3c5_default>;
 +		aspeed,scu = <&syscon>;
++		aspeed,i3cg = <&i3cglobal>;
 +
 +		status = "disabled";
 +	};
@@ -1801,6 +1812,7 @@ index 4540958912aa5..7d9242f05c130 100644
 +		#size-cells = <0>;
 +		#interrupt-cells = <1>;
 +
++		i3c_chan = <5>;
 +		reg = <0x7000 0x1000>;
 +		compatible = "aspeed,ast2600-i3c", "syscon";
 +		clocks = <&syscon ASPEED_CLK_GATE_I3C5CLK>;
@@ -1817,13 +1829,14 @@ index 4540958912aa5..7d9242f05c130 100644
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&pinctrl_i3c6_default>;
 +		aspeed,scu = <&syscon>;
++		aspeed,i3cg = <&i3cglobal>;
 +
 +		status = "disabled";
 +	};
 +
 +};
 diff --git a/drivers/clk/clk-ast2600.c b/drivers/clk/clk-ast2600.c
-index 6772628c91034..e6da1e4638aab 100644
+index 6772628c9103..e6da1e4638aa 100644
 --- a/drivers/clk/clk-ast2600.c
 +++ b/drivers/clk/clk-ast2600.c
 @@ -4,6 +4,7 @@
@@ -2580,7 +2593,7 @@ index 6772628c91034..e6da1e4638aab 100644
  	aspeed_g6_clk_data->num = ASPEED_G6_NUM_CLKS;
  	ret = of_clk_add_hw_provider(np, of_clk_hw_onecell_get, aspeed_g6_clk_data);
 diff --git a/include/dt-bindings/clock/ast2600-clock.h b/include/dt-bindings/clock/ast2600-clock.h
-index 62b9520a00fdb..3f630612cd5dd 100644
+index 62b9520a00fd..3f630612cd5d 100644
 --- a/include/dt-bindings/clock/ast2600-clock.h
 +++ b/include/dt-bindings/clock/ast2600-clock.h
 @@ -51,15 +51,14 @@
@@ -2669,5 +2682,5 @@ index 62b9520a00fdb..3f630612cd5dd 100644
  #define ASPEED_RESET_SDRAM		0
  
 -- 
-2.25.1
+2.17.1
 
