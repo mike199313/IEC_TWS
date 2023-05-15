@@ -1,0 +1,725 @@
+From 55dc484c217ca5add74b63b1a2c05037801ce23b Mon Sep 17 00:00:00 2001
+From: "chen.pj" <chen.pj@inventec.corp-partner.google.com>
+Date: Thu, 4 May 2023 10:28:41 +0000
+Subject: [PATCH 2/3] InvCfmSensor - Initial Inventec CFM sensor
+
+Symptom/Reason:
+    Add Inventec CFM sensor to calculate CFM by power, inlet and outlet temperature.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    [InvCfmSensor]
+        Reading power, inlet, outlet sensors to calculate CFM.
+
+Entry Test:
+
+sysadmin@transformers:~# busctl tree xyz.openbmc_project.InvCfmSensor
+`-/xyz
+  `-/xyz/openbmc_project
+    `-/xyz/openbmc_project/sensors
+      `-/xyz/openbmc_project/sensors/cfm
+        `-/xyz/openbmc_project/sensors/cfm/System_Airflow
+
+sysadmin@transformers:~# busctl introspect xyz.openbmc_project.InvCfmSensor \
+/xyz/openbmc_project/sensors/cfm/System_Airflow
+xyz.openbmc_project.InvCfmSensor /xyz/
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+org.freedesktop.DBus.Introspectable                   interface -         -                                        -
+.Introspect                                           method    -         s                                        -
+org.freedesktop.DBus.Peer                             interface -         -                                        -
+.GetMachineId                                         method    -         s                                        -
+.Ping                                                 method    -         -                                        -
+org.freedesktop.DBus.Properties                       interface -         -                                        -
+.Get                                                  method    ss        v                                        -
+.GetAll                                               method    s         a{sv}                                    -
+.Set                                                  method    ssv       -                                        -
+.PropertiesChanged                                    signal    sa{sv}as  -                                        -
+xyz.openbmc_project.Association.Definitions           interface -         -                                        -
+.Associations                                         property  a(sss)    1 "chassis" "all_sensors" "/xyz/openb... emits-change
+xyz.openbmc_project.Sensor.Value                      interface -         -                                        -
+.MaxValue                                             property  d         200                                      emits-change
+.MinValue                                             property  d         0                                        emits-change
+.Value                                                property  d         2.16                                     emits-change writable
+xyz.openbmc_project.State.Decorator.Availability      interface -         -                                        -
+.Available                                            property  b         true                                     emits-change writable
+xyz.openbmc_project.State.Decorator.OperationalStatus interface -         -
+---
+ include/InvCfmSensor.hpp                      |  48 +++
+ meson_options.txt                             |   1 +
+ service_files/meson.build                     |   1 +
+ .../xyz.openbmc_project.invcfmsensor.service  |  12 +
+ src/InvCfmSensor.cpp                          | 225 +++++++++++++
+ src/InvCfmSensorMain.cpp                      | 300 ++++++++++++++++++
+ src/meson.build                               |  17 +
+ 7 files changed, 604 insertions(+)
+ create mode 100644 include/InvCfmSensor.hpp
+ create mode 100644 service_files/xyz.openbmc_project.invcfmsensor.service
+ create mode 100644 src/InvCfmSensor.cpp
+ create mode 100644 src/InvCfmSensorMain.cpp
+
+diff --git a/include/InvCfmSensor.hpp b/include/InvCfmSensor.hpp
+new file mode 100644
+index 0000000..769c553
+--- /dev/null
++++ b/include/InvCfmSensor.hpp
+@@ -0,0 +1,48 @@
++#pragma once
++
++#include <Thresholds.hpp>
++#include <sensor.hpp>
++
++#include <boost/asio/streambuf.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++
++#include <string>
++#include <vector>
++
++
++
++class InvCfmSensor :
++    public Sensor,
++    public std::enable_shared_from_this<InvCfmSensor>
++{
++  public:
++    InvCfmSensor( const std::string& objectType,
++                    sdbusplus::asio::object_server& objectServer,
++                    std::shared_ptr<sdbusplus::asio::connection>& conn,
++                    boost::asio::io_service& io,
++                    const std::string& sensorName,
++                    const std::string& inletSensorName,
++                    const std::string& outletSensorName,
++                    const std::string& powerSensorName,
++                    double c1, double maxReading, double minReading,
++                    std::vector<thresholds::Threshold>&& thresholds,
++                    const std::string& sensorConfiguration);
++    ~InvCfmSensor();
++    void setupRead(void);
++
++  private:
++    sdbusplus::asio::object_server& objServer;
++    boost::asio::deadline_timer waitTimer;
++    size_t errCount;
++    double c1;
++    std::string inletSensorPath;
++    std::string outletSensorPath;
++    std::string powerSensorPath;
++
++    boost::container::flat_map<std::string, double> collectedValues;
++
++    void getSensorReading(std::string& path);
++    void checkUpdate(void);
++    void updateReading(void);
++    void checkThresholds(void) override;
++};
+diff --git a/meson_options.txt b/meson_options.txt
+index 01b5614..dc371d7 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -5,6 +5,7 @@ option('exit-air', type: 'feature', value: 'enabled', description: 'Enable exit
+ option('fan', type: 'feature', value: 'enabled', description: 'Enable fan sensor.',)
+ option('hwmon-temp', type: 'feature', value: 'enabled', description: 'Enable HWMON temperature sensor.',)
+ option('intrusion', type: 'feature', value: 'enabled', description: 'Enable intrusion sensor.',)
++option('invcfm', type: 'feature', value: 'enabled', description: 'Enable InvCfm sensor.',)
+ option('ipmb', type: 'feature', value: 'enabled', description: 'Enable IPMB sensor.',)
+ option('mcu', type: 'feature', value: 'enabled', description: 'Enable MCU sensor.',)
+ option('nvme', type: 'feature', value: 'enabled', description: 'Enable NVMe sensor.',)
+diff --git a/service_files/meson.build b/service_files/meson.build
+index 307ce91..8024401 100644
+--- a/service_files/meson.build
++++ b/service_files/meson.build
+@@ -7,6 +7,7 @@ unit_files = [
+     ['hwmon-temp', 'xyz.openbmc_project.hwmontempsensor.service'],
+     ['ipmb', 'xyz.openbmc_project.ipmbsensor.service'],
+     ['intrusion', 'xyz.openbmc_project.intrusionsensor.service'],
++    ['invcfm', 'xyz.openbmc_project.invcfmsensor.service'],
+     ['mcu', 'xyz.openbmc_project.mcutempsensor.service'],
+     ['nvme', 'xyz.openbmc_project.nvmesensor.service'],
+     ['psu', 'xyz.openbmc_project.psusensor.service'],
+diff --git a/service_files/xyz.openbmc_project.invcfmsensor.service b/service_files/xyz.openbmc_project.invcfmsensor.service
+new file mode 100644
+index 0000000..dde710f
+--- /dev/null
++++ b/service_files/xyz.openbmc_project.invcfmsensor.service
+@@ -0,0 +1,12 @@
++[Unit]
++Description=Inventec CFM Sensor
++Requires=xyz.openbmc_project.EntityManager.service
++After=xyz.openbmc_project.EntityManager.service
++
++[Service]
++Restart=always
++RestartSec=5
++ExecStart=/usr/bin/invcfmsensor
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/src/InvCfmSensor.cpp b/src/InvCfmSensor.cpp
+new file mode 100644
+index 0000000..4f0afa8
+--- /dev/null
++++ b/src/InvCfmSensor.cpp
+@@ -0,0 +1,225 @@
++/*
++// Copyright (c) 2017 Intel Corporation
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#include <InvCfmSensor.hpp>
++
++#include <unistd.h>
++
++#include <boost/algorithm/string/predicate.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/asio/read_until.hpp>
++#include <boost/date_time/posix_time/posix_time.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++
++#include <iostream>
++#include <istream>
++#include <limits>
++#include <memory>
++#include <string>
++#include <vector>
++
++static constexpr unsigned int sensorPollMs = 500;
++static constexpr double emptyValue = -999.0;
++
++
++InvCfmSensor::InvCfmSensor(
++    const std::string& objectType,
++    sdbusplus::asio::object_server& objectServer,
++    std::shared_ptr<sdbusplus::asio::connection>& conn,
++    boost::asio::io_service& io,
++    const std::string& sensorName,
++    const std::string& inletSensorName,
++    const std::string& outletSensorName,
++    const std::string& powerSensorName,
++    double c1, double maxReading, double minReading,
++    std::vector<thresholds::Threshold>&& _thresholds,
++    const std::string& sensorConfiguration) :
++    Sensor(boost::replace_all_copy(sensorName, " ", "_"),
++           std::move(_thresholds), sensorConfiguration, objectType, false, false,
++           maxReading, minReading, conn),
++    std::enable_shared_from_this<InvCfmSensor>(), objServer(objectServer),
++    waitTimer(io), c1(c1)
++{
++    std::string path = "/xyz/openbmc_project/sensors/cfm/" + sensorName;
++
++    inletSensorPath = "/xyz/openbmc_project/sensors/temperature/" + inletSensorName;
++    outletSensorPath = "/xyz/openbmc_project/sensors/temperature/" + outletSensorName;
++    powerSensorPath = "/xyz/openbmc_project/sensors/power/" + powerSensorName;
++
++    sensorInterface = objectServer.add_interface(
++        path,
++        "xyz.openbmc_project.Sensor.Value");
++
++    for (const auto& threshold : thresholds)
++    {
++        std::string interface =
++            thresholds::getInterface(threshold.level);
++        thresholdInterfaces[static_cast<size_t>(threshold.level)] =
++            objectServer.add_interface(path, interface);
++    }
++    association = objectServer.add_interface(
++        path,
++        association::interface);
++    setInitialProperties(sensor_paths::unitCFM);
++}
++
++InvCfmSensor::~InvCfmSensor()
++{
++    // close the input dev to cancel async operations
++    for (const auto& iface : thresholdInterfaces)
++    {
++        objServer.remove_interface(iface);
++    }
++    objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(association);
++}
++
++void InvCfmSensor::getSensorReading(std::string& path)
++{
++    std::array<const char*, 4> interfaces = {
++            "xyz.openbmc_project.Sensor.Value",
++            "xyz.openbmc_project.Sensor.Threshold.Warning",
++            "xyz.openbmc_project.Sensor.Threshold.Critical",
++            "xyz.openbmc_project.Sensor.IpmiSensor"};
++
++    dbusConnection->async_method_call(
++        [&, path](const boost::system::error_code ec,
++            const std::vector<std::pair<std::string, std::vector<std::string>>>& objects) {
++            if (ec)
++            {
++                std::fprintf(stderr, "Error call GetObject\n");
++                collectedValues[path] = emptyValue;
++                updateReading();
++            }
++            else
++            {
++                dbusConnection->async_method_call(
++                    [&, path](boost::system::error_code ec,
++                       const std::variant<double>& value) {
++                        if (ec)
++                        {
++                            // sensor not ready yet
++                            std::fprintf(stderr, "Error getting value %s\n", path.c_str());
++                            collectedValues[path] = emptyValue;
++                        }
++                        else
++                        {
++                            collectedValues[path] = std::visit(VariantToDoubleVisitor(), value);
++                        }
++                        updateReading();
++                        return;
++                    },
++                    objects.begin()->first, path,
++                    properties::interface, properties::get, sensorValueInterface,
++                    "Value");
++            }
++            return;
++        },
++        "xyz.openbmc_project.ObjectMapper",
++        "/xyz/openbmc_project/object_mapper",
++        "xyz.openbmc_project.ObjectMapper", "GetObject",
++        path, interfaces);
++
++    return;
++}
++
++
++void InvCfmSensor::setupRead(void)
++{
++    /* Clear update values */
++    collectedValues.clear();
++
++    getSensorReading(inletSensorPath);
++    getSensorReading(outletSensorPath);
++    getSensorReading(powerSensorPath);
++
++    return;
++}
++
++
++void InvCfmSensor::updateReading(void)
++{
++    auto findInletValue = collectedValues.find(inletSensorPath);
++    if (findInletValue == collectedValues.end())
++    {
++        return;
++    }
++    double inletValue = findInletValue->second;
++
++    auto findOutletValue = collectedValues.find(outletSensorPath);
++    if (findOutletValue == collectedValues.end())
++    {
++        return;
++    }
++    double outletValue = findOutletValue->second;
++
++    auto findPowerValue = collectedValues.find(powerSensorPath);
++    if (findPowerValue == collectedValues.end())
++    {
++        return;
++    }
++    double powerValue = findPowerValue->second;
++
++    /* All sensor ready */
++    if( inletValue == emptyValue || outletValue == emptyValue
++        || powerValue == emptyValue)
++    {
++        /* Some value cannot get */
++    }
++    else if( inletValue == outletValue )
++    {
++        /* Not defined case */
++    }
++    else
++    {
++        double cfm = c1 * powerValue /(outletValue - inletValue);
++        updateValue(cfm);
++    }
++
++
++    /* Set next read */
++    waitTimer.expires_from_now(boost::posix_time::milliseconds(sensorPollMs));
++    std::weak_ptr<InvCfmSensor> weakRef = weak_from_this();
++    waitTimer.async_wait([weakRef](const boost::system::error_code& ec) {
++        std::shared_ptr<InvCfmSensor> self = weakRef.lock();
++        if (ec == boost::asio::error::operation_aborted)
++        {
++            if (self)
++            {
++                std::cerr << "Invcfm sensor " << self->name << "\n";
++            }
++            else
++            {
++                std::cerr << "Invcfm sensor read cancelled, no self\n";
++            }
++            return; // we're being canceled
++        }
++        if (self)
++        {
++            self->setupRead();
++        }
++    });
++
++    return;
++}
++
++
++
++void InvCfmSensor::checkThresholds(void)
++{
++    thresholds::checkThresholds(this);
++}
+diff --git a/src/InvCfmSensorMain.cpp b/src/InvCfmSensorMain.cpp
+new file mode 100644
+index 0000000..1632eca
+--- /dev/null
++++ b/src/InvCfmSensorMain.cpp
+@@ -0,0 +1,300 @@
++/*
++// Copyright (c) 2017 Intel Corporation
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#include <InvCfmSensor.hpp>
++#include <Utils.hpp>
++
++#include <boost/algorithm/string/predicate.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/container/flat_map.hpp>
++#include <boost/container/flat_set.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/bus/match.hpp>
++
++#include <array>
++#include <filesystem>
++#include <fstream>
++#include <functional>
++#include <memory>
++#include <regex>
++#include <stdexcept>
++#include <string>
++#include <utility>
++#include <variant>
++#include <vector>
++
++static constexpr bool DEBUG = false;
++static constexpr double defaultMaxReading = 5000;
++
++namespace fs = std::filesystem;
++static constexpr std::array<const char*, 1> invCfmTypes = {
++    "xyz.openbmc_project.Configuration.InvCfmSensor"};
++
++void createSensors(
++    boost::asio::io_service& io, sdbusplus::asio::object_server& objectServer,
++    boost::container::flat_map<std::string, std::shared_ptr<InvCfmSensor>>&
++        sensors,
++    std::shared_ptr<sdbusplus::asio::connection>& dbusConnection,
++    const std::shared_ptr<boost::container::flat_set<std::string>>&
++        sensorsChanged)
++{
++    auto getter = std::make_shared<GetSensorConfiguration>(
++        dbusConnection,
++        std::move([&io, &objectServer, &sensors, &dbusConnection,
++                   sensorsChanged](
++                      const ManagedObjectType& sensorConfigurations) {
++
++            bool firstScan = sensorsChanged == nullptr;
++
++            const SensorData* sensorData = nullptr;
++            const std::string* interfacePath = nullptr;
++            const char* invcfmType = nullptr;
++            const SensorBaseConfiguration* baseConfiguration = nullptr;
++            const SensorBaseConfigMap* baseConfigMap = nullptr;
++
++            for (const std::pair<sdbusplus::message::object_path,
++                                    SensorData>& sensorConf : sensorConfigurations)
++            {
++                /* Reset variables*/
++                sensorData = nullptr;
++                interfacePath = nullptr;
++                invcfmType = nullptr;
++                baseConfiguration = nullptr;
++
++                sensorData = &(sensorConf.second);
++                for (const char* type : invCfmTypes)
++                {
++                    auto sensorBase = sensorData->find(type);
++                    if (sensorBase != sensorData->end())
++                    {
++                        baseConfiguration = &(*sensorBase);
++                        invcfmType = type;
++                        break;
++                    }
++                }
++                if (baseConfiguration == nullptr)
++                {
++                    continue;
++                }
++
++                baseConfigMap = &baseConfiguration->second;
++                interfacePath = &(sensorConf.first.str);
++
++                /* Find Sensor Name*/
++                auto findSensorName = baseConfigMap->find("Name");
++                if (findSensorName == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration name for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++                std::string sensorName =
++                    std::get<std::string>(findSensorName->second);
++                // on rescans, only update sensors we were signaled by
++                auto findSensor = sensors.find(sensorName);
++                if (!firstScan && findSensor != sensors.end())
++                {
++                    bool found = false;
++                    for (auto it = sensorsChanged->begin();
++                            it != sensorsChanged->end(); it++)
++                    {
++                        if (boost::ends_with(*it, findSensor->second->name))
++                        {
++                            sensorsChanged->erase(it);
++                            findSensor->second = nullptr;
++                            found = true;
++                            break;
++                        }
++                    }
++                    if (!found)
++                    {
++                        continue;
++                    }
++                }
++
++                /* Find inlet sensor name */
++                auto findInletSensorName = baseConfigMap->find("InletSensor");
++                if (findInletSensorName == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration InletSensor for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++                std::string inletSensorName =
++                    std::get<std::string>(findInletSensorName->second);
++
++                /* Find outlet sensor name */
++                auto findOutletSensorName = baseConfigMap->find("OutletSensor");
++                if (findOutletSensorName == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration OutletSensor for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++               std::string outletSensorName =
++                    std::get<std::string>(findOutletSensorName->second);
++
++                /* Find power sensor name */
++                auto findPowerSensorName = baseConfigMap->find("PowerSensor");
++                if (findPowerSensorName == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration PowerSensor for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++                std::string powerSensorName =
++                    std::get<std::string>(findPowerSensorName->second);
++
++                /* Find C1 */
++                auto findC1 = baseConfigMap->find("C1");
++                if (findC1 == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration C1 for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++                double c1 =
++                    std::get<double>(findC1->second);
++
++                /* Find MaxReading */
++                double maxReading = 0;
++                auto findMaxReading = baseConfigMap->find("MaxReading");
++                if (findMaxReading == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration MaxReading for "
++                                << *interfacePath << "\n";
++                    maxReading = defaultMaxReading;
++                    continue;
++                }
++                else
++                {
++                    maxReading =
++                        std::get<double>(findMaxReading->second);
++                }
++
++                /* Find MinReading */
++                double minReading = 0;
++                auto findMinReading = baseConfigMap->find("MinReading");
++                if (findMinReading == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration MinReading for "
++                                << *interfacePath << "\n";
++                    minReading = 0;
++                    continue;
++                }
++                else
++                {
++                    minReading =
++                        std::get<double>(findMinReading->second);
++                }
++
++
++
++                auto& sensor = sensors[sensorName];
++                sensor = nullptr;
++
++                std::vector<thresholds::Threshold> sensorThresholds;
++                if (!parseThresholdsFromConfig(*sensorData, sensorThresholds))
++                {
++                    std::cerr << "error populating thresholds for "
++                                << sensorName << "\n";
++                }
++
++                if (DEBUG)
++                {
++                    std::cerr <<"SensorName: " << sensorName << '\n'
++                        << "InvcfmType: " << invcfmType << '\n'
++                        << "Inlet: " << inletSensorName << '\n'
++                        << "Outlet: " << outletSensorName << '\n'
++                        << "Power: " << powerSensorName << '\n'
++                        << "C1: " << c1 << '\n'
++                        << "MaxReading: " << maxReading << '\n'
++                        << "MinReading: " << minReading << '\n'
++                        << "Interface:" << *interfacePath << '\n';
++                }
++
++
++                sensor = std::make_shared<InvCfmSensor>(
++                    invcfmType, objectServer, dbusConnection,
++                    io, sensorName,
++                    inletSensorName, outletSensorName, powerSensorName, c1,
++                    maxReading, minReading,
++                    std::move(sensorThresholds),
++                    *interfacePath);
++                sensor->setupRead();
++            }
++        }));
++    getter->getConfiguration(
++        std::vector<std::string>(invCfmTypes.begin(), invCfmTypes.end()));
++}
++
++int main()
++{
++    boost::asio::io_service io;
++    auto systemBus = std::make_shared<sdbusplus::asio::connection>(io);
++    systemBus->request_name("xyz.openbmc_project.InvCfmSensor");
++    sdbusplus::asio::object_server objectServer(systemBus);
++    boost::container::flat_map<std::string, std::shared_ptr<InvCfmSensor>>
++        sensors;
++    std::vector<std::unique_ptr<sdbusplus::bus::match::match>> matches;
++    auto sensorsChanged =
++        std::make_shared<boost::container::flat_set<std::string>>();
++
++    io.post([&]() {
++        createSensors(io, objectServer, sensors, systemBus, nullptr);
++    });
++
++    boost::asio::deadline_timer filterTimer(io);
++    std::function<void(sdbusplus::message::message&)> eventHandler =
++        [&](sdbusplus::message::message& message) {
++            if (message.is_method_error())
++            {
++                std::cerr << "callback method error\n";
++                return;
++            }
++            sensorsChanged->insert(message.get_path());
++            // this implicitly cancels the timer
++            filterTimer.expires_from_now(boost::posix_time::seconds(1));
++
++            filterTimer.async_wait([&](const boost::system::error_code& ec) {
++                if (ec == boost::asio::error::operation_aborted)
++                {
++                    /* we were canceled*/
++                    return;
++                }
++                else if (ec)
++                {
++                    std::cerr << "timer error\n";
++                    return;
++                }
++                createSensors(io, objectServer, sensors, systemBus,
++                              sensorsChanged);
++            });
++        };
++
++    for (const char* type : invCfmTypes)
++    {
++        auto match = std::make_unique<sdbusplus::bus::match::match>(
++            static_cast<sdbusplus::bus::bus&>(*systemBus),
++            "type='signal',member='PropertiesChanged',path_namespace='" +
++                std::string(inventoryPath) + "',arg0namespace='" + type + "'",
++            eventHandler);
++        matches.emplace_back(std::move(match));
++    }
++
++    io.run();
++}
+diff --git a/src/meson.build b/src/meson.build
+index 0f319a0..2583fc5 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -122,6 +122,23 @@ if get_option('intrusion').enabled()
+     )
+ endif
+ 
++if get_option('invcfm').enabled()
++    executable(
++        'invcfmsensor',
++        'InvCfmSensor.cpp',
++        'InvCfmSensorMain.cpp',
++        dependencies: [
++            default_deps,
++            thresholds_dep,
++            utils_dep,
++        ],
++        implicit_include_directories: false,
++        include_directories: '../include',
++        install: true,
++    )
++endif
++
++
+ if get_option('ipmb').enabled()
+     executable(
+         'ipmbsensor',
+-- 
+2.17.1
+

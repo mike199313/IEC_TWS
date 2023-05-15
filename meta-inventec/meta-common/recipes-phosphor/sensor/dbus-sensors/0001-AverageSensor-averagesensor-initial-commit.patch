@@ -1,0 +1,733 @@
+From 8375f7cf34103aea3d2b17d913bdca7e79aa404c Mon Sep 17 00:00:00 2001
+From: "chen.pj" <chen.pj@inventec.corp-partner.google.com>
+Date: Thu, 4 May 2023 09:58:48 +0000
+Subject: [PATCH 1/3] AverageSensor - averagesensor initial commit
+
+Symptom/Reason:
+    Add averagesensor to count the desire sensor's average.
+
+Root cause:
+    N/A
+
+Solution/Change:
+    Initial commit
+
+Entry Test:
+sysadmin@transformers:~# busctl tree xyz.openbmc_project.AverageSensor
+`-/xyz
+  `-/xyz/openbmc_project
+    `-/xyz/openbmc_project/sensors
+      `-/xyz/openbmc_project/sensors/temperature
+        |-/xyz/openbmc_project/sensors/temperature/Exit_Air_Temp
+        `-/xyz/openbmc_project/sensors/temperature/Inlet_BRD_Temp
+
+sysadmin@transformers:~# busctl introspect xyz.openbmc_project.AverageSensor /xyz/openbmc_project/sensors/temperature/Inlet_BRD_Temp
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+org.freedesktop.DBus.Introspectable                   interface -         -                                        -
+.Introspect                                           method    -         s                                        -
+org.freedesktop.DBus.Peer                             interface -         -                                        -
+.GetMachineId                                         method    -         s                                        -
+.Ping                                                 method    -         -                                        -
+org.freedesktop.DBus.Properties                       interface -         -                                        -
+.Get                                                  method    ss        v                                        -
+.GetAll                                               method    s         a{sv}                                    -
+.Set                                                  method    ssv       -                                        -
+.PropertiesChanged                                    signal    sa{sv}as  -                                        -
+xyz.openbmc_project.Association.Definitions           interface -         -                                        -
+.Associations                                         property  a(sss)    1 "chassis" "all_sensors" "/xyz/openb... emits-change
+xyz.openbmc_project.Sensor.Value                      interface -         -                                        -
+.MaxValue                                             property  d         127                                      emits-change
+.MinValue                                             property  d         -128                                     emits-change
+.Value                                                property  d         25                                       emits-change writable
+xyz.openbmc_project.State.Decorator.Availability      interface -         -                                        -
+.Available                                            property  b         true                                     emits-change writable
+xyz.openbmc_project.State.Decorator.OperationalStatus interface -         -                                        -
+.Functional                                           property  b         true                                     emits-change
+---
+ include/AverageSensor.hpp                     |  43 +++
+ meson_options.txt                             |   2 +
+ service_files/meson.build                     |   1 +
+ .../xyz.openbmc_project.averagesensor.service |  12 +
+ src/AverageSensor.cpp                         | 273 ++++++++++++++++++
+ src/AverageSensorMain.cpp                     | 265 +++++++++++++++++
+ src/meson.build                               |  17 ++
+ 7 files changed, 613 insertions(+)
+ create mode 100644 include/AverageSensor.hpp
+ create mode 100644 service_files/xyz.openbmc_project.averagesensor.service
+ create mode 100644 src/AverageSensor.cpp
+ create mode 100644 src/AverageSensorMain.cpp
+
+diff --git a/include/AverageSensor.hpp b/include/AverageSensor.hpp
+new file mode 100644
+index 0000000..07f4e1c
+--- /dev/null
++++ b/include/AverageSensor.hpp
+@@ -0,0 +1,43 @@
++#pragma once
++
++#include <Thresholds.hpp>
++#include <Utils.hpp>
++#include <sensor.hpp>
++
++#include <boost/asio/streambuf.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++
++#include <string>
++#include <vector>
++
++class AverageSensor :
++    public Sensor,
++    public std::enable_shared_from_this<AverageSensor>
++{
++  public:
++    AverageSensor( const std::string& objectType,
++                    sdbusplus::asio::object_server& objectServer,
++                    std::shared_ptr<sdbusplus::asio::connection>& conn,
++                    boost::asio::io_service& io,
++                    const std::string& sensorName,
++                    const std::string& sensorType,
++                    const std::string& eventType,
++                    std::vector<std::string>&& sensorMembers,
++                    std::vector<thresholds::Threshold>&& thresholds,
++                    const std::string& sensorConfiguration);
++    ~AverageSensor();
++    void setupRead(void);
++
++  private:
++    sdbusplus::asio::object_server& objServer;
++    boost::asio::deadline_timer waitTimer;
++    size_t errCount;
++    std::vector<std::string> sensorMemberPaths;
++    std::vector<double> sensorValues;
++    unsigned int updatedSensorNumber;
++
++    void getSensorReading(std::string& path);
++    void checkUpdate(void);
++    void updateReading(void);
++    void checkThresholds(void) override;
++};
+diff --git a/meson_options.txt b/meson_options.txt
+index f9d25e7..01b5614 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -1,4 +1,5 @@
+ option('adc', type: 'feature', value: 'enabled', description: 'Enable ADC sensor.',)
++option('average', type: 'feature', value: 'enabled', description: 'Enable average sensor.',)
+ option('cpu', type: 'feature', value: 'enabled', description: 'Enable CPU sensor.',)
+ option('exit-air', type: 'feature', value: 'enabled', description: 'Enable exit air sensor.',)
+ option('fan', type: 'feature', value: 'enabled', description: 'Enable fan sensor.',)
+@@ -12,3 +13,4 @@ option('external', type: 'feature', value: 'enabled', description: 'Enable Exter
+ option('tests', type: 'feature', value: 'enabled', description: 'Build tests.',)
+ option('validate-unsecure-feature', type : 'feature', value : 'disabled', description : 'Enables unsecure features required by validation. Note: mustbe turned off for production images.',)
+ option('insecure-sensor-override', type : 'feature', value : 'disabled', description : 'Enables Sensor override feature without any check.',)
++
+diff --git a/service_files/meson.build b/service_files/meson.build
+index 37bb261..307ce91 100644
+--- a/service_files/meson.build
++++ b/service_files/meson.build
+@@ -1,5 +1,6 @@
+ unit_files = [
+     ['adc', 'xyz.openbmc_project.adcsensor.service'],
++    ['average', 'xyz.openbmc_project.averagesensor.service'],
+     ['cpu', 'xyz.openbmc_project.cpusensor.service'],
+     ['exit-air', 'xyz.openbmc_project.exitairsensor.service'],
+     ['fan', 'xyz.openbmc_project.fansensor.service'],
+diff --git a/service_files/xyz.openbmc_project.averagesensor.service b/service_files/xyz.openbmc_project.averagesensor.service
+new file mode 100644
+index 0000000..12195de
+--- /dev/null
++++ b/service_files/xyz.openbmc_project.averagesensor.service
+@@ -0,0 +1,12 @@
++[Unit]
++Description=Inventec Average Sensor
++Requires=xyz.openbmc_project.EntityManager.service
++After=xyz.openbmc_project.EntityManager.service
++
++[Service]
++Restart=always
++RestartSec=5
++ExecStart=/usr/bin/averagesensor
++
++[Install]
++WantedBy=multi-user.target
+diff --git a/src/AverageSensor.cpp b/src/AverageSensor.cpp
+new file mode 100644
+index 0000000..e341de4
+--- /dev/null
++++ b/src/AverageSensor.cpp
+@@ -0,0 +1,273 @@
++/*
++// Copyright (c) 2017 Intel Corporation
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#include "AverageSensor.hpp"
++
++#include <unistd.h>
++
++#include <boost/algorithm/string/predicate.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/asio/read_until.hpp>
++#include <boost/date_time/posix_time/posix_time.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++
++#include <iostream>
++#include <istream>
++#include <limits>
++#include <memory>
++#include <string>
++#include <vector>
++
++static constexpr unsigned int sensorPollMs = 500;
++
++static constexpr double maxReading = 127;
++static constexpr double minReading = -128;
++
++AverageSensor::AverageSensor(
++    const std::string& objectType,
++    sdbusplus::asio::object_server& objectServer,
++    std::shared_ptr<sdbusplus::asio::connection>& conn,
++    boost::asio::io_service& io,
++    const std::string& sensorName,
++    const std::string& sensorType,
++    const std::string& eventType,
++    std::vector<std::string>&& sensorMembers,
++    std::vector<thresholds::Threshold>&& _thresholds,
++    const std::string& sensorConfiguration) :
++    Sensor(boost::replace_all_copy(sensorName, " ", "_"),
++           std::move(_thresholds), sensorConfiguration, objectType,  false, false,
++           maxReading, minReading, conn),
++    std::enable_shared_from_this<AverageSensor>(), objServer(objectServer),
++    waitTimer(io)
++{
++    std::string path;
++    std::string sensorMemberPathPrefix;
++
++    if(eventType == "")
++    {
++        path = "/xyz/openbmc_project/sensors/" + sensorType + "/" + sensorName;
++        sensorMemberPathPrefix = "/xyz/openbmc_project/sensors/" + sensorType;
++    }
++    else
++    {
++        path = "/xyz/openbmc_project/sensors/"+ eventType +
++            "/" + sensorType + "/" + sensorName;
++
++        sensorMemberPathPrefix = "/xyz/openbmc_project/sensors/"+ eventType +
++            "/" + sensorType;
++    }
++
++    for (auto& sensorMember : sensorMembers)
++    {
++        sensorMemberPaths.emplace_back(
++            sensorMemberPathPrefix + "/" + sensorMember);
++    }
++
++    sensorInterface = objectServer.add_interface(
++        path,
++        "xyz.openbmc_project.Sensor.Value");
++
++    for (const auto& threshold : thresholds)
++    {
++        std::string interface =
++            thresholds::getInterface(threshold.level);
++        thresholdInterfaces[static_cast<size_t>(threshold.level)] =
++            objectServer.add_interface(path, interface);
++    }
++    association = objectServer.add_interface(
++        path,
++        association::interface);
++
++    const char* units;
++
++    if(sensorType == "temperature")
++    {
++        units = sensor_paths::unitDegreesC;
++    }
++    else if(sensorType == "fan_tach")
++    {
++        units = sensor_paths::unitRPMs;
++    }
++    else if(sensorType == "voltage")
++    {
++        units = sensor_paths::unitVolts;
++    }
++    else if(sensorType == "current")
++    {
++        units = sensor_paths::unitAmperes;
++    }
++    else if (sensorType == "power")
++    {
++        units = sensor_paths::unitWatts;
++    }
++    else if(sensorType == "energy")
++    {
++        units = sensor_paths::unitJoules;
++    }
++    else if(sensorType == "fan_pwm")
++    {
++        units = sensor_paths::unitPercent;
++    }
++    else if(sensorType == "cfm")
++    {
++        units = sensor_paths::unitCFM;
++    }
++    else
++    {
++        /* Not found, set to default unitDegreesC*/
++        units = sensor_paths::unitDegreesC;
++    }
++
++    setInitialProperties(units);
++}
++
++AverageSensor::~AverageSensor()
++{
++    // close the input dev to cancel async operations
++    for (const auto& iface : thresholdInterfaces)
++    {
++        objServer.remove_interface(iface);
++    }
++    objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(association);
++}
++
++void AverageSensor::getSensorReading(std::string& path)
++{
++    std::array<const char*, 4> interfaces = {
++            "xyz.openbmc_project.Sensor.Value",
++            "xyz.openbmc_project.Sensor.Threshold.Warning",
++            "xyz.openbmc_project.Sensor.Threshold.Critical",
++            "xyz.openbmc_project.Sensor.IpmiSensor"};
++
++    dbusConnection->async_method_call(
++        [&](const boost::system::error_code ec,
++            const std::vector<std::pair<std::string, std::vector<std::string>>>& objects) {
++            if (ec)
++            {
++                updatedSensorNumber++;
++            }
++            else
++            {
++                dbusConnection->async_method_call(
++                    [&](boost::system::error_code ec,
++                        const std::variant<double>& value) {
++                        updatedSensorNumber++;
++                        if (ec)
++                        {
++                            // sensor not ready yet
++                            std::fprintf(stderr, "Error getting value %s\n", path.c_str());
++                        }
++                        else
++                        {
++                            sensorValues.emplace_back(
++                                std::visit(VariantToDoubleVisitor(), value));
++                        }
++                        /* Check update after get values */
++                        if(updatedSensorNumber == sensorMemberPaths.size())
++                        {
++                            updateReading();
++                        }
++                        return;
++                    },
++                    objects.begin()->first, path,
++                    properties::interface, properties::get, sensorValueInterface,
++                    "Value");
++            }
++            /* Check update after GetOject fail */
++            if(updatedSensorNumber == sensorMemberPaths.size())
++            {
++                updateReading();
++            }
++            return;
++        },
++        "xyz.openbmc_project.ObjectMapper",
++        "/xyz/openbmc_project/object_mapper",
++        "xyz.openbmc_project.ObjectMapper", "GetObject",
++        path, interfaces);
++
++    return;
++}
++
++
++void AverageSensor::setupRead(void)
++{
++    /* Clear the sensor number of updated, wait for new update.*/
++    updatedSensorNumber = 0;
++    sensorValues.clear();
++
++    for (auto& sensorMemberPath : sensorMemberPaths)
++    {
++        getSensorReading(sensorMemberPath);
++    }
++}
++
++
++void AverageSensor::checkUpdate(void)
++{
++
++    if(updatedSensorNumber == sensorMemberPaths.size())
++    {
++        updateReading();
++    }
++}
++
++
++void AverageSensor::updateReading(void)
++{
++    double sum = 0;
++    double average = 0;
++    /* update to dbus */
++    if( !sensorValues.empty())
++    {
++        for (auto& sensorValue : sensorValues)
++        {
++            sum += sensorValue;
++        }
++        average = sum/sensorValues.size();
++        updateValue(average);
++    }
++
++    /* Set next read */
++    waitTimer.expires_from_now(boost::posix_time::milliseconds(sensorPollMs));
++    std::weak_ptr<AverageSensor> weakRef = weak_from_this();
++    waitTimer.async_wait([weakRef](const boost::system::error_code& ec) {
++        std::shared_ptr<AverageSensor> self = weakRef.lock();
++        if (ec == boost::asio::error::operation_aborted)
++        {
++            if (self)
++            {
++                std::cerr << "Average sensor " << self->name << "\n";
++            }
++            else
++            {
++                std::cerr << "Average sensor read cancelled, no self\n";
++            }
++            return; // we're being canceled
++        }
++        if (self)
++        {
++            self->setupRead();
++        }
++    });
++}
++
++
++void AverageSensor::checkThresholds(void)
++{
++    thresholds::checkThresholds(this);
++}
+diff --git a/src/AverageSensorMain.cpp b/src/AverageSensorMain.cpp
+new file mode 100644
+index 0000000..f8ae62d
+--- /dev/null
++++ b/src/AverageSensorMain.cpp
+@@ -0,0 +1,265 @@
++/*
++// Copyright (c) 2017 Intel Corporation
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#include "AverageSensor.hpp"
++#include "Utils.hpp"
++
++#include <boost/algorithm/string/predicate.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/container/flat_map.hpp>
++#include <boost/container/flat_set.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/bus/match.hpp>
++
++#include <array>
++#include <filesystem>
++#include <fstream>
++#include <functional>
++#include <memory>
++#include <regex>
++#include <stdexcept>
++#include <string>
++#include <utility>
++#include <variant>
++#include <vector>
++
++static constexpr bool DEBUG = false;
++
++namespace fs = std::filesystem;
++static constexpr std::array<const char*, 1> averageTypes = {
++    "xyz.openbmc_project.Configuration.AverageSensor"};
++
++void createSensors(
++    boost::asio::io_service& io, sdbusplus::asio::object_server& objectServer,
++    boost::container::flat_map<std::string, std::shared_ptr<AverageSensor>>&
++        sensors,
++    std::shared_ptr<sdbusplus::asio::connection>& dbusConnection,
++    const std::shared_ptr<boost::container::flat_set<std::string>>&
++        sensorsChanged)
++{
++    auto getter = std::make_shared<GetSensorConfiguration>(
++        dbusConnection,
++        std::move([&io, &objectServer, &sensors, &dbusConnection,
++                   sensorsChanged](
++                      const ManagedObjectType& sensorConfigurations) {
++            bool firstScan = sensorsChanged == nullptr;
++
++            const SensorData* sensorData = nullptr;
++            const std::string* interfacePath = nullptr;
++            const char* averageType = nullptr;
++            const SensorBaseConfiguration* baseConfiguration = nullptr;
++            const SensorBaseConfigMap* baseConfigMap = nullptr;
++
++            for (const std::pair<sdbusplus::message::object_path,
++                                    SensorData>& sensorConf : sensorConfigurations)
++            {
++                /* Reset variables*/
++                sensorData = nullptr;
++                interfacePath = nullptr;
++                averageType = nullptr;
++                baseConfiguration = nullptr;
++
++                sensorData = &(sensorConf.second);
++                for (const char* type : averageTypes)
++                {
++                    auto sensorBase = sensorData->find(type);
++                    if (sensorBase != sensorData->end())
++                    {
++                        baseConfiguration = &(*sensorBase);
++                        averageType = type;
++                        break;
++                    }
++                }
++                if (baseConfiguration == nullptr)
++                {
++                    continue;
++                }
++
++                baseConfigMap = &baseConfiguration->second;
++               interfacePath = &(sensorConf.first.str);
++
++                /* Find Sensor Name*/
++                auto findSensorName = baseConfigMap->find("Name");
++                if (findSensorName == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration name for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++                std::string sensorName =
++                    std::get<std::string>(findSensorName->second);
++                // on rescans, only update sensors we were signaled by
++                auto findSensor = sensors.find(sensorName);
++                if (!firstScan && findSensor != sensors.end())
++                {
++                    bool found = false;
++                    for (auto it = sensorsChanged->begin();
++                            it != sensorsChanged->end(); it++)
++                    {
++                        if (boost::ends_with(*it, findSensor->second->name))
++                        {
++                            sensorsChanged->erase(it);
++                            findSensor->second = nullptr;
++                            found = true;
++                            break;
++                        }
++                    }
++                    if (!found)
++                    {
++                        continue;
++                    }
++                }
++
++                /* Find Sensor type */
++                auto findSensorType = baseConfigMap->find("SensorType");
++                if (findSensorType == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration SensorType for "
++                                << *interfacePath << "\n";
++                    continue;
++                }
++                std::string sensorType =
++                    std::get<std::string>(findSensorType->second);
++
++                /* Find Event type */
++                std::string eventType;
++                auto findEventType = baseConfigMap->find("EventType");
++                if (findEventType == baseConfigMap->end())
++                {
++                    std::cerr << "could not determine configuration EventType for "
++                                << *interfacePath << "\n";
++
++                    eventType = "";
++                }
++                else
++                {
++                    eventType =
++                        std::get<std::string>(findEventType->second);
++                }
++
++
++                auto& sensor = sensors[sensorName];
++                sensor = nullptr;
++
++                std::vector<thresholds::Threshold> sensorThresholds;
++                if (!parseThresholdsFromConfig(*sensorData, sensorThresholds))
++                {
++                    std::cerr << "error populating thresholds for "
++                                << sensorName << "\n";
++                }
++
++                /* Find member sensors */
++                int i = 0;
++                std::vector<std::string> sensorMembers;
++                while (true)
++                {
++                    ++i;
++                    auto findSensorMember =
++                        baseConfigMap->find("SensorMember" + std::to_string(i));
++                    if (findSensorMember == baseConfigMap->end())
++                    {
++                        break;
++                    }
++                    sensorMembers.emplace_back(
++                        std::get<std::string>(findSensorMember->second));
++                }
++
++
++                if (DEBUG)
++                {
++                    std::cerr <<"SensorName: " << sensorName << '\n'
++                        << "AverageType: " << averageType << '\n'
++                        << "SensorType: " << sensorType << '\n'
++                        << "EventType: " << eventType << '\n'
++                        << "Interface:" << *interfacePath << '\n';
++
++                    for (auto& sensorMember : sensorMembers)
++                    {
++                        std::cerr << "sensorMember " << sensorMember << '\n';
++                    }
++                }
++
++
++                sensor = std::make_shared<AverageSensor>(
++                    averageType, objectServer, dbusConnection,
++                    io, sensorName, sensorType, eventType,
++                    std::move(sensorMembers),
++                    std::move(sensorThresholds),
++                    *interfacePath);
++                sensor->setupRead();
++            }
++        }));
++    getter->getConfiguration(
++        std::vector<std::string>(averageTypes.begin(), averageTypes.end()));
++}
++
++int main()
++{
++    boost::asio::io_service io;
++    auto systemBus = std::make_shared<sdbusplus::asio::connection>(io);
++    systemBus->request_name("xyz.openbmc_project.AverageSensor");
++    sdbusplus::asio::object_server objectServer(systemBus);
++    boost::container::flat_map<std::string, std::shared_ptr<AverageSensor>>
++        sensors;
++    std::vector<std::unique_ptr<sdbusplus::bus::match::match>> matches;
++    auto sensorsChanged =
++        std::make_shared<boost::container::flat_set<std::string>>();
++
++    io.post([&]() {
++        createSensors(io, objectServer, sensors, systemBus, nullptr);
++    });
++
++    boost::asio::deadline_timer filterTimer(io);
++    std::function<void(sdbusplus::message::message&)> eventHandler =
++        [&](sdbusplus::message::message& message) {
++            if (message.is_method_error())
++            {
++                std::cerr << "callback method error\n";
++                return;
++            }
++            sensorsChanged->insert(message.get_path());
++            // this implicitly cancels the timer
++            filterTimer.expires_from_now(boost::posix_time::seconds(1));
++
++            filterTimer.async_wait([&](const boost::system::error_code& ec) {
++                if (ec == boost::asio::error::operation_aborted)
++                {
++                    /* we were canceled*/
++                    return;
++                }
++                else if (ec)
++                {
++                    std::cerr << "timer error\n";
++                    return;
++                }
++                createSensors(io, objectServer, sensors, systemBus,
++                              sensorsChanged);
++            });
++        };
++
++    for (const char* type : averageTypes)
++    {
++        auto match = std::make_unique<sdbusplus::bus::match::match>(
++            static_cast<sdbusplus::bus::bus&>(*systemBus),
++            "type='signal',member='PropertiesChanged',path_namespace='" +
++                std::string(inventoryPath) + "',arg0namespace='" + type + "'",
++            eventHandler);
++        matches.emplace_back(std::move(match));
++    }
++
++    io.run();
++}
+diff --git a/src/meson.build b/src/meson.build
+index 0fe5f56..0f319a0 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -20,6 +20,23 @@ if get_option('adc').enabled()
+     )
+ endif
+ 
++if get_option('average').enabled()
++    executable(
++        'averagesensor',
++        'AverageSensor.cpp',
++        'AverageSensorMain.cpp',
++        dependencies: [
++            default_deps,
++            thresholds_dep,
++            utils_dep,
++        ],
++        implicit_include_directories: false,
++        include_directories: '../include',
++        install: true,
++    )
++endif
++
++
+ if get_option('cpu').enabled()
+     executable(
+         'cpusensor',
+-- 
+2.17.1
+
