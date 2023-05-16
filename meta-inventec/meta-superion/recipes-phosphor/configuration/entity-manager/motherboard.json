@@ -1030,6 +1030,16 @@
                 }
             ],
             "Type": "AccumulateSensor"
+        },
+        {
+            "Name": "System_Airflow",
+            "InletSensor": "Inlet_BRD_Temp",
+            "OutletSensor": "Exit_Air_Temp",
+            "PowerSensor": "total_power",
+            "C1": 1.8,
+            "MaxReading": 200.0,
+            "MinReading": 0.0,
+            "Type": "InvCfmSensor"
         }
     ],
     "Name": "motherboard",
