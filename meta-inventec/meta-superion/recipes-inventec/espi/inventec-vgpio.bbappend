@@ -1,4 +1,4 @@
-FILESEXTRAPATHS:append:superion := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:append:${MACHINE} := "${THISDIR}/${PN}:"
 
 SRC_URI:append = " file://inventec-vgpio.json \
                  "

@@ -1,4 +1,4 @@
-FILESEXTRAPATHS:append:superion := ":${THISDIR}/${PN}"
+FILESEXTRAPATHS:append:${MACHINE} := ":${THISDIR}/${PN}"
 OBMC_CONSOLE_HOST_TTY = "ttyS2"
 SRC_URI += "file://obmc-console@.service \
            "
