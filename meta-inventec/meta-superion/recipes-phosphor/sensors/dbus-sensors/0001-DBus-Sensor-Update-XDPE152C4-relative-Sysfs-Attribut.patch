@@ -1,0 +1,45 @@
+From af1cf92801a355f052f595456cb5451931af0b9e Mon Sep 17 00:00:00 2001
+From: "Cheng.Mike" <Cheng.Mike@inventec.com>
+Date: Wed, 17 May 2023 15:50:14 +0800
+Subject: [PATCH 1/1] DBus-Sensor-Update-XDPE152C4-relative-Sysfs-Attribute
+
+---
+ src/PSUSensorMain.cpp | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/src/PSUSensorMain.cpp b/src/PSUSensorMain.cpp
+index 7ca5d3d..b8caed6 100644
+--- a/src/PSUSensorMain.cpp
++++ b/src/PSUSensorMain.cpp
+@@ -73,7 +73,8 @@ static constexpr auto sensorTypes{std::to_array<const char*>(
+      "xyz.openbmc_project.Configuration.RAA229004",
+      "xyz.openbmc_project.Configuration.RAA229126",
+      "xyz.openbmc_project.Configuration.TPS546D24",
+-     "xyz.openbmc_project.Configuration.XDPE12284"})};
++     "xyz.openbmc_project.Configuration.XDPE12284",
++     "xyz.openbmc_project.Configuration.XDPE152C4"})};
+ 
+ // clang-format off
+ static constexpr auto pmbusNames{std::to_array<const char*>({
+@@ -109,7 +110,8 @@ static constexpr auto pmbusNames{std::to_array<const char*>({
+     "raa229004",
+     "raa229126",
+     "tps546d24",
+-    "xdpe12284"
++    "xdpe12284",
++    "xdpe152c4"
+ })};
+ //clang-format on
+ 
+@@ -973,6 +975,8 @@ void propertyInitialize(void)
+         {"power4", PSUProperty("Output Power", 3000, 0, 6, 0)},
+         {"maxpin", PSUProperty("Max Input Power", 3000, 0, 6, 0)},
+         {"vin", PSUProperty("Input Voltage", 300, 0, 3, 0)},
++        {"vin1", PSUProperty("Input Voltage", 300, 0, 3, 0)},
++        {"vin2", PSUProperty("Input Voltage", 300, 0, 3, 0)},
+         {"maxvin", PSUProperty("Max Input Voltage", 300, 0, 3, 0)},
+         {"vout1", PSUProperty("Output Voltage", 255, 0, 3, 0)},
+         {"vout2", PSUProperty("Output Voltage", 255, 0, 3, 0)},
+-- 
+2.34.1
+
