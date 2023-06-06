@@ -11,6 +11,7 @@ SRC_URI:append = " file://superion.cfg \
                    file://0007-Add-cpu-ids-to-support-new-cpu-in-intel-peci-client.patch \
                    file://0008-Update-xdpe152xx-Family-for-kernel-driver.patch \
                    file://0009-aspeed-mctp-Fix-peci-mctp-device-name-error.patch \
+                   file://0010-superion-Sync-AspeedTech-for-KCS.patch \
                  "
 
 do_add_overwrite_files () {
