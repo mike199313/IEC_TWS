@@ -313,7 +313,7 @@
 
 			//BP0 FRU
 			eeprom@51 {
-				compatible = "atmel,24c512";
+				compatible = "atmel,24c64";
 				reg = <0x51>;
 				pagesize = <128>;
 			};
@@ -371,7 +371,7 @@
 
 			//BP1 FRU
 			eeprom@51 {
-				compatible = "atmel,24c512";
+				compatible = "atmel,24c64";
 				reg = <0x51>;
 				pagesize = <128>;
 			};
