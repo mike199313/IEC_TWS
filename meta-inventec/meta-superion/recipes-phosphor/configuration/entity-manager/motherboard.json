@@ -996,6 +996,2106 @@
             ],
             "Type": "pmbus"
         },
+	{
+            "Address": "0x60",
+            "Bus": "24",
+            "Labels": [
+                "vin1",
+                "vout1",
+                "pin1",
+                "pout1",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+            "vin1_Name" : "IN0_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "IN0_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "IN0_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "IN0_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "IN0_TEMP0",
+            "Name": "PVCCIN0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+	{
+            "Address": "0x62",
+            "Bus": "24",
+            "Labels": [
+                "vin1",
+                "vin2",
+		"vout1",
+                "vout2",
+                "pin1",
+		"pin2",
+                "pout1",
+		"pout2",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "F0_VccIN",
+            "vin2_Scale" : 1000,
+	    "vin2_Name" : "FIVRA0_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "F0_VccOUT",
+            "vout2_Scale" : 1000,
+	    "vout2_Name" : "FIVRA0_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "F0_PIN",
+            "pin2_Scale" : 1000000,
+            "pin2_Max" : 2650,
+            "pin2_Name" : "FIVRA0_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "F0_POUT",
+            "pout2_Scale" : 1000000,
+            "pout2_Max" : 1760,
+            "pout2_Name" : "FIVRA0_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "F0_TEMP0",
+            "Name": "PVCCINF0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+	{
+            "Address": "0x76",
+            "Bus": "24",
+            "Labels": [
+                "vin1",
+                "vin2",
+                "vout1",
+            	"vout2",
+                "pin1",
+                "pin2",
+                "pout1",
+                "pout2",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "D0_HV0_VccIN",
+            "vin2_Scale" : 1000,
+	    "vin2_Name" : "D1_HV1_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "D0_HV0_VccOUT",
+            "vout2_Scale" : 1000,
+	    "vout2_Name" : "D1_HV1_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "D0_HV0_PIN",
+            "pin2_Scale" : 1000000,
+            "pin2_Max" : 2650,
+            "pin2_Name" : "D0_HV1_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "D0_HV0_POUT",
+            "pout2_Scale" : 1000000,
+            "pout2_Max" : 1760,
+            "pout2_Name" : "D0_HV1_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "D0_HV0_TEMP0",
+            "Name": "PVCCD0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+	{
+            "Address": "0x74",
+            "Bus": "24",
+            "Labels": [
+                "vin1",
+                "vin2",
+                "vout1",
+            	"vout2",
+                "pin1",
+                "pin2",
+                "pout1",
+                "pout2",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "FA_EHV0_VccIN",
+            "vin2_Scale" : 1000,
+	    "vin2_Name" : "VNN0_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "FA_EHV0_VccOUT",
+            "vout2_Scale" : 1000,
+	    "vout2_Name" : "VNN0_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "FA_EHV0_PIN",
+            "pin2_Scale" : 1000000,
+            "pin2_Max" : 2650,
+            "pin2_Name" : "VNN0_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "FA_EHV0_POUT",
+            "pout2_Scale" : 1000000,
+            "pout2_Max" : 1760,
+            "pout2_Name" : "VNN0_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "FA_EHV0_TEMP0",
+            "Name": "PVNN0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
+            "Address": "0x60",
+            "Bus": "25",
+            "Labels": [
+                "vin1",
+                "vout1",
+                "pin1",
+                "pout1",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "IN1_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "IN1_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "IN1_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "IN1_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "IN1_TEMP0",
+            "Name": "PVCCIN1",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
+            "Address": "0x62",
+            "Bus": "25",
+            "Labels": [
+                "vin1",
+                "vin2",
+                "vout1",
+            	"vout2",
+                "pin1",
+                "pin2",
+                "pout1",
+                "pout2",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "F1_VccIN",
+            "vin2_Scale" : 1000,
+	    "vin2_Name" : "FIVRA1_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "F1_VccOUT",
+            "vout2_Scale" : 1000,
+	    "vout2_Name" : "FIVRA1_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "F1_PIN",
+            "pin2_Scale" : 1000000,
+            "pin2_Max" : 2650,
+            "pin2_Name" : "FIVRA1_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "F1_POUT",
+            "pout2_Scale" : 1000000,
+            "pout2_Max" : 1760,
+            "pout2_Name" : "FIVRA1_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "F1_TEMP0",
+            "Name": "PVCCINF1",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
+            "Address": "0x76",
+            "Bus": "25",
+            "Labels": [
+                "vin1",
+                "vin2",
+                "vout1",
+            	"vout2",
+                "pin1",
+                "pin2",
+                "pout1",
+                "pout2",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "D1_HV0_VccIN",
+            "vin2_Scale" : 1000,
+	    "vin2_Name" : "D1_HV1_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "D1_HV0_VccOUT",
+            "vout2_Scale" : 1000,
+	    "vout2_Name" : "D1_HV1_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "D1_HV0_PIN",
+            "pin2_Scale" : 1000000,
+            "pin2_Max" : 2650,
+            "pin2_Name" : "D1_HV1_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "D1_HV0_POUT",
+            "pout2_Scale" : 1000000,
+            "pout2_Max" : 1760,
+            "pout2_Name" : "D1_HV1_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "D1_HV0_TEMP0",
+            "Name": "PVCCD1",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+	    {
+            "Address": "0x74",
+            "Bus": "25",
+            "Labels": [
+                "vin1",
+                "vin2",
+                "vout1",
+            	"vout2",
+                "pin1",
+                "pin2",
+                "pout1",
+                "pout2",
+                "temp1"
+            ],
+            "vin1_Scale" : 1000,
+	    "vin1_Name" : "FA_EHV1_VccIN",
+            "vin2_Scale" : 1000,
+	    "vin2_Name" : "VNN1_VccIN",
+            "vout1_Scale" : 1000,
+	    "vout1_Name" : "FA_EHV1_VccOUT",
+            "vout2_Scale" : 1000,
+	    "vout2_Name" : "VNN1_VccOUT",
+            "pin1_Scale" : 1000000,
+            "pin1_Max" : 2650,
+            "pin1_Name" : "FA_EHV1_PIN",
+            "pin2_Scale" : 1000000,
+            "pin2_Max" : 2650,
+            "pin2_Name" : "VNN1_PIN",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 1760,
+            "pout1_Name" : "FA_EHV1_POUT",
+            "pout2_Scale" : 1000000,
+            "pout2_Max" : 1760,
+            "pout2_Name" : "VNN1_POUT",
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "FA_EHV1_TEMP0",
+            "Name": "PVNN1",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
         {
             "Name": "total_power",
             "SensorType": "power",
