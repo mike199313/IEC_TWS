@@ -1,0 +1,136 @@
+#!/bin/sh
+
+echo pfr-update: "$@"
+
+targets=(
+        "bmc-stg|0x08"
+        "pfr-stg|0x04"
+)
+
+retry_count=2
+i2c_bus=4
+i2c_address=0x38
+i2c_register=0x13
+
+echoerr() {
+        echo 1>&2 "ERROR: $@"
+}
+
+if [ $# -eq 0 ]; then
+        path=/run/initramfs/image-
+        name=$(echo $path*)
+elif [ $# -eq 1 ]; then
+        argv="$1"
+
+        if [ -f "$argv" ]; then
+                path="${argv%%image-*}image-"
+                name=$argv
+        elif [ -d "$argv" ]; then
+                if [[ "${argv: -1}" == "/" ]]; then
+                argv="${argv::-1}"
+                fi
+
+                path=$argv/image-
+                name=$(echo $path*)
+        else
+                echo "Path does not exist or is not valid."
+		exit 1
+        fi
+else
+        # Display help information
+        echo "Usage:"
+        echo "  pfr-update [path]"
+        echo
+        echo "path:"
+        echo "  The path to process (default: /run/initramfs/)"
+        echo
+        echo "Examples:"
+        echo "  pfr-update /tmp"
+        exit 1
+fi
+
+toobig() {
+        if test $(stat -L -c "%s" "$1") -gt $(cat /sys/class/mtd/"$2"/size)
+        then
+                return 0
+        fi
+        return 1
+}
+
+findmtd() {
+        m=$(grep -xl "$1" /sys/class/mtd/*/name)
+        m=${m%/name}
+        m=${m##*/}
+        echo $m
+}
+
+if test "$name" == "$path"* -a ! -e "$name"
+then
+        # shell didn't expand the wildcard, so no files exist
+        echo "No images found to update."
+        exit 1
+fi
+
+target_name=${name#$path}
+
+if test ! -s "$name"
+then
+        echo "Skipping empty update of ${target_name}."
+        rm "$name"
+        exit 1
+fi
+
+m=$(findmtd ${name#$path})
+
+if test -z "$m"
+then
+        echoerr "Unable to find mtd partition for ${name##*/}."
+        exit 1
+fi
+
+if test -n "$checksize" && toobig "$name" "$m"
+then
+        echoerr "Image ${name##*/} too big for $m."
+        exit 1
+fi
+
+echo "Updating ${target_name} : $m..."
+
+n=0
+while [ $n -lt $retry_count ]
+do
+        flashcp -v "$name" "/dev/$m"
+
+        if cmp -s -n $(wc -c < "$name") "/dev/$m" "$name"; then
+                echo "Contents of $m and image-${target_name} are the same."
+                break
+        else
+                echo "Contents of $m and image-${target_name} are different. Retrying..."
+                n=$((n+1))
+        fi
+done
+
+if [ $n -eq $retry_count ]; then
+        echoerr "Failed to update ${target_name} : $m after $retry_count retries."
+        exit 1
+fi
+
+rm "$name"
+echo "Waiting for the AST1060 to verify and upgrade image..."
+
+target_data=""
+for target in "${targets[@]}"; do
+        if [[ "$target" == "$target_name"* ]]; then
+                target_data="${target#*|}"
+                break
+        fi
+done
+
+if [ -n "$target_data" ]; then
+        i2cset -y -f $i2c_bus $i2c_address $i2c_register "$target_data"
+else
+        echoerr "Invalid target: ${target_name}."
+        exit 1
+fi
+exit
+

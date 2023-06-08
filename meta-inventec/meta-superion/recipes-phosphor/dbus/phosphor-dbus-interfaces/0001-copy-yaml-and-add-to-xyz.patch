@@ -1,19 +1,51 @@
-From 756b297775f5b403d88dff5c9e93c821088a9b1b Mon Sep 17 00:00:00 2001
-From: Sophia Yang <yang.sophiasf@inventec.com>
-Date: Fri, 3 Mar 2023 16:07:04 +0800
+From 418efc3fc4d4da9f64f081822bd12a4cf078b3ba Mon Sep 17 00:00:00 2001
+From: Matt Cheng <cheng.matt@inventec.com>
+Date: Mon, 22 May 2023 13:38:44 +0800
 Subject: [PATCH 1/1] copy yaml and add to xyz/
+
+Root Cause:
+
+    bitbake intel-ipmi-oem meet build Error.
+
+Soolution:
+
+    Add 0001-copy-yaml-and-add-to-xyz.patch from meta-superion/recipe-phosphor/dbus
+
+    Add 0001-changes-to-xyz.patch from meta-common/recipe-intel/ipmi/
+
+    phosphor-ipmi-host_%.bbappend add *.hpp
+
+Entry Test:
+
+    $bitbake obmc-phosphor-image success
+
+-------------------------------------------------------------------------------------
+Out-of-band PFR Secure update.
+
+Root Cause:
+	N/A
+
+Solution/Change:
+    Add new version purposes for PFR.
+
+Entry Test:
+	bitbake phosphor-software-manager
+
+-------------------------------------------------------------------------------------
 
 ---
  .../Control/OCOTShutdownPolicy/meson.build    | 14 +++++++++++
  gen/xyz/openbmc_project/Control/meson.build   | 14 +++++++++++
  .../Control/OCOTShutdownPolicy.interface.yaml | 23 +++++++++++++++++++
- 3 files changed, 51 insertions(+)
- create mode 100644 gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
- create mode 100644 yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+ .../Software/Version.interface.yaml           |  9 ++++++++
+ 4 files changed, 60 insertions(+)
+ create mode 100755 gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+ mode change 100644 => 100755 gen/xyz/openbmc_project/Control/meson.build
+ create mode 100755 yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
 
 diff --git a/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
-new file mode 100644
-index 0000000..f777d4a
+new file mode 100755
+index 0000000..7363340
 --- /dev/null
 +++ b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
 @@ -0,0 +1,14 @@
@@ -32,10 +64,12 @@ index 0000000..f777d4a
 +)
 +
 diff --git a/gen/xyz/openbmc_project/Control/meson.build b/gen/xyz/openbmc_project/Control/meson.build
-index 6bb8917..250632e 100644
+old mode 100644
+new mode 100755
+index 9d22099..2d297cc
 --- a/gen/xyz/openbmc_project/Control/meson.build
 +++ b/gen/xyz/openbmc_project/Control/meson.build
-@@ -150,6 +150,20 @@ generated_others += custom_target(
+@@ -140,6 +140,20 @@ generated_others += custom_target(
      ],
  )
  
@@ -57,7 +91,7 @@ index 6bb8917..250632e 100644
  subdir('PowerSupplyAttributes')
  generated_others += custom_target(
 diff --git a/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
-new file mode 100644
+new file mode 100755
 index 0000000..86d239e
 --- /dev/null
 +++ b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
@@ -85,6 +119,23 @@ index 0000000..86d239e
 +          - name: "ShutdownOnOCOT"
 +            description: >
 +                Shutdown node on an OC/OT event.
+diff --git a/yaml/xyz/openbmc_project/Software/Version.interface.yaml b/yaml/xyz/openbmc_project/Software/Version.interface.yaml
+index 6176010..0a28f63 100644
+--- a/yaml/xyz/openbmc_project/Software/Version.interface.yaml
++++ b/yaml/xyz/openbmc_project/Software/Version.interface.yaml
+@@ -41,3 +41,12 @@ enumerations:
+           - name: PSU
+             description: >
+                 The version is a version for a PSU.
++          - name: PFRRoT
++            description: >
++                The version is a version for a PFRRoT.
++          - name: PFRBMC
++            description: >
++                The version is a version for a PFRBMC.
++          - name: PFRHost
++            description: >
++                The version is a version for a PFRHost.
 -- 
-2.34.1
+2.25.1
 
