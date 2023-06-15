@@ -355,7 +355,7 @@
 					reg = <3>;
 					//PWR MON INA220
 					ina220@40 {
-						compatible = "ti,ina220";
+						compatible = "ti,ina219";
 						reg = <0x40>;
 						shunt-resistor = <500>;
 					};
@@ -413,7 +413,7 @@
 					reg = <3>;
 					//PWR MON INA220
 					ina220@40 {
-						compatible = "ti,ina220";
+						compatible = "ti,ina219";
 						reg = <0x40>;
 						shunt-resistor = <500>;
 					};
