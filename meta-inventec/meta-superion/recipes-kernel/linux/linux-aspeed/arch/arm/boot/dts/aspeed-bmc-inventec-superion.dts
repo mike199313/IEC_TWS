@@ -1188,7 +1188,15 @@
 	clk-phase-sd-hs = <7>, <200>;
 };
 
+&video {
+	status = "okay";
+	memory-region = <&video_engine_memory>;
+};
+
 &vhub {
 	status = "okay";
+	aspeed,vhub-downstream-ports = <7>;
+	aspeed,vhub-generic-endpoints = <21>;
 	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usb2ad_default>;
 };
