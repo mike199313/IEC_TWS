@@ -166,6 +166,14 @@
 	};
 };
 
+&mac2 {
+        status = "okay";
+        pinctrl-names = "default";
+        phy-mode = "rmii";
+        pinctrl-0 = <&pinctrl_rmii3_default>;
+        use-ncsi;
+};
+
 &mac3 {
 	status = "okay";
 

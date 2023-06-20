@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-NETWORK_INTERFACE="eth0"
+NETWORK_INTERFACE="eth1"
 
 
 post_mac_conf() {
