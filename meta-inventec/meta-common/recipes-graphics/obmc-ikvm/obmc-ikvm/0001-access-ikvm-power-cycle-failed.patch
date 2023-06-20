@@ -1,0 +1,277 @@
+From 9407aaf589282c208fd4cef742a2187eb5fcc064 Mon Sep 17 00:00:00 2001
+From: "sun.cwsun" <sun.cwsun@inventec.com>
+Date: Wed, 23 Mar 2022 10:48:18 +0800
+Subject: [PATCH] =?UTF-8?q?Bug=20707=20-=20[Transformers][OpenBMC][WebUI]W?=
+ =?UTF-8?q?hen=20login=20to=20OS=20from=20new=20windows=20via=20iKVM=20the?=
+ =?UTF-8?q?n=20power=20cycle=20via=20ipmi,=20DUT=20won=E2=80=99t=20boot=20?=
+ =?UTF-8?q?up.?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+    Symptom/Reason :
+        - When using browser access ikvm. The ipmitool power cycle will make the host down successfully but host up failed
+    Root Cause:
+        - The VGA path is occupied when power cycle. The ikvm is using the aspeed video capture engine (/dev/video0) to capture the video output. So the vga path is occupied. and make the power up failed.
+    Solution/Change:
+        [x86-power-control]
+            - When the power transition start, make the ikvm stopping the video capturing by calling ikvm registered method call . When the power is OK to boot up. Call the ikvm registered method to start video capturing.
+        [obmc-ikvm]
+            -register two method call to systemd to let the x86-power-control to control the video capture at correct time.
+    Entry Test:
+        - 1. using browser access the ikvm
+        - 2. using ipmitool power cycle
+        - 3. The video capture stop but websocket is still connected.
+        - 4. When power ok, The ikvm video capturing is up and working.
+        - 5. The user can get the bios screen and enter bios.
+---
+ ikvm_manager.cpp | 178 ++++++++++++++++++++++++++++-------------------
+ ikvm_manager.hpp |  13 ++++
+ 2 files changed, 119 insertions(+), 72 deletions(-)
+
+diff --git a/ikvm_manager.cpp b/ikvm_manager.cpp
+index 33e7b17..92b6e2f 100644
+--- a/ikvm_manager.cpp
++++ b/ikvm_manager.cpp
+@@ -1,101 +1,135 @@
+ #include "ikvm_manager.hpp"
+ 
+ #include <thread>
+-
+ namespace ikvm
+ {
+ 
+-Manager::Manager(const Args& args) :
+-    continueExecuting(true), serverDone(false), videoDone(true),
+-    input(args.getKeyboardPath(), args.getPointerPath()),
+-    video(args.getVideoPath(), input, args.getFrameRate(), args.getSubsampling()),
+-    server(args, input, video)
+-{
+-}
+-
+-void Manager::run()
+-{
+-    std::thread run(serverThread, this);
++    Manager::Manager(const Args &args) : continueExecuting(true), serverDone(false), videoDone(true),
++                                         input(args.getKeyboardPath(), args.getPointerPath()),
++                                         video(args.getVideoPath(), input, args.getFrameRate()),
++                                         server(args, input, video), videoRun(true)
++    {
++    }
+ 
+-    while (continueExecuting)
++    void Manager::run()
+     {
+-        if (server.wantsFrame())
+-        {
+-            video.start();
+-            video.getFrame();
+-            server.sendFrame();
+-        }
+-        else
++        std::thread run(serverThread, this);
++        
++        auto conn = std::make_shared<sdbusplus::asio::connection>(this->io);
++        conn->request_name("xyz.openbmc_project.IKVM");
++
++        auto objServer = sdbusplus::asio::object_server(conn);
++        std::shared_ptr<sdbusplus::asio::dbus_interface> iface =
++            objServer.add_interface("/xyz/openbmc_project/ikvm",
++                                    "xyz.openbmc_project.ikvm");
++
++        iface->register_method("stopVideoCapture", 
++                                    [&]()
++                                    { 
++                                        this->videoRun = false;
++                                        fprintf(stderr, "stopVideoCapture \n");
++                                    });
++
++        
++        iface->register_method("startVideoCapture", 
++                                    [&]()
++                                    { 
++                                        this->videoRun = true;
++                                        fprintf(stderr, "startVideoCapture \n");
++                                    });
++        
++        iface->initialize();
++
++        while (continueExecuting)
+         {
+-            video.stop();
++            if(this->videoRun)
++            {
++                if (server.wantsFrame())
++                {
++                    video.start();
++                    video.getFrame();
++                    server.sendFrame();
++                }
++                else
++                {
++                    video.stop();
++                }
++
++                if (video.needsResize())
++                {
++                    videoDone = false;
++                    waitServer();
++                    video.resize();
++                    server.resize();
++                    setVideoDone();
++                }
++                else
++                {
++                    setVideoDone();
++                    waitServer();
++                }
++            }
++            else
++            {   
++                video.stop();
++            }
++
++            //runs handlers that are ready to run, 
++            //without blocking, until the io_context has been stopped or there are no more ready handlers.
++            io.poll();
+         }
+ 
+-        if (video.needsResize())
+-        {
+-            videoDone = false;
+-            waitServer();
+-            video.resize();
+-            server.resize();
+-            setVideoDone();
+-        }
+-        else
++        run.join();
++    }
++
++    void Manager::serverThread(Manager *manager)
++    {
++        while (manager->continueExecuting)
+         {
+-            setVideoDone();
+-            waitServer();
++            manager->server.run();
++            manager->setServerDone();
++            manager->waitVideo();
+         }
+     }
+ 
+-    run.join();
+-}
+-
+-void Manager::serverThread(Manager* manager)
+-{
+-    while (manager->continueExecuting)
++    void Manager::setServerDone()
+     {
+-        manager->server.run();
+-        manager->setServerDone();
+-        manager->waitVideo();
+-    }
+-}
++        std::unique_lock<std::mutex> ulock(lock);
+ 
+-void Manager::setServerDone()
+-{
+-    std::unique_lock<std::mutex> ulock(lock);
++        serverDone = true;
++        sync.notify_all();
++    }
+ 
+-    serverDone = true;
+-    sync.notify_all();
+-}
++    void Manager::setVideoDone()
++    {
++        std::unique_lock<std::mutex> ulock(lock);
+ 
+-void Manager::setVideoDone()
+-{
+-    std::unique_lock<std::mutex> ulock(lock);
++        videoDone = true;
++        sync.notify_all();
++    }
+ 
+-    videoDone = true;
+-    sync.notify_all();
+-}
++    void Manager::waitServer()
++    {
++        std::unique_lock<std::mutex> ulock(lock);
+ 
+-void Manager::waitServer()
+-{
+-    std::unique_lock<std::mutex> ulock(lock);
++        while (!serverDone)
++        {
++            sync.wait(ulock);
++        }
+ 
+-    while (!serverDone)
+-    {
+-        sync.wait(ulock);
++        serverDone = false;
+     }
+ 
+-    serverDone = false;
+-}
++    void Manager::waitVideo()
++    {
++        std::unique_lock<std::mutex> ulock(lock);
+ 
+-void Manager::waitVideo()
+-{
+-    std::unique_lock<std::mutex> ulock(lock);
++        while (!videoDone)
++        {
++            sync.wait(ulock);
++        }
+ 
+-    while (!videoDone)
+-    {
+-        sync.wait(ulock);
++        // don't reset videoDone
+     }
+ 
+-    // don't reset videoDone
+-}
+-
+ } // namespace ikvm
+diff --git a/ikvm_manager.hpp b/ikvm_manager.hpp
+index 67d5a68..a6e6504 100644
+--- a/ikvm_manager.hpp
++++ b/ikvm_manager.hpp
+@@ -8,6 +8,16 @@
+ #include <condition_variable>
+ #include <mutex>
+ 
++#include <boost/asio.hpp>
++#include <boost/asio/spawn.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/asio/sd_event.hpp>
++#include <sdbusplus/bus.hpp>
++#include <sdbusplus/exception.hpp>
++#include <sdbusplus/server.hpp>
++#include <sdbusplus/timer.hpp>
++
+ namespace ikvm
+ {
+ 
+@@ -70,6 +80,9 @@ class Manager
+     std::condition_variable sync;
+     /* @brief Mutex for waiting on condition variable safely */
+     std::mutex lock;
++
++    boost::asio::io_context io;
++    bool videoRun;
+ };
+ 
+ } // namespace ikvm
+-- 
+2.33.0
+
