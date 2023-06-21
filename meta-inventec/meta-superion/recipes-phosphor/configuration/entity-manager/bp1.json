@@ -3,8 +3,8 @@
         {
             "Address": "0x51",
             "Bus": "17",
-            "Name": "BP1_FRU",
-            "Type": "BP1_24C64"
+            "Name": "BP1_24C64",
+            "Type": "EEPROM_24C64"
         },
         {
             "Address": "0x40",
@@ -88,7 +88,7 @@
                     "Value": 100
                 }
             ],
-            "Type": "INA220"
+            "Type": "INA219"
         }
     ],
     "Name": "bp1",
