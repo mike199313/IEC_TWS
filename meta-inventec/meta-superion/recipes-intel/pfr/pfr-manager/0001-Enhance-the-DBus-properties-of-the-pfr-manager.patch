@@ -1,0 +1,818 @@
+From fe679ab43d41fc7cd092dc623fee7e02f3cbee65 Mon Sep 17 00:00:00 2001
+From: Matt Cheng <cheng.matt@inventec.com>
+Date: Mon, 19 Jun 2023 14:05:06 +0800
+Subject: [PATCH] Enhance the DBus properties of the pfr-manager.
+
+---
+ libpfr/inc/pfr.hpp      |   4 +
+ libpfr/src/pfr.cpp      |  75 +++++++
+ service/inc/pfr_mgr.hpp | 165 +++++++++++++++
+ service/src/mainapp.cpp |  22 +-
+ service/src/pfr_mgr.cpp | 439 +++++++++++++++++++++++++++++++++++++++-
+ 5 files changed, 701 insertions(+), 4 deletions(-)
+ mode change 100644 => 100755 libpfr/inc/pfr.hpp
+ mode change 100644 => 100755 libpfr/src/pfr.cpp
+ mode change 100644 => 100755 service/inc/pfr_mgr.hpp
+ mode change 100644 => 100755 service/src/mainapp.cpp
+ mode change 100644 => 100755 service/src/pfr_mgr.cpp
+
+diff --git a/libpfr/inc/pfr.hpp b/libpfr/inc/pfr.hpp
+old mode 100644
+new mode 100755
+index fb42b23..02d5f40
+--- a/libpfr/inc/pfr.hpp
++++ b/libpfr/inc/pfr.hpp
+@@ -58,4 +58,8 @@ int setBMCBootCheckpoint(const uint8_t checkPoint);
+ void init(std::shared_ptr<sdbusplus::asio::connection> conn,
+           bool& i2cConfigLoaded);
+ 
++int getRecoveryReasonAndCount(uint8_t& value, uint8_t& reason);
++int getPanicReasonAndCount(uint8_t& value, uint8_t& reason);
++int getErrorCode(uint8_t& majorCode, uint8_t& minorCode);
++int getUpdateIntent(uint8_t& intent);
+ } // namespace pfr
+diff --git a/libpfr/src/pfr.cpp b/libpfr/src/pfr.cpp
+old mode 100644
+new mode 100755
+index 0402641..c8657e5
+--- a/libpfr/src/pfr.cpp
++++ b/libpfr/src/pfr.cpp
+@@ -49,6 +49,7 @@ static constexpr uint8_t minorErrorCode = 0x09;
+ static constexpr uint8_t provisioningStatus = 0x0A;
+ static constexpr uint8_t bmcBootCheckpointRev1 = 0x0F;
+ static constexpr uint8_t bmcBootCheckpoint = 0x60;
++static constexpr uint8_t bmcUpdateIntent = 0x13;
+ static constexpr uint8_t pchActiveMajorVersion = 0x15;
+ static constexpr uint8_t pchActiveMinorVersion = 0x16;
+ static constexpr uint8_t pchRecoveryMajorVersion = 0x1B;
+@@ -599,4 +600,78 @@ int setBMCBootCheckpoint(const uint8_t checkPoint)
+     }
+ }
+ 
++int getRecoveryReasonAndCount(uint8_t& count, uint8_t& reason)
++{
++    try
++    {
++        I2CFile cpldDev(i2cBusNumber, i2cSlaveAddress, O_RDWR | O_CLOEXEC);
++        count = cpldDev.i2cReadByteData(recoveryCount);
++        reason = cpldDev.i2cReadByteData(lastRecoveryReason);
++
++        return 0;
++    }
++    catch (const std::exception& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "Exception caught in reading recovery reason and count.",
++            phosphor::logging::entry("MSG=%s", e.what()));
++        return -1;
++    }
++}
++
++int getPanicReasonAndCount(uint8_t& count, uint8_t& reason)
++{
++    try
++    {
++        I2CFile cpldDev(i2cBusNumber, i2cSlaveAddress, O_RDWR | O_CLOEXEC);
++        count = cpldDev.i2cReadByteData(panicEventCount);
++        reason = cpldDev.i2cReadByteData(panicEventReason);
++
++        return 0;
++    }
++    catch (const std::exception& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "Exception caught in reading panic reason and count.",
++            phosphor::logging::entry("MSG=%s", e.what()));
++        return -1;
++    }
++}
++
++int getErrorCode(uint8_t& majorCode, uint8_t& minorCode)
++{
++    try
++    {
++        I2CFile cpldDev(i2cBusNumber, i2cSlaveAddress, O_RDWR | O_CLOEXEC);
++        majorCode = cpldDev.i2cReadByteData(majorErrorCode);
++        minorCode = cpldDev.i2cReadByteData(minorErrorCode);
++
++        return 0;
++    }
++    catch (const std::exception& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "Exception caught in reading error code.",
++            phosphor::logging::entry("MSG=%s", e.what()));
++        return -1;
++    }
++}
++
++int getUpdateIntent(uint8_t& intent)
++{
++    try
++    {
++        I2CFile cpldDev(i2cBusNumber, i2cSlaveAddress, O_RDWR | O_CLOEXEC);
++        intent = cpldDev.i2cReadByteData(bmcUpdateIntent);
++
++        return 0;
++    }
++    catch (const std::exception& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "Exception caught in reading BMC update intent.",
++            phosphor::logging::entry("MSG=%s", e.what()));
++        return -1;
++    }
++}
+ } // namespace pfr
+diff --git a/service/inc/pfr_mgr.hpp b/service/inc/pfr_mgr.hpp
+old mode 100644
+new mode 100755
+index d773e4f..9d459de
+--- a/service/inc/pfr_mgr.hpp
++++ b/service/inc/pfr_mgr.hpp
+@@ -34,6 +34,12 @@ static constexpr const char* versionPurposeHost =
+     "xyz.openbmc_project.Software.Version.VersionPurpose.Host";
+ static constexpr const char* versionPurposeOther =
+     "xyz.openbmc_project.Software.Version.VersionPurpose.Other";
++static constexpr const char* versionPurposePFRBMC =
++    "xyz.openbmc_project.Software.Version.VersionPurpose.PFRBMC";
++static constexpr const char* versionPurposePFRHost =
++    "xyz.openbmc_project.Software.Version.VersionPurpose.PFRHost";
++static constexpr const char* versionPurposePFRRot =
++    "xyz.openbmc_project.Software.Version.VersionPurpose.PFRRot";
+ 
+ static constexpr const char* versionStr = "Version";
+ static constexpr const char* ufmProvisionedStr = "UfmProvisioned";
+@@ -150,4 +156,163 @@ class PfrPostcode
+     uint8_t postcode;
+ };
+ 
++// Recovery reason map.
++// {<CPLD association>, <Recovery Reason>}}
++static const boost::container::flat_map<uint8_t, std::string> recoveryMap = {
++        {0x01, "BIOS active image authentication failure"},
++        {0x02, "BIOS recovery image authentication failure"},
++        {0x03, "ME launch failure"},
++        {0x04, "ACM launch failure"},
++        {0x05, "IBB launch failure"},
++        {0x06, "OBB launch failure"},
++        {0x07, "BMC active image authentication failure"},
++        {0x08, "BMC recovery image authentication failure"},
++        {0x09, "BMC launch failure"},
++        {0x0A, "CPLD watchdog expired"}};
++
++class PfrRecovery
++{
++  public:
++    PfrRecovery(sdbusplus::asio::object_server& srv_,
++                std::shared_ptr<sdbusplus::asio::connection>& conn_);
++    ~PfrRecovery() = default;
++
++    std::shared_ptr<sdbusplus::asio::connection> conn;
++
++    void updateRecovery();
++
++  private:
++    sdbusplus::asio::object_server& server;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> recoveryIface;
++    bool internalSet = false;
++    uint8_t recoveryCount;
++    uint8_t recoveryReason;
++};
++
++// Panic Reason map.
++// {<CPLD association>, <Panic reason> })
++static const boost::container::flat_map<uint8_t, std::string> panicMap = {
++        {0x01, "BIOS update intent"},
++        {0x02, "BMC update intent"},
++        {0x03, "BMC reset detected"},
++        {0x04, "BMC watchdog expired"},
++        {0x05, "ME watchdog expired"},
++        {0x06, "ACM watchdog expired"},
++        {0x07, "IBB watchdog expired"},
++        {0x08, "OBB watchdog expired"},
++        {0x09, "ACM or IBB or OBB authentication failure"}};
++
++class PfrPanic
++{
++  public:
++    PfrPanic(sdbusplus::asio::object_server& srv_,
++                std::shared_ptr<sdbusplus::asio::connection>& conn_);
++    ~PfrPanic() = default;
++
++    std::shared_ptr<sdbusplus::asio::connection> conn;
++
++    void updatePanic();
++
++  private:
++    sdbusplus::asio::object_server& server;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> panicIface;
++    bool internalSet = false;
++    uint8_t panicCount;
++    uint8_t panicReason;
++};
++
++// Firmware resiliency major map.
++// {<CPLD association>, <Error reason> })
++static const boost::container::flat_map<uint8_t, std::string> majorErrorMap = {
++        {0x01, "BMC image authentication failed"},
++        {0x02, "BIOS image authentication failed"},
++        {0x03, "Update from BIOS failed"},
++        {0x04, "Update from BMC failed"},
++        {0x05, "AFM update failure"}};
++
++// Firmware resiliency minor map (Authentication failure).
++// {<CPLD association>, <Error reason> })
++static const boost::container::flat_map<uint8_t, std::string> minorAuthFailMap = {
++        {0x01,
++        "Active region authentication failure"},
++        {0x02,
++        "Recovery region authentication failure"},
++        {0x03, "Active and Recovery regions authentication failure"},
++        {0x04, "Active, Recovery and Staging regions authentication failure"},
++        {0x06, "FW update capsule failed authentication before being promoted"
++        "to recovery region"}};
++
++// Firmware resiliency minor map (Update failure).
++// {<CPLD association>, <Error reason> })
++static const boost::container::flat_map<uint8_t, std::string> minorUpdateFailMap = {
++        {0x01, "Invalid update intent"},
++        {0x02, "Update capsule has invalid SVN"},
++        {0x03, "CPLD capsule failed authentication"},
++        {0x04, "Exceeded maximum failed update attempts"},
++        {0x05, "Active firmware update is not allowed because the recovery region"
++        "failed authentication in T-1"},
++        {0x06, "FW update capsule failed authentication before being promoted"
++        "to recovery region"}};
++
++class PfrErrorCode
++{
++  public:
++    PfrErrorCode(sdbusplus::asio::object_server& srv_,
++                std::shared_ptr<sdbusplus::asio::connection>& conn_);
++    ~PfrErrorCode() = default;
++
++    std::shared_ptr<sdbusplus::asio::connection> conn;
++
++    void updateErrorCode();
++
++  private:
++    sdbusplus::asio::object_server& server;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> errorCodeIface;
++    bool internalSet = false;
++    uint8_t majorCode;
++    uint8_t minorCode;
++};
++
++// BMC update intent map.
++// {<CPLD association>, <Update intent> })
++static const boost::container::flat_map<uint8_t, std::string> intentMap = {
++        {0x01, "PCH active"},
++        {0x02, "PCH recovery"},
++        {0x03, "PCH active and recovery update"},
++        {0x04, "CPLD active"},
++        {0x08, "BMC active"},
++        {0x09, "PCH active and BMC active update"},
++        {0x10, "BMC recovery"},
++        {0x12, "PCH recovery and BMC recovery update"},
++        {0x18, "BMC active and recovery update"},
++        {0x1B, "PCH FW and BMC FW update (0x03 + 0x18)"},
++        {0x20, "CPLD recovery"},
++        {0x24, "CPLD active and recovery update"},
++        {0x37, "BMC required platform reset update (BMC recovery, CLD active and "
++        "recovery, PCH active and recovery update)"},
++        {0x3F, "PCH, BMC, CPLD active and recovery update (0x1B + 0x24)"},
++        {0x40, "Update dynamic"},
++        {0x41, "PCH active and dynamic update"},
++        {0x48, "BMC active and dynamic update"},
++        {0x80, "Update at reset"},
++        {0x83, "PCH active and recovery update at reset"},
++        {0xC1, "PCH active and dynamic update at reset"}};
++
++class PfrUpdateIntent
++{
++  public:
++    PfrUpdateIntent(sdbusplus::asio::object_server& srv_,
++                std::shared_ptr<sdbusplus::asio::connection>& conn_);
++    ~PfrUpdateIntent() = default;
++
++    std::shared_ptr<sdbusplus::asio::connection> conn;
++
++    void updateUpdateIntent();
++
++  private:
++    sdbusplus::asio::object_server& server;
++    std::shared_ptr<sdbusplus::asio::dbus_interface> intentIface;
++    bool internalSet = false;
++    uint8_t intent;
++};
+ } // namespace pfr
+diff --git a/service/src/mainapp.cpp b/service/src/mainapp.cpp
+old mode 100644
+new mode 100755
+index 65bea78..7543ab9
+--- a/service/src/mainapp.cpp
++++ b/service/src/mainapp.cpp
+@@ -40,16 +40,24 @@ std::unique_ptr<boost::asio::steady_timer> pfrObjTimer = nullptr;
+ std::vector<std::unique_ptr<PfrVersion>> pfrVersionObjects;
+ std::unique_ptr<PfrConfig> pfrConfigObject;
+ std::unique_ptr<PfrPostcode> pfrPostcodeObject;
++std::unique_ptr<PfrRecovery> pfrRecoveryObject;
++std::unique_ptr<PfrPanic> pfrPanicObject;
++std::unique_ptr<PfrErrorCode> pfrErrorCodeObject;
++std::unique_ptr<PfrUpdateIntent> pfrUpdateIntentObject;
+ 
+ // List holds <ObjPath> <ImageType> <VersionPurpose>
+ static std::vector<std::tuple<std::string, ImageType, std::string>>
+     verComponentList = {
++        std::make_tuple("bmc_active", ImageType::bmcActive,
++                        versionPurposePFRBMC),
+         std::make_tuple("bmc_recovery", ImageType::bmcRecovery,
+-                        versionPurposeBMC),
++                        versionPurposePFRBMC),
++        std::make_tuple("bios_active", ImageType::biosActive,
++                        versionPurposePFRHost),
+         std::make_tuple("bios_recovery", ImageType::biosRecovery,
+-                        versionPurposeHost),
++                        versionPurposePFRHost),
+         std::make_tuple("cpld_recovery", ImageType::cpldRecovery,
+-                        versionPurposeOther),
++                        versionPurposePFRRot),
+         std::make_tuple("afm_active", ImageType::afmActive,
+                         versionPurposeOther),
+         std::make_tuple("afm_recovery", ImageType::afmRecovery,
+@@ -697,6 +705,14 @@ int main()
+         {
+             pfr::pfrPostcodeObject =
+                 std::make_unique<pfr::PfrPostcode>(server, conn);
++            pfr::pfrRecoveryObject =
++                std::make_unique<pfr::PfrRecovery>(server, conn);
++            pfr::pfrPanicObject =
++                std::make_unique<pfr::PfrPanic>(server, conn);
++            pfr::pfrErrorCodeObject =
++                std::make_unique<pfr::PfrErrorCode>(server, conn);
++            pfr::pfrUpdateIntentObject =
++                std::make_unique<pfr::PfrUpdateIntent>(server, conn);
+         }
+     }
+ 
+diff --git a/service/src/pfr_mgr.cpp b/service/src/pfr_mgr.cpp
+old mode 100644
+new mode 100755
+index fc69fea..0c4034c
+--- a/service/src/pfr_mgr.cpp
++++ b/service/src/pfr_mgr.cpp
+@@ -281,7 +281,8 @@ void PfrPostcode::updatePostcode()
+         auto it = postcodeMap.find(postcode);
+         if (it == postcodeMap.end())
+         {
+-            pfrPostcodeIface->set_property(postcodeStrProp, postcodeStrDefault);
++            pfrPostcodeIface->set_property(postcodeStrProp,
++                                            std::string(postcodeStrDefault));
+         }
+         else
+         {
+@@ -292,4 +293,440 @@ void PfrPostcode::updatePostcode()
+     return;
+ }
+ 
++static constexpr const char* countProp = "Count";
++static constexpr const char* dataProp = "Data";
++static constexpr const char* reasonProp = "Reason";
++static constexpr const char* majorReasonProp = "MajorReason";
++static constexpr const char* majorCodeProp = "MajorCode";
++static constexpr const char* minorReasonProp = "MinorReason";
++static constexpr const char* minorCodeProp = "MinorCode";
++static constexpr const char* updateIntentProp = "Intent";
++static constexpr const char* defaultStr = "Unknown";
++static constexpr const int none = 0;
++enum class MajorErrorCode {
++    BMC_AUTH_FAIL = 1,
++    PCH_AUTH_FAIL = 2,
++    IB_UPDATE_FAIL = 3,
++    OOB_UPDATE_FAIL = 4,
++    AFM_UPDATE_FAIL = 5
++};
++
++PfrRecovery::PfrRecovery(sdbusplus::asio::object_server& srv_,
++                        std::shared_ptr<sdbusplus::asio::connection>& conn_) :
++    server(srv_), conn(conn_)
++{
++    if (getRecoveryReasonAndCount(recoveryCount, recoveryReason) < 0)
++    {
++        recoveryCount = none;
++        recoveryReason = none;
++    }
++
++    recoveryIface = server.add_interface("/xyz/openbmc_project/pfr",
++                            "xyz.openbmc_project.fw.recovery");
++
++    if (recoveryIface != nullptr)
++    {
++        recoveryIface->register_property(
++            countProp, recoveryCount,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        recoveryCount = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updateRecovery();
++                propertyValue = recoveryCount;
++                return propertyValue;
++            });
++
++        recoveryIface->register_property(
++            dataProp, recoveryReason,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        recoveryReason = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updateRecovery();
++                propertyValue = recoveryReason;
++                return propertyValue;
++            });
++
++        recoveryIface->register_property(reasonProp,
++                                            std::string(defaultStr));
++
++        recoveryIface->initialize();
++        auto it = recoveryMap.find(recoveryReason);
++        if (it != recoveryMap.end())
++        {
++            recoveryIface->set_property(reasonProp, it->second);
++        }
++    }
++}
++
++void PfrRecovery::updateRecovery()
++{
++    if (recoveryIface && recoveryIface->is_initialized())
++    {
++        if (getRecoveryReasonAndCount(recoveryCount, recoveryReason) < 0)
++        {
++            recoveryCount = none;
++            recoveryReason = none;
++        }
++
++        internalSet = true;
++        recoveryIface->set_property(countProp, recoveryCount);
++        recoveryIface->set_property(dataProp, recoveryReason);
++        auto it = recoveryMap.find(recoveryReason);
++        if (it == recoveryMap.end())
++        {
++            recoveryIface->set_property(reasonProp, std::string(defaultStr));
++        }
++        else
++        {
++            recoveryIface->set_property(reasonProp, it->second);
++        }
++        internalSet = false;
++    }
++    return;
++}
++
++PfrPanic::PfrPanic(sdbusplus::asio::object_server& srv_,
++                        std::shared_ptr<sdbusplus::asio::connection>& conn_) :
++    server(srv_), conn(conn_)
++{
++    if (getPanicReasonAndCount(panicCount, panicReason) < 0)
++    {
++        panicCount = none;
++        panicReason = none;
++    }
++
++    panicIface = server.add_interface("/xyz/openbmc_project/pfr",
++                             "xyz.openbmc_project.Panic");
++
++    if (panicIface != nullptr)
++    {
++        panicIface->register_property(
++            countProp, panicCount,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        panicCount = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updatePanic();
++                propertyValue = panicCount;
++                return propertyValue;
++            });
++
++        panicIface->register_property(
++            dataProp, panicReason,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        panicReason = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updatePanic();
++                propertyValue = panicReason;
++                return propertyValue;
++            });
++
++        panicIface->register_property(reasonProp,
++                                            std::string(defaultStr));
++
++        panicIface->initialize();
++        auto it = panicMap.find(panicReason);
++        if (it != panicMap.end())
++        {
++            panicIface->set_property(reasonProp, it->second);
++        }
++    }
++}
++
++void PfrPanic::updatePanic()
++{
++    if (panicIface && panicIface->is_initialized())
++    {
++        if (getPanicReasonAndCount(panicCount, panicReason) < 0)
++        {
++            panicCount = none;
++            panicReason = none;
++        }
++
++        internalSet = true;
++        panicIface->set_property(countProp, panicCount);
++        panicIface->set_property(dataProp, panicReason);
++        auto it = panicMap.find(panicReason);
++        if (it == panicMap.end())
++        {
++            panicIface->set_property(reasonProp, std::string(defaultStr));
++        }
++        else
++        {
++            panicIface->set_property(reasonProp, it->second);
++        }
++        internalSet = false;
++    }
++    return;
++}
++
++PfrErrorCode::PfrErrorCode(sdbusplus::asio::object_server& srv_,
++                        std::shared_ptr<sdbusplus::asio::connection>& conn_) :
++    server(srv_), conn(conn_)
++{
++    if (getErrorCode(majorCode, minorCode) < 0)
++    {
++        majorCode = none;
++        minorCode = none;
++    }
++
++    errorCodeIface = server.add_interface("/xyz/openbmc_project/pfr",
++                             "xyz.openbmc_project.FW.Error");
++
++    if (errorCodeIface != nullptr)
++    {
++        errorCodeIface->register_property(
++            majorCodeProp, majorCode,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        majorCode = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updateErrorCode();
++                propertyValue = majorCode;
++                return propertyValue;
++            });
++
++        errorCodeIface->register_property(
++            minorCodeProp, minorCode,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        minorCode = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updateErrorCode();
++                propertyValue = minorCode;
++                return propertyValue;
++            });
++
++        errorCodeIface->register_property(majorReasonProp,
++                                            std::string(defaultStr));
++        errorCodeIface->register_property(minorReasonProp,
++                                            std::string(defaultStr));
++
++        errorCodeIface->initialize();
++        auto it = majorErrorMap.find(majorCode);
++        if (it != majorErrorMap.end())
++        {
++            errorCodeIface->set_property(majorReasonProp, it->second);
++
++            switch (static_cast<MajorErrorCode>(majorCode))
++            {
++                case MajorErrorCode::BMC_AUTH_FAIL:
++                case MajorErrorCode::PCH_AUTH_FAIL:
++                {
++                    auto itMinor = minorAuthFailMap.find(minorCode);
++                    if (itMinor != minorAuthFailMap.end())
++                    {
++                        errorCodeIface->set_property(minorReasonProp, itMinor->second);
++                    }
++                    break;
++                }
++
++                case MajorErrorCode::IB_UPDATE_FAIL:
++                case MajorErrorCode::OOB_UPDATE_FAIL:
++                case MajorErrorCode::AFM_UPDATE_FAIL:
++                {
++                    auto itMinor = minorUpdateFailMap.find(minorCode);
++                    if (itMinor != minorUpdateFailMap.end())
++                    {
++                        errorCodeIface->set_property(minorReasonProp, itMinor->second);
++                    }
++                    break;
++                }
++            }
++        }
++    }
++}
++
++void PfrErrorCode::updateErrorCode()
++{
++    if (errorCodeIface && errorCodeIface->is_initialized())
++    {
++        if (getErrorCode(majorCode, minorCode) < 0)
++        {
++            majorCode = none;
++            minorCode = none;
++        }
++
++        internalSet = true;
++        errorCodeIface->set_property(majorCodeProp, majorCode);
++        errorCodeIface->set_property(minorCodeProp, minorCode);
++
++        auto it = majorErrorMap.find(majorCode);
++        if (it != majorErrorMap.end())
++        {
++            errorCodeIface->set_property(majorReasonProp, it->second);
++            errorCodeIface->set_property(minorReasonProp, std::string(defaultStr));
++            
++            switch (static_cast<MajorErrorCode>(majorCode))
++            {
++                case MajorErrorCode::BMC_AUTH_FAIL:
++                case MajorErrorCode::PCH_AUTH_FAIL:
++                {
++                    auto itMinor = minorAuthFailMap.find(minorCode);
++                    if (itMinor != minorAuthFailMap.end())
++                    {
++                        errorCodeIface->set_property(minorReasonProp, itMinor->second);
++                    }
++                    break;
++                }
++
++                case MajorErrorCode::IB_UPDATE_FAIL:
++                case MajorErrorCode::OOB_UPDATE_FAIL:
++                case MajorErrorCode::AFM_UPDATE_FAIL:
++                {
++                    auto itMinor = minorUpdateFailMap.find(minorCode);
++                    if (itMinor != minorUpdateFailMap.end())
++                    {
++                        errorCodeIface->set_property(minorReasonProp, itMinor->second);
++                    }
++                    break;
++                }
++            }
++        }
++        else
++        {
++            errorCodeIface->set_property(majorReasonProp, std::string(defaultStr));
++            errorCodeIface->set_property(minorReasonProp, std::string(defaultStr));
++        }
++        internalSet = false;
++    }
++    return;
++}
++
++PfrUpdateIntent::PfrUpdateIntent(sdbusplus::asio::object_server& srv_,
++                         std::shared_ptr<sdbusplus::asio::connection>& conn_) :
++    server(srv_),
++    conn(conn_)
++{
++    if (getUpdateIntent(intent) < 0)
++    {
++        intent = none;
++    }
++
++    intentIface = server.add_interface("/xyz/openbmc_project/pfr",
++                             "xyz.openbmc_project.Update.Intent");
++
++    if (intentIface != nullptr)
++    {
++        intentIface->register_property(
++            dataProp, intent,
++            // Override set
++            [this](const uint8_t req, uint8_t& propertyValue) {
++                if (internalSet)
++                {
++                    if (req != propertyValue)
++                    {
++                        intent = req;
++                        propertyValue = req;
++                        return 1;
++                    }
++                }
++                return 0;
++            },
++            [this](uint8_t& propertyValue) {
++                updateUpdateIntent();
++                propertyValue = intent;
++                return propertyValue;
++            });
++
++        intentIface->register_property(updateIntentProp,
++                                            std::string(defaultStr));
++
++        intentIface->initialize();
++        auto it = intentMap.find(intent);
++        if (it != intentMap.end())
++        {
++            intentIface->set_property(updateIntentProp, it->second);
++        }
++    }
++}
++
++void PfrUpdateIntent::updateUpdateIntent()
++{
++    if (intentIface && intentIface->is_initialized())
++    {
++        if (getUpdateIntent(intent) < 0)
++        {
++            intent = none;
++        }
++
++        internalSet = true;
++        intentIface->set_property(dataProp, intent);
++
++        auto it = intentMap.find(intent);
++        if (it == intentMap.end())
++        {
++            intentIface->set_property(updateIntentProp, std::string(defaultStr));
++        }
++        else
++        {
++            intentIface->set_property(updateIntentProp, it->second);
++        }
++        internalSet = false;
++    }
++    return;
++}
+ } // namespace pfr
+-- 
+2.25.1
+
