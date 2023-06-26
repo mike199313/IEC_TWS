@@ -1,0 +1,102 @@
+From d97ded043f1ad20e702bccae51479f446a9e2a79 Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Fri, 5 Nov 2021 21:45:54 +0800
+Subject: [PATCH 13/20] Add new interface related to bmc global enables setting
+
+    Symptom/Reason :
+            Support get/set BMC Global Enables command
+
+    Root Cause:
+            N/A
+
+    Solution/Change:
+            1. Add interface.yaml files for new interfaces
+            2. Add menson.build files for new interfaces
+
+    Entry Test:
+            N/A
+---
+ .../Ipmi/GlobalEnables/meson.build            | 14 +++++++++++
+ gen/xyz/openbmc_project/Ipmi/meson.build      | 14 +++++++++++
+ .../Ipmi/GlobalEnables.interface.yaml         | 24 +++++++++++++++++++
+ 3 files changed, 52 insertions(+)
+ create mode 100644 gen/xyz/openbmc_project/Ipmi/GlobalEnables/meson.build
+ create mode 100644 yaml/xyz/openbmc_project/Ipmi/GlobalEnables.interface.yaml
+
+diff --git a/gen/xyz/openbmc_project/Ipmi/GlobalEnables/meson.build b/gen/xyz/openbmc_project/Ipmi/GlobalEnables/meson.build
+new file mode 100644
+index 0000000..71ed3cf
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Ipmi/GlobalEnables/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Ipmi/GlobalEnables__cpp'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Ipmi/GlobalEnables.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Ipmi/GlobalEnables',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Ipmi/meson.build b/gen/xyz/openbmc_project/Ipmi/meson.build
+index 35e3850..9b52f91 100644
+--- a/gen/xyz/openbmc_project/Ipmi/meson.build
++++ b/gen/xyz/openbmc_project/Ipmi/meson.build
+@@ -27,3 +27,17 @@ generated_others += custom_target(
+     ],
+ )
+ 
++subdir('GlobalEnables')
++generated_others += custom_target(
++    'xyz/openbmc_project/Ipmi/GlobalEnables__markdown'.underscorify(),
++    input: [ '../../../../yaml/xyz/openbmc_project/Ipmi/GlobalEnables.interface.yaml',  ],
++    output: [ 'GlobalEnables.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../yaml',
++        'xyz/openbmc_project/Ipmi/GlobalEnables',
++    ],
++    build_by_default: true,
++)
+\ No newline at end of file
+diff --git a/yaml/xyz/openbmc_project/Ipmi/GlobalEnables.interface.yaml b/yaml/xyz/openbmc_project/Ipmi/GlobalEnables.interface.yaml
+new file mode 100644
+index 0000000..f572f6c
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Ipmi/GlobalEnables.interface.yaml
+@@ -0,0 +1,24 @@
++description: >
++  These properties are used for BMC Global Enables commands,
++  please refer to IPMI spec  22.1, 22.2 and other related chapters for more details
++properties:
++    - name: EventMsgBuf
++      type: boolean
++      default: false
++      description: >
++        To show wheather Event Message Buffer is supported in current platform
++    - name: EventMsgBufFullIntr
++      type: boolean
++      default: false
++      description: >
++        To show wheather Event Message Buffer full interrupt is enabled  
++    - name: RcvMsgQueueIntr
++      type: boolean
++      default: false
++      description: >
++        To show wheather Receive Message Queue Interrupt is enabled
++    - name: SEL
++      type: boolean
++      default: true
++      description: .
++        To show wheather System Event Logging is enabled
+\ No newline at end of file
+-- 
+2.33.0
+
