@@ -996,6 +996,62 @@
             ],
             "Type": "pmbus"
         },
+        {
+            "Address": "0x40",
+            "Bus": "24",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN_Power",
+            "Name": "U176_INA219",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA219"
+        },
+        {
+            "Address": "0x41",
+            "Bus": "24",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN_AUX_Power",
+            "Name": "U177_INA219",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA219"
+        },
 	{
             "Address": "0x60",
             "Bus": "24",
