@@ -1,0 +1,81 @@
+From ebfb4b28e65dae318b8733095c9d5db0d908a557 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Thu, 13 May 2021 02:20:32 +0000
+Subject: [PATCH 07/20] - Modify power capability for DCMI
+
+Symptom/Reason:
+    Add proerties for DCMI usage
+
+Root Cause:
+    N/A
+
+Solition/Change
+    [xyz/openbmc_project/Control/Power/Cap.interface]
+        CorrectionTime, ExceptionAction, SamplingPeriod
+
+Entry Test:
+
+sysadmin@transformers:~# busctl introspect xyz.openbmc_project.Settings /xyz/openbmc_project/control/host0/power_cap
+NAME                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+org.freedesktop.DBus.Introspectable   interface -         -                                        -
+.Introspect                           method    -         s                                        -
+org.freedesktop.DBus.Peer             interface -         -                                        -
+.GetMachineId                         method    -         s                                        -
+.Ping                                 method    -         -                                        -
+org.freedesktop.DBus.Properties       interface -         -                                        -
+.Get                                  method    ss        v                                        -
+.GetAll                               method    s         a{sv}                                    -
+.Set                                  method    ssv       -                                        -
+.PropertiesChanged                    signal    sa{sv}as  -                                        -
+xyz.openbmc_project.Control.Power.Cap interface -         -                                        -
+.CorrectionTime                       property  u         0                                        emits-change writable
+.ExceptionAction                      property  s         "xyz.openbmc_project.Control.Power.Ca... emits-change writable
+.PowerCap                             property  u         0                                        emits-change writable
+.PowerCapEnable                       property  b         false                                    emits-change writable
+.SamplingPeriod                       property  u         0                                        emits-change writable
+---
+ .../Control/Power/Cap.interface.yaml          | 30 +++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/yaml/xyz/openbmc_project/Control/Power/Cap.interface.yaml b/yaml/xyz/openbmc_project/Control/Power/Cap.interface.yaml
+index 393bb1f..c8afdc0 100644
+--- a/yaml/xyz/openbmc_project/Control/Power/Cap.interface.yaml
++++ b/yaml/xyz/openbmc_project/Control/Power/Cap.interface.yaml
+@@ -42,3 +42,33 @@ properties:
+           the MinPowerCapValue. When the PowerCap is set to any value between
+           MinSoftPowerCapValue and MinPowerCapValue an attempt will be made to
+           maintain the cap but it will not be guaranted.
++
++    - name: ExceptionAction
++      type: enum[self.Action]
++      description: >
++          Power exception action. The action for power exception.
++
++    - name: CorrectionTime
++      type: uint32
++      description: >
++          Power correction Time. The timeout time for power exception action.
++
++    - name: SamplingPeriod
++      type: uint32
++      description: >
++          Power sampling period. The time period for power value collect.
++
++enumerations:
++    - name: Action
++      description: >
++        The desired action for correction time timeout
++      values:
++        - name: 'None'
++          description: >
++            Correction time timeout do nothing
++        - name: 'OffAndLog'
++          description: >
++            Correction time timeout should be off and generate SEL event
++        - name: 'Log'
++          description: >
++            Correction time timeout should generate SEL event
+\ No newline at end of file
+-- 
+2.33.0
+

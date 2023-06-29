@@ -1,0 +1,379 @@
+From 7c6440e2e206f48ae41da877908023a7d02abe99 Mon Sep 17 00:00:00 2001
+From: cynthia <wu.cynthia@inventec.com>
+Date: Sat, 24 Jul 2021 13:04:43 +0800
+Subject: [PATCH] Add and modify new interface related to system boot options
+
+Symptom/Reason :
+	Support get/set boot opotion feature
+
+Root Cause:
+	N/A
+
+Solution/Change:
+	1. Add interface.yaml files for new interfaces
+	2. Add menson.build files for new interfaces
+
+Entry Test:
+	N/A
+---
+ .../Control/Boot/Config/meson.build           | 14 ++++
+ .../Control/Boot/Flag/meson.build             | 14 ++++
+ .../Control/Boot/InitiatorInfo/meson.build    | 14 ++++
+ .../Control/Boot/Mailbox/meson.build          | 14 ++++
+ .../Control/Boot/Partition/meson.build        | 14 ++++
+ .../openbmc_project/Control/Boot/meson.build  | 75 +++++++++++++++++++
+ .../Control/Boot/Config.interface.yaml        | 13 ++++
+ .../Control/Boot/Flag.interface.yaml          | 42 +++++++++++
+ .../Control/Boot/InitiatorInfo.interface.yaml |  9 +++
+ .../Control/Boot/Mailbox.interface.yaml       |  6 ++
+ .../Control/Boot/Partition.interface.yaml     | 10 +++
+ .../Control/Boot/Source.interface.yaml        | 21 ++++++
+ 12 files changed, 246 insertions(+)
+ create mode 100644 gen/xyz/openbmc_project/Control/Boot/Config/meson.build
+ create mode 100644 gen/xyz/openbmc_project/Control/Boot/Flag/meson.build
+ create mode 100644 gen/xyz/openbmc_project/Control/Boot/InitiatorInfo/meson.build
+ create mode 100644 gen/xyz/openbmc_project/Control/Boot/Mailbox/meson.build
+ create mode 100644 gen/xyz/openbmc_project/Control/Boot/Partition/meson.build
+ create mode 100644 yaml/xyz/openbmc_project/Control/Boot/Config.interface.yaml
+ create mode 100644 yaml/xyz/openbmc_project/Control/Boot/Flag.interface.yaml
+ create mode 100644 yaml/xyz/openbmc_project/Control/Boot/InitiatorInfo.interface.yaml
+ create mode 100644 yaml/xyz/openbmc_project/Control/Boot/Mailbox.interface.yaml
+ create mode 100644 yaml/xyz/openbmc_project/Control/Boot/Partition.interface.yaml
+
+diff --git a/gen/xyz/openbmc_project/Control/Boot/Config/meson.build b/gen/xyz/openbmc_project/Control/Boot/Config/meson.build
+new file mode 100644
+index 0000000..c401850
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/Boot/Config/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/Boot/Config__cpp'.underscorify(),
++    input: [ '../../../../../../yaml/xyz/openbmc_project/Control/Boot/Config.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Config',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Control/Boot/Flag/meson.build b/gen/xyz/openbmc_project/Control/Boot/Flag/meson.build
+new file mode 100644
+index 0000000..ddd20de
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/Boot/Flag/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/Boot/Flag__cpp'.underscorify(),
++    input: [ '../../../../../../yaml/xyz/openbmc_project/Control/Boot/Flag.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Flag',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Control/Boot/InitiatorInfo/meson.build b/gen/xyz/openbmc_project/Control/Boot/InitiatorInfo/meson.build
+new file mode 100644
+index 0000000..9fbeb10
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/Boot/InitiatorInfo/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/Boot/InitiatorInfo__cpp'.underscorify(),
++    input: [ '../../../../../../yaml/xyz/openbmc_project/Control/Boot/InitiatorInfo.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/InitiatorInfo',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Control/Boot/Mailbox/meson.build b/gen/xyz/openbmc_project/Control/Boot/Mailbox/meson.build
+new file mode 100644
+index 0000000..39f9ccd
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/Boot/Mailbox/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/Boot/Mailbox__cpp'.underscorify(),
++    input: [ '../../../../../../yaml/xyz/openbmc_project/Control/Boot/Mailbox.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Mailbox',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Control/Boot/Partition/meson.build b/gen/xyz/openbmc_project/Control/Boot/Partition/meson.build
+new file mode 100644
+index 0000000..78add36
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/Boot/Partition/meson.build
+@@ -0,0 +1,14 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/Boot/Partition__cpp'.underscorify(),
++    input: [ '../../../../../../yaml/xyz/openbmc_project/Control/Boot/Partition.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Partition',
++    ],
++)
++
+diff --git a/gen/xyz/openbmc_project/Control/Boot/meson.build b/gen/xyz/openbmc_project/Control/Boot/meson.build
+index 0945964..eee7206 100644
+--- a/gen/xyz/openbmc_project/Control/Boot/meson.build
++++ b/gen/xyz/openbmc_project/Control/Boot/meson.build
+@@ -69,3 +69,78 @@ generated_others += custom_target(
+     ],
+ )
+ 
++subdir('Mailbox')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/Boot/Mailbox__markdown'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/Boot/Mailbox.interface.yaml',  ],
++    output: [ 'Mailbox.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Mailbox',
++    ],
++    build_by_default: true,
++)
++
++subdir('Partition')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/Boot/Partition__markdown'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/Boot/Partition.interface.yaml',  ],
++    output: [ 'Partition.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Partition',
++    ],
++    build_by_default: true,
++)
++
++subdir('Config')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/Boot/Config__markdown'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/Boot/Config.interface.yaml',  ],
++    output: [ 'Config.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Config',
++    ],
++    build_by_default: true,
++)
++
++subdir('InitiatorInfo')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/Boot/InitiatorInfo__markdown'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/Boot/InitiatorInfo.interface.yaml',  ],
++    output: [ 'InitiatorInfo.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/InitiatorInfo',
++    ],
++    build_by_default: true,
++)
++
++subdir('Flag')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/Boot/Flag__markdown'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/Boot/Flag.interface.yaml',  ],
++    output: [ 'Flag.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/Boot/Flag',
++    ],
++    build_by_default: true,
++)
++
+diff --git a/yaml/xyz/openbmc_project/Control/Boot/Config.interface.yaml b/yaml/xyz/openbmc_project/Control/Boot/Config.interface.yaml
+new file mode 100644
+index 0000000..8e62d98
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/Boot/Config.interface.yaml
+@@ -0,0 +1,13 @@
++properties:
++    - name: SetInProgress
++      type: byte
++      default: 0   
++    - name: BootFlagValidBitClear
++      type: byte
++      default: 0
++    - name : WriteMask
++      type : byte
++      default: 0
++    - name : InitiatorAckData
++      type : byte
++      default: 0
+\ No newline at end of file
+diff --git a/yaml/xyz/openbmc_project/Control/Boot/Flag.interface.yaml b/yaml/xyz/openbmc_project/Control/Boot/Flag.interface.yaml
+new file mode 100644
+index 0000000..701065b
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/Boot/Flag.interface.yaml
+@@ -0,0 +1,42 @@
++properties:
++    - name: BootFlagValid
++      type: boolean
++      default: false
++    - name: CMOSClear
++      type: boolean
++      default: false
++    - name: LockKeyboard
++      type: boolean
++      default: false
++    - name: ScreenBlank
++      type: boolean
++      default: false
++    - name: LockResetButton
++      type: boolean
++      default: false
++    - name: LockOutViaPowerButton
++      type: boolean
++      default: false   
++    - name: FirmwareVerbosity
++      type: byte
++      default: 0 
++    - name: ProgressEventTrap
++      type: boolean
++      default: false
++    - name: UserPasswordByPass
++      type: boolean
++      default: false    
++    - name: LockSleepButton
++      type: boolean
++      default: false
++    - name: ConsoleRedirectionControl
++      type: byte
++      default: 0  
++    - name: SharedModeOverride
++      type: boolean
++      default: false
++    - name: MuxControlOverride
++      type: byte
++      default: 0  
++    - name: InstanceSelector
++      type: byte
+\ No newline at end of file
+diff --git a/yaml/xyz/openbmc_project/Control/Boot/InitiatorInfo.interface.yaml b/yaml/xyz/openbmc_project/Control/Boot/InitiatorInfo.interface.yaml
+new file mode 100644
+index 0000000..a7ccb7a
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/Boot/InitiatorInfo.interface.yaml
+@@ -0,0 +1,9 @@
++properties:
++    - name : ChannelId
++      type : byte
++      default: 0
++    - name : SessionId
++      type : uint32
++      default: 0
++    - name : BootInfoTimestamp
++      type : uint32
+\ No newline at end of file
+diff --git a/yaml/xyz/openbmc_project/Control/Boot/Mailbox.interface.yaml b/yaml/xyz/openbmc_project/Control/Boot/Mailbox.interface.yaml
+new file mode 100644
+index 0000000..54f1193
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/Boot/Mailbox.interface.yaml
+@@ -0,0 +1,6 @@
++properties:
++    - name: Selector
++      type: byte
++      default: 0
++    - name: Data
++      type: array[byte]
+\ No newline at end of file
+diff --git a/yaml/xyz/openbmc_project/Control/Boot/Partition.interface.yaml b/yaml/xyz/openbmc_project/Control/Boot/Partition.interface.yaml
+new file mode 100644
+index 0000000..1b173fc
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/Boot/Partition.interface.yaml
+@@ -0,0 +1,10 @@
++properties:
++    - name: PartitionSelector
++      type: byte
++      default: 0
++    - name: PartitionScan
++      type: boolean
++      default: 0
++    - name: PartitionDiscovered
++      type: boolean
++      default: 0
+\ No newline at end of file
+diff --git a/yaml/xyz/openbmc_project/Control/Boot/Source.interface.yaml b/yaml/xyz/openbmc_project/Control/Boot/Source.interface.yaml
+index 8a7b46b..d5a3080 100644
+--- a/yaml/xyz/openbmc_project/Control/Boot/Source.interface.yaml
++++ b/yaml/xyz/openbmc_project/Control/Boot/Source.interface.yaml
+@@ -15,6 +15,9 @@ enumerations:
+           - name: Disk
+             description: >
+                 Boot from the local hard disk.
++          - name: Disk_safe
++            description: >
++                Boot from the local hard disk, require safe mode
+           - name: ExternalMedia
+             description: >
+                 Boot from CD/DVD.
+@@ -30,3 +33,21 @@ enumerations:
+           - name: HTTP
+             description: >
+                 Boot from a remote source over http/https.
++          - name: BIOS_setup
++            description: >
++              Force to boot into bios setup
++          - name: Diagnostic
++            description: >
++              Force boot from default diagnostic partition
++          - name: PrimaryRemoteMedia
++            description: >
++              Force boot from primary remote media
++          - name: RemoteExternalMedia
++            description: >
++              Force boot from remotely connected CD/DVD
++          - name: RemoteExternalDisk
++            description: >
++              Force boot from remotely connected hard-drive
++          - name: RemoteRemovableMedia
++            description: >
++              Boot from remotely connected floppy/primary removable media (USB).
+-- 
+2.33.0
+
