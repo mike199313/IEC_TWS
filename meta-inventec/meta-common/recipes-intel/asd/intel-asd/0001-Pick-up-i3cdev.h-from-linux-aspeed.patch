@@ -1,0 +1,67 @@
+From 0c659b2f2667bec1d72dcc1d4c4dac236b5c5643 Mon Sep 17 00:00:00 2001
+From: PaulPTLiu <Liu.PaulPT@inventec.com>
+Date: Wed, 24 May 2023 10:47:05 +0800
+Subject: [PATCH] Pick up i3cdev.h from linux-aspeed
+
+---
+ include/i3cdev.h     | 37 +++++++++++++++++++++++++++++++++++++
+ target/i3c_handler.c |  2 +-
+ 2 files changed, 38 insertions(+), 1 deletion(-)
+ create mode 100644 include/i3cdev.h
+
+diff --git a/include/i3cdev.h b/include/i3cdev.h
+new file mode 100644
+index 0000000..5adc1e3
+--- /dev/null
++++ b/include/i3cdev.h
+@@ -0,0 +1,37 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/*
++ * Copyright (c) 2020 Synopsys, Inc. and/or its affiliates.
++ *
++ * Author: Vitor Soares <vitor.soares@synopsys.com>
++ */
++
++#ifndef _UAPI_I3C_DEV_H_
++#define _UAPI_I3C_DEV_H_
++
++#include <linux/types.h>
++#include <linux/ioctl.h>
++
++/* IOCTL commands */
++#define I3C_DEV_IOC_MAGIC	0x07
++
++/**
++ * struct i3c_ioc_priv_xfer - I3C SDR ioctl private transfer
++ * @data: Holds pointer to userspace buffer with transmit data.
++ * @len: Length of data buffer buffers, in bytes.
++ * @rnw: encodes the transfer direction. true for a read, false for a write
++ */
++struct i3c_ioc_priv_xfer {
++	__u64 data;
++	__u16 len;
++	__u8 rnw;
++	__u8 pad[5];
++};
++
++#define I3C_PRIV_XFER_SIZE(N)	\
++	((((sizeof(struct i3c_ioc_priv_xfer)) * (N)) < (1 << _IOC_SIZEBITS)) \
++	? ((sizeof(struct i3c_ioc_priv_xfer)) * (N)) : 0)
++
++#define I3C_IOC_PRIV_XFER(N)	\
++	_IOC(_IOC_READ|_IOC_WRITE, I3C_DEV_IOC_MAGIC, 30, I3C_PRIV_XFER_SIZE(N))
++
++#endif
+diff --git a/target/i3c_handler.c b/target/i3c_handler.c
+index fd6d278..9b9fb2e 100644
+--- a/target/i3c_handler.c
++++ b/target/i3c_handler.c
+@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ #include <string.h>
+ #include <sys/ioctl.h>
+ #include <unistd.h>
+-#include <uapi/linux/i3c/i3cdev.h>
++#include "i3cdev.h"
+ #include <linux/i2c-dev.h>
+ #include <linux/i2c.h>
+ // clang-format on
