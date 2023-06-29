@@ -1,0 +1,87 @@
+From fc0736880ca8e0f92d83b7828fbdd1dbef3579af Mon Sep 17 00:00:00 2001
+From: PaulPTLiu <Liu.PaulPT@inventec.com>
+Date: Thu, 29 Jun 2023 10:44:48 +0800
+Subject: [PATCH] Set unuse gpios to PIN_NONE
+
+---
+ target/target_handler.c | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/target/target_handler.c b/target/target_handler.c
+index d6f9670..1b9f8b7 100644
+--- a/target/target_handler.c
++++ b/target/target_handler.c
+@@ -295,6 +295,7 @@ Target_Control_Handle* TargetHandler()
+              sizeof(state->gpios[BMC_TCK_MUX_SEL].name), "TCK_MUX_SEL");
+     state->gpios[BMC_TCK_MUX_SEL].direction = GPIO_DIRECTION_LOW;
+     state->gpios[BMC_TCK_MUX_SEL].edge = GPIO_EDGE_NONE;
++    state->gpios[BMC_TCK_MUX_SEL].type = PIN_NONE;
+ 
+     strcpy_s(state->gpios[BMC_PREQ_N].name,
+              sizeof(state->gpios[BMC_PREQ_N].name), "PREQ_N");
+@@ -313,6 +314,7 @@ Target_Control_Handle* TargetHandler()
+              sizeof(state->gpios[BMC_RSMRST_B].name), "RSMRST_N");
+     state->gpios[BMC_RSMRST_B].direction = GPIO_DIRECTION_IN;
+     state->gpios[BMC_RSMRST_B].edge = GPIO_EDGE_NONE;
++    state->gpios[BMC_RSMRST_B].type = PIN_NONE;
+ 
+     // BMC_CPU_PWRGD pin mapping is platform dependent. Please check
+     // At-scale-debug Software Guide to confirm the right connection
+@@ -329,31 +331,36 @@ Target_Control_Handle* TargetHandler()
+              sizeof(state->gpios[BMC_PLTRST_B].name), "PLTRST_N");
+     state->gpios[BMC_PLTRST_B].direction = GPIO_DIRECTION_IN;
+     state->gpios[BMC_PLTRST_B].edge = GPIO_EDGE_BOTH;
+-    state->gpios[BMC_PLTRST_B].active_low = true;
++    state->gpios[BMC_PLTRST_B].type = PIN_NONE;
++    //state->gpios[BMC_PLTRST_B].active_low = true;
+     state->gpios[BMC_PLTRST_B].handler = on_platform_reset_event;
+ 
+     strcpy_s(state->gpios[BMC_SYSPWROK].name,
+              sizeof(state->gpios[BMC_SYSPWROK].name), "SYSPWROK");
+     state->gpios[BMC_SYSPWROK].direction = GPIO_DIRECTION_HIGH;
+     state->gpios[BMC_SYSPWROK].edge = GPIO_EDGE_NONE;
+-    state->gpios[BMC_SYSPWROK].active_low = true;
++    state->gpios[BMC_SYSPWROK].type = PIN_NONE;
++    // state->gpios[BMC_SYSPWROK].active_low = true;
+ 
+     strcpy_s(state->gpios[BMC_PWR_DEBUG_N].name,
+              sizeof(state->gpios[BMC_PWR_DEBUG_N].name), "PWR_DEBUG_N");
+     state->gpios[BMC_PWR_DEBUG_N].direction = GPIO_DIRECTION_HIGH;
+     state->gpios[BMC_PWR_DEBUG_N].edge = GPIO_EDGE_NONE;
+-    state->gpios[BMC_PWR_DEBUG_N].active_low = true;
++    state->gpios[BMC_PWR_DEBUG_N].type = PIN_NONE;
++    // state->gpios[BMC_PWR_DEBUG_N].active_low = true;
+ 
+     strcpy_s(state->gpios[BMC_DEBUG_EN_N].name,
+              sizeof(state->gpios[BMC_DEBUG_EN_N].name), "DEBUG_EN_N");
+     state->gpios[BMC_DEBUG_EN_N].direction = GPIO_DIRECTION_HIGH;
+     state->gpios[BMC_DEBUG_EN_N].edge = GPIO_EDGE_NONE;
+-    state->gpios[BMC_DEBUG_EN_N].active_low = true;
++    state->gpios[BMC_DEBUG_EN_N].type = PIN_NONE;
++    // state->gpios[BMC_DEBUG_EN_N].active_low = true;
+ 
+     strcpy_s(state->gpios[BMC_XDP_PRST_IN].name,
+              sizeof(state->gpios[BMC_XDP_PRST_IN].name), "XDP_PRST_N");
+     state->gpios[BMC_XDP_PRST_IN].direction = GPIO_DIRECTION_IN;
+-    state->gpios[BMC_XDP_PRST_IN].active_low = true;
++    state->gpios[BMC_XDP_PRST_IN].type = PIN_NONE;
++    // state->gpios[BMC_XDP_PRST_IN].active_low = true;
+     state->gpios[BMC_XDP_PRST_IN].edge = GPIO_EDGE_BOTH;
+     state->gpios[BMC_XDP_PRST_IN].handler = on_xdp_present_event;
+ 
+@@ -380,6 +387,7 @@ Target_Control_Handle* TargetHandler()
+              sizeof(state->gpios[BMC_PWRGD2].name), "BMC_PWRGD2");
+     state->gpios[BMC_PWRGD2].direction = GPIO_DIRECTION_IN;
+     state->gpios[BMC_PWRGD2].edge = GPIO_EDGE_BOTH;
++    state->gpios[BMC_PWRGD2].type = PIN_NONE;
+     state->gpios[BMC_PWRGD2].handler = on_power2_event;
+ 
+     // BMC_PWRGD3 pin mapping is platform dependent. Please check
+@@ -389,6 +397,7 @@ Target_Control_Handle* TargetHandler()
+              sizeof(state->gpios[BMC_PWRGD3].name), "BMC_PWRGD3");
+     state->gpios[BMC_PWRGD3].direction = GPIO_DIRECTION_IN;
+     state->gpios[BMC_PWRGD3].edge = GPIO_EDGE_BOTH;
++    state->gpios[BMC_PWRGD3].type = PIN_NONE;
+     state->gpios[BMC_PWRGD3].handler = on_power3_event;
+ 
+     platform_init(state);
