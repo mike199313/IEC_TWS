@@ -7,6 +7,8 @@ SRC_URI:append:superion = " \
   file://scmbridge.json \
   file://bp0.json \
   file://bp1.json \
+  file://artesyn_csu2400ap-3-100_psu1.json \
+  file://artesyn_csu2400ap-3-100_psu2.json \
 "
 
 do_install:append:superion() {
@@ -18,6 +20,8 @@ do_install:append:superion() {
   install -m 0644 ${WORKDIR}/scmbridge.json ${D}${datadir}/${PN}/configurations
   install -m 0644 ${WORKDIR}/bp0.json ${D}${datadir}/${PN}/configurations
   install -m 0644 ${WORKDIR}/bp1.json ${D}${datadir}/${PN}/configurations
+  install -m 0644 ${WORKDIR}/artesyn_csu2400ap-3-100_psu1.json ${D}${datadir}/${PN}/configurations
+  install -m 0644 ${WORKDIR}/artesyn_csu2400ap-3-100_psu2.json ${D}${datadir}/${PN}/configurations
 }
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
