@@ -289,6 +289,10 @@
 	status = "okay";
 };
 
+&jtag1 {
+	status = "okay";
+};
+
 &i2c0 {
 	status = "okay";
 };
@@ -1082,7 +1086,7 @@
 	/*J0-J7*/   "","","","","","","","",
 	/*K0-K7*/   "","","","","","","","",
 	/*L0-L7*/   "","","","","","","","",
-	/*M0-M7*/   "","","","DBP_HOOK3_CPU_FBRK_OUT","","","","",
+	/*M0-M7*/   "","","","DBP_HOOK3_CPU_FBRK_OUT","PREQ_N","PRDY_N","","",
 	/*N0-N7*/   "","","","","","FM_SPD_SWITCH_CTRL","","",
 	/*O0-O7*/   "","","IRQ_BMC_CPU0_NMI_OUT","","IRQ_BMC_CPU1_NMI_OUT","","I3C_SPDMUX_SELECT1","",
 	/*P0-P7*/   "","","CPU1_BMCINIT","","","","","",
