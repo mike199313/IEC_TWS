@@ -1,0 +1,14 @@
+[Unit]
+Description=Phosphor Multi GPIO monitor
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+Restart=always
+ExecStart=/usr/bin/phosphor-multi-gpio-monitor --config /usr/share/phosphor-gpio-monitor/phosphor-multi-gpio-monitor.json
+SyslogIdentifier=phosphor-multi-gpio-monitor
+
+[Install]
+WantedBy=multi-user.target
