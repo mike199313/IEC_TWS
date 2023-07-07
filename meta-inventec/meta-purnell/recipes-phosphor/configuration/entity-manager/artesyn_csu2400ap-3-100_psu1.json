@@ -1,0 +1,344 @@
+{
+    "Exposes": [
+        {
+            "Address": "0x58",
+            "Bus": "26",
+            "Labels": [
+                "vin",
+                "vout1",
+                "pin",
+                "pout1",
+                "iin",
+                "iout1",
+                "temp1",
+                "temp2",
+                "temp3",
+                "fan1"
+            ],
+            "vin_Scale" : 1000,
+            "vout1_Scale" : 1000,
+            "pin_Scale" : 1000000,
+            "pin_Max" : 2650,
+            "pin_Name" : "PSU1_Input_Power",
+            "pout1_Scale" : 1000000,
+            "pout1_Max" : 2650,
+            "pout1_Name" : "PSU1_Output_Power",
+            "iin_Scale" : 1000,
+            "iin_Max" : 15.45,
+            "iout1_Scale" : 1000,
+            "iout1_Max" : 232.1,
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "PSU1_Temp1",
+            "temp2_Scale" : 1000,
+            "temp2_Max" : 95,
+            "temp2_Name" : "PSU1_Temp2",
+            "temp3_Scale" : 1000,
+            "temp3_Max" : 95,
+            "temp3_Name" : "PSU1_Temp3",
+            "fan1_Name" : "PSU1_Fan1",
+            "Name": "PSU1",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "vin",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 250
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vin",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 230
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 80
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vin",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "vout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "vout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 12
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pin",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pin",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 2600
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "pout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 2400
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "pout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "iin",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 15
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "iin",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 13
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "iin",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "iin",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0.3
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "iout1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 230
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "iout1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 224
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "iout1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "iout1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp2",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp2",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp2",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp2",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp3",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp3",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp3",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp3",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "fan1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 20200
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "fan1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 18200
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "fan1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 3600
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "fan1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 3200
+                }
+            ],
+            "Type": "pmbus"
+        }
+    ],
+    "Name": "PSU1",
+    "Probe": "xyz.openbmc_project.FruDevice({'PRODUCT_PART_NUMBER': 'CSU2400AP-3-100 '})",
+    "Type": "Product",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$PRODUCT_MANUFACTURER",
+        "Model": "$PRODUCT_PRODUCT_NAME",
+        "PartNumber": "$PRODUCT_PART_NUMBER",
+        "SerialNumber": "$PRODUCT_SERIAL_NUMBER",
+        "BuildDate": "$BOARD_MANUFACTURE_DATE"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.Revision":{
+        "Version": "$PRODUCT_VERSION"
+    },
+        "xyz.openbmc_project.Inventory.Decorator.FruDevice":{
+        "Bus":26,
+        "Address":80
+    }
+
+}

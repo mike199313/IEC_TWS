@@ -1,0 +1,144 @@
+{
+    "vgpios": [
+        {
+            "Name": "FM_BIOS_POST_CMPLT_N",
+            "Index": 0,
+            "Direction": "in"
+        },
+        {
+            "Name": "FM_PASSWORD_CLEAR_N",
+            "Index": 4,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_BOARD_SKU_ID0",
+            "Index": 5,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_BOARD_SKU_ID1",
+            "Index": 6,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_BOARD_SKU_ID2",
+            "Index": 7,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_BOARD_SKU_ID3",
+            "Index": 8,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_BOARD_REV_ID0",
+            "Index": 9,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_BOARD_REV_ID1",
+            "Index": 10,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_PCIE_FV_BIF_EN",
+            "Index": 11,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_CPU0_INTR_PRSNT_N",
+            "Index": 12,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_CPU1_INTR_PRSNT_N",
+            "Index": 13,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_CPU0_INTR_ID",
+            "Index": 14,
+            "Direction": "out"
+        },
+        {
+            "Name": "FM_CPU1_INTR_ID",
+            "Index": 15,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER1_ID0",
+            "Index": 16,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER1_ID1",
+            "Index": 17,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER1_ID2",
+            "Index": 18,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER2_ID0",
+            "Index": 19,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER2_ID1",
+            "Index": 20,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER2_ID2",
+            "Index": 21,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER3_ID0",
+            "Index": 22,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER3_ID1",
+            "Index": 23,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER3_ID2",
+            "Index": 24,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER4_ID0",
+            "Index": 25,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER4_ID1",
+            "Index": 26,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER4_ID2",
+            "Index": 27,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER5_ID0",
+            "Index": 28,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER5_ID1",
+            "Index": 29,
+            "Direction": "out"
+        },
+        {
+            "Name": "RISER5_ID2",
+            "Index": 30,
+            "Direction": "out"
+        }
+    ]
+}

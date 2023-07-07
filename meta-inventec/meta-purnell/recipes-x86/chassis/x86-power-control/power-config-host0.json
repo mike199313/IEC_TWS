@@ -1,0 +1,28 @@
+{
+  "gpio_configs":[
+    {
+      "Name" : "PowerOk",
+      "LineName" : "PGD_SYS_PWROK",
+      "Type" : "GPIO",
+      "Polarity" : "ActiveLow"
+    },
+    {
+      "Name" : "PowerOut",
+      "LineName" : "BMC_PWR_BTN_OUT",
+      "Type" : "GPIO",
+      "Polarity" : "ActiveLow"
+    },
+    {
+      "Name" : "ResetOut",
+      "LineName" : "RST_BTN_BMC_OUT",
+      "Type" : "GPIO",
+      "Polarity" : "ActiveLow"
+    }
+  ],
+  "timing_configs":{
+      "PowerPulseMs": 6000,
+      "ForceOffPulseMs": 15000,
+      "ResetPulseMs": 6000,
+      "PowerCycleMs":6000
+   }
+}

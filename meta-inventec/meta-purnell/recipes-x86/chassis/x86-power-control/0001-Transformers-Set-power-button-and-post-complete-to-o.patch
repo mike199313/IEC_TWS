@@ -1,0 +1,109 @@
+From 2d040da618431fe28b783d13985a28c75b27f84c Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Fri, 10 Jun 2022 15:23:28 +0800
+Subject: [PATCH 1/2] Transformers - Set power button and post complete to
+ optional
+
+Symptom/Reason:
+    There is no power button and post complete design on Transformers.
+    This would cause x86-power-control cannot init.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    Check in the config files, if not define power button and post complete, do not return.
+
+Entry Test:
+Jan 01 00:05:47 transformers systemd[1]: Starting Intel Power Control...
+Jan 01 00:05:47 transformers power-control[894]: Start Chassis power control service...
+Jan 01 00:05:47 transformers systemd[1]: Started Intel Power Control.
+Jan 01 00:05:47 transformers power-control[894]: SIO control GPIOs not defined, disable SIO support.
+Jan 01 00:05:47 transformers power-control[894]: powerButton name not configured from json config file
+Jan 01 00:05:47 transformers power-control[894]: ResetButton not defined...
+Jan 01 00:05:47 transformers power-control[894]: postComplete name not configured from json config file
+Jan 01 00:05:47 transformers power-control[894]: NMI_OUT set to 0
+Jan 01 00:05:47 transformers power-control[894]: POWER_OUT set to 1
+Jan 01 00:05:47 transformers power-control[894]: RESET_OUT set to 1
+Jan 01 00:05:47 transformers power-control[894]:  NMI Source Property Monitor
+Jan 01 00:05:47 transformers power-control[894]: Host0: Moving to "Off" state
+Jan 01 00:05:47 transformers power-control[894]: Initializing power state. RestartCause set to xyz.openbmc_project.State.Host.RestartCause.Unknown
+---
+ src/power_control.cpp | 31 +++++++++++++++++++++++++++++--
+ 1 file changed, 29 insertions(+), 2 deletions(-)
+
+diff --git a/src/power_control.cpp b/src/power_control.cpp
+index d7c74b2..e25cc08 100644
+--- a/src/power_control.cpp
++++ b/src/power_control.cpp
+@@ -1657,8 +1657,17 @@ static void currentHostStateMonitor()
+                 // 'OperatingSystemState' to stay at 'Standby', even though
+                 // system is OFF. Set 'OperatingSystemState' to 'Inactive'
+                 // if HostState is trurned to OFF.
+-                setOperatingSystemState(OperatingSystemStateStage::Inactive);
+ 
++                /*
++                    Inventec - Set post complete to optional.
++                    If the post complete not support, the OperatingSystemState would always 'Standby'
++                */
++                if ((postCompleteConfig.type == ConfigType::GPIO) ||
++                    (postCompleteConfig.type == ConfigType::DBUS))
++                {
++                    osIface->set_property("OperatingSystemState",
++                                          std::string("Inactive"));
++                }
+                 // Set the restart cause set for this restart
+                 setRestartCause();
+ #ifdef USE_ACBOOT
+@@ -2830,6 +2839,12 @@ int main(int argc, char* argv[])
+             power_control::dbusGPIOMatcher(powerButtonConfig,
+                                            powerButtonHandler);
+     }
++    else
++    {
++            /*
++                Inventec - set power button to optional.
++            */
++    }
+ 
+     // Request RESET_BUTTON GPIO events
+     if (resetButtonConfig.type == ConfigType::GPIO)
+@@ -2902,9 +2917,14 @@ int main(int argc, char* argv[])
+     }
+     else
+     {
++        /*
++            Inventec - Set post complete to optional.
++        */
++        #if 0
+         lg2::error(
+             "postComplete name should be configured from json config file");
+         return -1;
++        #endif
+     }
+ 
+     // initialize NMI_OUT GPIO.
+@@ -3488,12 +3508,19 @@ int main(int argc, char* argv[])
+                       ? OperatingSystemStateStage::Inactive
+                       : OperatingSystemStateStage::Standby;
+     }
+-    else
++    else if (postCompleteConfig.type == ConfigType::DBUS)
+     {
+         osState = getProperty(postCompleteConfig) > 0
+                       ? OperatingSystemStateStage::Inactive
+                       : OperatingSystemStateStage::Standby;
+     }
++    else
++    {
++        /*
++            Inventec - Set post complete to optional
++        */
++        osState = OperatingSystemStateStage::Standby;
++    }
+ 
+     osIface->register_property(
+         "OperatingSystemState",
+-- 
+2.33.0
+

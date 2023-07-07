@@ -1,0 +1,109 @@
+{
+    "Exposes": [
+        {
+            "Address": "0x51",
+            "Bus": "16",
+            "Name": "BP0_24C64",
+            "Type": "EEPROM_24C64"
+        },
+        {
+            "Address": "0x40",
+            "Bus": "39",
+            "Labels": [
+                "curr1",
+                "in0",
+                "in1",
+                "power1"
+            ],
+            "curr1_Name" : "BP0_Input_Current",
+            "curr1_Scale" : 1000,
+            "curr1_Max" : 5,
+            "in0_Name" : "BP0_Input_Voltage0",
+            "in0_Scale" : 1000,
+            "in0_Max" : 26,
+            "in0_Min" : 0,
+            "in1_Name" : "BP0_Input_Voltage1",
+            "in1_Scale" : 1000,
+            "in1_Max" : 26,
+            "in1_Min" : 0,
+            "power1_Name" : "BP0_Input_Power",
+            "power1_Scale" : 1000000,
+            "power1_Max" : 130,
+            "Name": "BP0_PWR_MON",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "curr1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 4
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "curr1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 3
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "in0",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 25
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "in0",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 23
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "in1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 25
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "in1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 23
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA219"
+        }
+    ],
+    "Name": "bp0",
+    "Probe": "xyz.openbmc_project.FruDevice({'BUS': 16, 'ADDRESS': 81})",
+    "Type": "Board",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "Model": "$BOARD_PRODUCT_NAME",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER",
+        "BuildDate": "$BOARD_MANUFACTURE_DATE"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.FruDevice":{
+        "Bus":16,
+        "Address":81
+    }
+}
+
