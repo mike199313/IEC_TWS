@@ -17,5 +17,5 @@ BBLAYERS ?= " \
   ##OEROOT##/meta-aspeed \
   ##OEROOT##/meta-intel-openbmc \
   ##OEROOT##/meta-inventec \
-  ##OEROOT##/meta-inventec/meta-superion \
+  ##OEROOT##/meta-inventec/meta-purnell \
 "

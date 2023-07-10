@@ -14,7 +14,7 @@
 #
 # Machine Selection
 #
-MACHINE ??= "superion"
+MACHINE ??= "purnell"
 
 #
 # Where to place downloads
