@@ -6,7 +6,7 @@ FILESEXTRAPATHS:append:= "${THISDIR}/u-boot-aspeed-sdk:"
 SRC_URI:append = " file://fw_env.config \
                    file://superion-ast2600.cfg \
                    file://superion-ast2600_defconfig \
-                   file://ast2600-superion.dts \
+                   file://ast2600-purnell.dts \
                  "
 
 do_install:append () {
@@ -16,11 +16,11 @@ do_install:append () {
 }
 
 do_copyfile () {
-    if [ -e ${WORKDIR}/ast2600-superion.dts ] ; then
-        cp -v ${WORKDIR}/ast2600-superion.dts ${S}/arch/arm/dts/
+    if [ -e ${WORKDIR}/ast2600-purnell.dts ] ; then
+        cp -v ${WORKDIR}/ast2600-purnell.dts ${S}/arch/arm/dts/
     else
         # if use devtool modify, then the append files were stored under oe-local-files
-        cp -v ${S}/oe-local-files/ast2600-superion.dts ${S}/arch/arm/dts/
+        cp -v ${S}/oe-local-files/ast2600-purnell.dts ${S}/arch/arm/dts/
     fi
 
     if [ -e ${WORKDIR}/superion-ast2600_defconfig  ] ; then

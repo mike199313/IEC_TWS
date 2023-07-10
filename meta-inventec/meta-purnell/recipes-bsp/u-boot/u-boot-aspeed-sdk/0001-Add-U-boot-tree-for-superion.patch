@@ -5,7 +5,7 @@ Subject: [PATCH 1/1] Add-U-boot-tree-for-superion
 
 ---
  arch/arm/dts/Makefile                |   3 +-
- arch/arm/dts/ast2600-superion.dts    | 242 +++++++++++++++++++++++++++
+ arch/arm/dts/ast2600-purnell.dts     | 242 +++++++++++++++++++++++++++
  configs/superion-ast2600_defconfig   |  83 +++++++++
  include/configs/IECplatformConfigs.h |  12 ++
  4 files changed, 339 insertions(+), 1 deletion(-)
@@ -23,7 +23,7 @@ index 97580df59b..94d724c12c 100755
  	ast2600-intel.dtb \
 -	ast2600-tacoma.dtb
 +	ast2600-tacoma.dtb \
-+	ast2600-superion.dtb
++	ast2600-purnell.dtb
  
  dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
  
@@ -31,7 +31,7 @@ diff --git a/arch/arm/dts/ast2600-superion.dts b/arch/arm/dts/ast2600-superion.d
 new file mode 100644
 index 0000000000..1ada5fd432
 --- /dev/null
-+++ b/arch/arm/dts/ast2600-superion.dts
++++ b/arch/arm/dts/ast2600-purnell.dts
 @@ -0,0 +1,242 @@
 +/dts-v1/;
 +
@@ -291,7 +291,7 @@ index 0000000000..3fc0a0faa0
 +CONFIG_ENV_OFFSET=0xE0000
 +CONFIG_ARMV7_BOOT_SEC_DEFAULT=y
 +CONFIG_CMD_EEPROM=y
-+CONFIG_DEFAULT_DEVICE_TREE="ast2600-superion"
++CONFIG_DEFAULT_DEVICE_TREE="ast2600-purnell"
 +CONFIG_NR_DRAM_BANKS=1
 +CONFIG_FIT=y
 +CONFIG_USE_BOOTARGS=y

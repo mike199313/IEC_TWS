@@ -7,17 +7,17 @@ SRCREV = "7297634df83bfe1b3bdadb82175d36887bdb34c9"
 
 SRC_URI:append = " file://superion-ast2600.cfg \
                    file://superion-ast2600_defconfig \
-                   file://ast2600-superion.dts \
+                   file://ast2600-purnell.dts \
                    file://0001-Add-U-boot-tree-for-superion.patch \
                    file://0002-superion-machine-init.patch \
                  "
 
 do_copyfile () {
-    if [ -e ${WORKDIR}/ast2600-superion.dts ] ; then
-        cp -v ${WORKDIR}/ast2600-superion.dts ${S}/arch/arm/dts/
+    if [ -e ${WORKDIR}/ast2600-purnell.dts ] ; then
+        cp -v ${WORKDIR}/ast2600-purnell.dts ${S}/arch/arm/dts/
     else
         # if use devtool modify, then the append files were stored under oe-local-files
-        cp -v ${S}/oe-local-files/ast2600-superion.dts ${S}/arch/arm/dts/
+        cp -v ${S}/oe-local-files/ast2600-purnell.dts ${S}/arch/arm/dts/
     fi
 
     if [ -e ${WORKDIR}/superion-ast2600_defconfig  ] ; then
