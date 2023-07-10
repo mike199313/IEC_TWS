@@ -9,8 +9,8 @@
 #include <dt-bindings/gpio/aspeed-gpio.h>
 
 / {
-	model = "SUPERION BMC";
-	compatible = "inventec,superion-bmc", "aspeed,ast2600";
+	model = "PURNELL BMC";
+	compatible = "inventec,purnell-bmc", "aspeed,ast2600";
 
 	aliases {
 		serial4 = &uart5;
