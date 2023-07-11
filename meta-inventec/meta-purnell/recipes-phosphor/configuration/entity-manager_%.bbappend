@@ -1,6 +1,6 @@
-FILESEXTRAPATHS:prepend:superion := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRC_URI:append:superion = " \
+SRC_URI:append = " \
   file://motherboard.json \
   file://blacklist.json \
   file://runbmc.json \
@@ -11,7 +11,7 @@ SRC_URI:append:superion = " \
   file://artesyn_csu2400ap-3-100_psu2.json \
 "
 
-do_install:append:superion() {
+do_install:append() {
   install -d 0755 ${D}${datadir}/${PN}/configurations/
   rm -v -f ${D}${datadir}/${PN}/configurations/*.json
   install -m 0644 ${WORKDIR}/motherboard.json ${D}${datadir}/${PN}/configurations
@@ -23,7 +23,5 @@ do_install:append:superion() {
   install -m 0644 ${WORKDIR}/artesyn_csu2400ap-3-100_psu1.json ${D}${datadir}/${PN}/configurations
   install -m 0644 ${WORKDIR}/artesyn_csu2400ap-3-100_psu2.json ${D}${datadir}/${PN}/configurations
 }
-
-FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 DISTRO_FEATURES += "ipmi-fru"
