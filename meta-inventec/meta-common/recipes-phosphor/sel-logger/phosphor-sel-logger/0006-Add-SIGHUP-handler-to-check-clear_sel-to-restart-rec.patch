@@ -1,0 +1,130 @@
+From bd3619aec4cf464e3f0c37ae570c778f71d45982 Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Wed, 9 Mar 2022 06:28:31 +0000
+Subject: [PATCH 6/7] Add SIGHUP handler to check clear_sel to restart record
+ index
+
+Add SIGHUP handler to check clear_sel to restart record index
+- For 1st event maybe log on IPMI handle of clear log so to restart it
+---
+ include/sel_logger.hpp |  1 +
+ src/sel_logger.cpp     | 56 +++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 54 insertions(+), 3 deletions(-)
+
+diff --git a/include/sel_logger.hpp b/include/sel_logger.hpp
+index 313e4e2..27601de 100644
+--- a/include/sel_logger.hpp
++++ b/include/sel_logger.hpp
+@@ -43,6 +43,7 @@ static constexpr uint8_t selEvtDataUnspecified = 0xFF;
+ unsigned int recordIndex = 0;
+ static const std::filesystem::path selLogDir = "/var/lib/sel_log";
+ static const std::string selLogFilename = "ipmi_sel";
++static const std::string selClearLogFile = "/var/lib/sel_log/clear_sel";
+ 
+ template <typename... T>
+ static uint16_t
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index 0463074..535a529 100644
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -195,6 +195,17 @@ void clearSelLogFiles()
+         std::cerr << e.what() << "\n";
+     }
+ }
++
++static bool getClearSelLogFiles()
++{
++    std::ifstream logStream(selClearLogFile);
++    return logStream.is_open();
++}
++
++static bool delClearSelLogFiles()
++{
++    return std::filesystem::remove(selClearLogFile);
++}
+ #endif
+ 
+ static unsigned int getNewRecordId(void)
+@@ -204,16 +215,32 @@ static unsigned int getNewRecordId(void)
+ 
+     // If the log has been cleared, also clear the current ID
+     std::vector<std::filesystem::path> selLogFiles;
+-    if (!getSELLogFiles(selLogFiles))
++    if (getClearSelLogFiles())
+     {
+-        recordId = selInvalidRecID;
++        delClearSelLogFiles();
++        recordId = 1;
+     }
+-#endif
++    else
++    {
++        // If the log has been cleared, also clear the current ID
++        std::vector<std::filesystem::path> selLogFiles;
++        if (!getSELLogFiles(selLogFiles))
++        {
++            recordId = selInvalidRecID;
++        }
+ 
++        if (++recordId >= selInvalidRecID)
++        {
++            recordId = 1;
++        }
++    }
++#else
+     if (++recordId >= selInvalidRecID)
+     {
+         recordId = 1;
+     }
++#endif
++
+     recordIndex = recordId;
+     return recordId;
+ }
+@@ -330,6 +357,19 @@ static void selRedfishHooks([[maybe_unused]] const std::string& message,
+                     "REDFISH_MESSAGE_ARGS=%s", messageArgsString.c_str(), NULL);
+ }
+ 
++#ifdef SEL_LOGGER_CLEARS_SEL
++static void hupHandle(int number)
++{
++    unsigned int next = getNewRecordId();
++    if (getClearSelLogFiles())
++    {
++        delClearSelLogFiles();
++    }
++    recordId = 0;
++    std::cerr << "sel-logger hup handle record: " << next << ", sig: " << number << "\n";
++}
++#endif
++
+ int main(int, char*[])
+ {
+     // setup connection to dbus
+@@ -337,6 +377,13 @@ int main(int, char*[])
+     auto conn = std::make_shared<sdbusplus::asio::connection>(io);
+     std::variant<bool> sel_value;
+ 
++#ifdef SEL_LOGGER_CLEARS_SEL
++    if (getClearSelLogFiles())
++    {
++        delClearSelLogFiles();
++    }
++#endif
++
+     // IPMI SEL Object
+     conn->request_name(ipmiSelObject);
+     auto server = sdbusplus::asio::object_server(conn);
+@@ -430,6 +477,9 @@ int main(int, char*[])
+ 
+ #ifdef SEL_LOGGER_MONITOR_THRESHOLD_ALARM_EVENTS
+     startThresholdAlarmMonitor(conn, ifaceAddSel);
++#endif
++#ifdef SEL_LOGGER_CLEARS_SEL
++    signal(SIGHUP, hupHandle);
+ #endif
+     io.run();
+ 
+-- 
+2.33.0
+

@@ -1,0 +1,23 @@
+[
+   {
+       "Name": "TEMP",
+       "LineName": "TEMP",
+       "EventMon": "BOTH",
+       "Continue": true,
+       "Target": {
+	       "FALLING":["gpio-event-handler@TEMP_ASSERTED.service"],
+	       "RISING": ["gpio-event-handler@TEMP_DEASSERTED.service"]
+       }
+   },
+   {
+       "Name": "CPU",
+       "LineName": "CPU",
+       "EventMon": "BOTH",
+       "Continue": true,
+       "Target": {
+               "FALLING":["gpio-event-handler@CPU_ASSERTED.service"],
+               "RISING": ["gpio-event-handler@CPU_DEASSERTED.service"]
+       }
+   }
+]
+

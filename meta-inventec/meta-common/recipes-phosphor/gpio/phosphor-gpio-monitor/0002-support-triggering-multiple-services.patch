@@ -1,0 +1,85 @@
+From 7c9f4178328a8c65aca8eca4b1383838085b052e Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Mon, 7 Mar 2022 12:13:58 +0000
+Subject: [PATCH] support triggering multiple services
+
+- support triggering multiple services
+---
+ gpioMon.cpp     | 17 +++++++++--------
+ gpioMon.hpp     |  4 ++--
+ gpioMonMain.cpp |  2 +-
+ 3 files changed, 12 insertions(+), 11 deletions(-)
+
+diff --git a/gpioMon.cpp b/gpioMon.cpp
+index eb0bd7b..5a621a6 100644
+--- a/gpioMon.cpp
++++ b/gpioMon.cpp
+@@ -69,7 +69,7 @@ void GpioMonitor::gpioEventHandler()
+     log<level::INFO>(logMessage.c_str());
+ 
+     /* Execute the target if it is defined. */
+-    std::string targetsToStart;
++    std::vector<std::string> targetsToStart;
+     if (gpioLineEvent.event_type == GPIOD_LINE_EVENT_RISING_EDGE)
+     {
+        targetsToStart = target["RISING"];
+@@ -82,13 +82,14 @@ void GpioMonitor::gpioEventHandler()
+     //if (!target.empty())
+     if (!targetsToStart.empty())
+     {
+-        auto bus = sdbusplus::bus::new_default();
+-        auto method = bus.new_method_call(SYSTEMD_SERVICE, SYSTEMD_ROOT,
+-                                          SYSTEMD_INTERFACE, "StartUnit");
+-        method.append(targetsToStart);
+-        method.append("replace");
+-
+-        bus.call_noreply(method);
++        for(unsigned int i = 0; i < targetsToStart.size(); i++){
++            auto bus = sdbusplus::bus::new_default();
++            auto method = bus.new_method_call(SYSTEMD_SERVICE, SYSTEMD_ROOT,
++                                              SYSTEMD_INTERFACE, "StartUnit");
++            method.append(targetsToStart.at(i));
++            method.append("replace");
++            bus.call_noreply(method);
++        }
+     }
+ 
+     /* if not required to continue monitoring then return */
+diff --git a/gpioMon.hpp b/gpioMon.hpp
+index 4c3f8e0..be4f763 100644
+--- a/gpioMon.hpp
++++ b/gpioMon.hpp
+@@ -37,7 +37,7 @@ class GpioMonitor
+      *  @param[in] continueRun - Whether to continue after event occur
+      */
+     GpioMonitor(gpiod_line* line, gpiod_line_request_config& config,
+-                boost::asio::io_service& io, std::map<std::string, std::string> target,
++                boost::asio::io_service& io, std::map<std::string, std::vector<std::string>> target,
+                 const std::string& lineMsg, bool continueRun) :
+         gpioLine(line),
+         gpioConfig(config), gpioEventDescriptor(io), target(target),
+@@ -58,7 +58,7 @@ class GpioMonitor
+ 
+     /** @brief Systemd unit to be started when the condition is met */
+     //const std::string target;
+-    std::map<std::string, std::string> target;
++    std::map<std::string, std::vector<std::string>> target;
+ 
+     /** @brief GPIO line name message */
+     std::string gpioLineMsg;
+diff --git a/gpioMonMain.cpp b/gpioMonMain.cpp
+index 51a6d02..f8d7800 100644
+--- a/gpioMonMain.cpp
++++ b/gpioMonMain.cpp
+@@ -103,7 +103,7 @@ int main(int argc, char** argv)
+ 
+         /* target to start */
+         //std::string target;
+-        std::map<std::string, std::string> target;
++        std::map<std::string, std::vector<std::string>> target;
+ 
+         if (obj.find("LineName") == obj.end())
+         {
+-- 
+2.17.1
+

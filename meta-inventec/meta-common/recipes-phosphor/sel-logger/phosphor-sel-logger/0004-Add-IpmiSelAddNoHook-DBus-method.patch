@@ -1,0 +1,90 @@
+From 68928a8065f82436bb5d05ecd8bbf4e70e363e63 Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Fri, 16 Sep 2022 02:45:40 +0000
+Subject: [PATCH 4/7] Add IpmiSelAddNoHook DBus method
+
+Symptom/Reason:
+- Add IpmiSelAddNoHook DBus method
+
+Root Cause:
+- N/A
+
+Solution/Change:
+- [phosphosr-systemd-policy]
+  - Re-direct journal log to memory
+- [phosphor-time-manager]
+  - Remove redundant log print
+- [phosphosr-sel-logger]
+  - Add wait on interface patch for eth1
+- [intel-ipmi-oem]
+  - Call IpmiSelAddNoHook instead of IpmiSelAddOem for SEL entry add command
+
+Entry Test:
+- Add SEL entry
+  - ipmitool event 1
+- Check SEL log
+  - ipmitool sel list
+- Check Redfish log
+  - cat /var/log/redfish
+---
+ src/sel_logger.cpp | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index 07ab81b..30733aa 100644
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -307,6 +307,28 @@ static uint16_t selAddOemRecord([[maybe_unused]] const std::string& message,
+ #endif
+ }
+ 
++static void selRedfishHooks([[maybe_unused]] const std::string& message,
++                                const std::vector<uint8_t>& selData,
++                                const std::string& path = "",
++                                const bool& assert = false, const uint16_t& genId = 0)
++{
++    static const std::string openBMCMessageRegistryVersion("0.1");
++    std::string messageID = "OpenBMC." + openBMCMessageRegistryVersion + ".SELEntryAdded";
++    std::string messageArgsString;
++    toHexStr(selData, messageArgsString);
++
++    if (genId > 0)
++    {
++        std::stringstream stream;
++        stream << messageArgsString << "," << std::hex << genId << "," << path << "," << assert;
++        messageArgsString = stream.str();
++    }
++
++    sd_journal_send("MESSAGE=%s", message.c_str(),
++                    "REDFISH_MESSAGE_ID=%s", messageID.c_str(),
++                    "REDFISH_MESSAGE_ARGS=%s", messageArgsString.c_str(), NULL);
++}
++
+ int main(int, char*[])
+ {
+     // setup connection to dbus
+@@ -327,11 +349,21 @@ int main(int, char*[])
+         "IpmiSelAdd", [](const std::string& message, const std::string& path,
+                          const std::vector<uint8_t>& selData,
+                          const bool& assert, const uint16_t& genId) {
++            selRedfishHooks(message, selData, path, assert, genId);
+             return selAddSystemRecord(message, path, selData, assert, genId);
+         });
+     // Add a new OEM SEL entry
+     ifaceAddSel->register_method(
+         "IpmiSelAddOem",
++        [](const std::string& message, const std::vector<uint8_t>& selData,
++           const uint8_t& recordType) {
++            selRedfishHooks(message, selData);
++            return selAddOemRecord(message, selData, recordType);
++        });
++
++    // Add a new OEM SEL entry without Redfish hook
++    ifaceAddSel->register_method(
++        "IpmiSelAddNoHook",
+         [](const std::string& message, const std::vector<uint8_t>& selData,
+            const uint8_t& recordType) {
+             return selAddOemRecord(message, selData, recordType);
+-- 
+2.33.0
+

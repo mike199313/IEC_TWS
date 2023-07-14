@@ -1,0 +1,241 @@
+From d069f1dfc7fca3801c0165f4fec710de7e1518b8 Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Fri, 27 May 2022 07:45:11 +0000
+Subject: [PATCH 3/7] Implement PEF features
+
+Symptom/Reason:
+- Implement PEF features
+
+Root Cause:
+- N/A
+
+Solution/Change:
+- [phosphor-dbus-interfaces]
+  - Add SignalEvent signal in IPMI interface
+- [phosphor-sel-logger]
+  - Add signal trigger code
+- [intel-ipmi-oem]
+  - Implement PEF manager
+  - Implement PEF IPMI command handler
+
+Entry Test:
+- Get PEF capabilities
+  - ipmitool raw 0x04 0x10
+---
+ include/sel_logger.hpp                    |  1 +
+ include/threshold_alarm_event_monitor.hpp | 26 +++++++++++++++++++----
+ include/threshold_event_monitor.hpp       | 23 +++++++++++++++++---
+ include/watchdog_event_monitor.hpp        | 26 +++++++++++++++++++----
+ src/sel_logger.cpp                        |  7 +++---
+ 5 files changed, 69 insertions(+), 14 deletions(-)
+
+diff --git a/include/sel_logger.hpp b/include/sel_logger.hpp
+index 180f671..adf4b18 100644
+--- a/include/sel_logger.hpp
++++ b/include/sel_logger.hpp
+@@ -21,6 +21,7 @@ static constexpr char const* ipmiSelObject = "xyz.openbmc_project.Logging.IPMI";
+ static constexpr char const* ipmiSelPath = "/xyz/openbmc_project/Logging/IPMI";
+ static constexpr char const* ipmiSelAddInterface =
+     "xyz.openbmc_project.Logging.IPMI";
++static constexpr char const* PEFSignal = "SignalEvent";
+ 
+ static constexpr char const* SettingService = "xyz.openbmc_project.Settings";
+ static constexpr char const* GlobalEnableObj = "/xyz/openbmc_project/ipmi/global_enables";
+diff --git a/include/threshold_alarm_event_monitor.hpp b/include/threshold_alarm_event_monitor.hpp
+index 21cd29d..153f96e 100644
+--- a/include/threshold_alarm_event_monitor.hpp
++++ b/include/threshold_alarm_event_monitor.hpp
+@@ -45,6 +45,7 @@ static boost::container::flat_map<std::string, sdbusMatch> matchers = {
+ 
+ void generateEvent(std::string signalName,
+                    std::shared_ptr<sdbusplus::asio::connection> conn,
++                   std::shared_ptr<sdbusplus::asio::dbus_interface> ifaceAddSel,
+                    sdbusplus::message::message& msg)
+ {
+     double assertValue;
+@@ -239,23 +240,40 @@ void generateEvent(std::string signalName,
+                            ". Reading=" + std::to_string(assertValue) +
+                            " Threshold=" + std::to_string(thresholdVal) + ".");
+ 
+-    selAddSystemRecord(journalMsg, std::string(msg.get_path()), eventData,
++    uint16_t recordId = selAddSystemRecord(journalMsg, std::string(msg.get_path()), eventData,
+                        assert, selBMCGenID, "REDFISH_MESSAGE_ID=%s",
+                        redfishMessageID.c_str(),
+                        "REDFISH_MESSAGE_ARGS=%.*s,%f,%f", sensorName.length(),
+                        sensorName.data(), assertValue, thresholdVal);
++
++    // Send event signal for PEF processing
++    try
++    {
++        // msg.get_path() is interface->get_object_path()
++        sdbusplus::message::message sig_msg =
++            ifaceAddSel->new_signal(PEFSignal);
++
++        sig_msg.append(recordId, std::string(msg.get_path()), eventData, journalMsg);
++        sig_msg.signal_send();
++    }
++    catch (const sdbusplus::exception::exception& e)
++    {
++        std::cerr
++            << "Failed to send SignalEvent signal with assertValue\n";
++    }
+ }
+ 
+ inline static void startThresholdAlarmMonitor(
+-    std::shared_ptr<sdbusplus::asio::connection> conn)
++    std::shared_ptr<sdbusplus::asio::connection> conn,
++    std::shared_ptr<sdbusplus::asio::dbus_interface> ifaceAddSel)
+ {
+     for (auto iter = matchers.begin(); iter != matchers.end(); iter++)
+     {
+         iter->second = std::make_shared<sdbusplus::bus::match::match>(
+             static_cast<sdbusplus::bus::bus&>(*conn),
+             "type='signal',member=" + iter->first,
+-            [conn, iter](sdbusplus::message::message& msg) {
+-                generateEvent(iter->first, conn, msg);
++            [conn, ifaceAddSel, iter](sdbusplus::message::message& msg) {
++                generateEvent(iter->first, conn, ifaceAddSel, msg);
+             });
+     }
+ }
+diff --git a/include/threshold_event_monitor.hpp b/include/threshold_event_monitor.hpp
+index cd5397a..2b601b8 100644
+--- a/include/threshold_event_monitor.hpp
++++ b/include/threshold_event_monitor.hpp
+@@ -35,9 +35,10 @@ static constexpr const uint8_t thresholdEventDataTriggerReadingByte3 = (1 << 4);
+ static const std::string openBMCMessageRegistryVersion("0.1");
+ 
+ inline static sdbusplus::bus::match::match startThresholdAssertMonitor(
+-    std::shared_ptr<sdbusplus::asio::connection> conn)
++    std::shared_ptr<sdbusplus::asio::connection> conn,
++    std::shared_ptr<sdbusplus::asio::dbus_interface> ifaceAddSel)
+ {
+-    auto thresholdAssertMatcherCallback = [conn](sdbusplus::message::message&
++    auto thresholdAssertMatcherCallback = [conn, ifaceAddSel](sdbusplus::message::message&
+                                                      msg) {
+         // This static set of std::pair<path, event> tracks asserted events to
+         // avoid duplicate logs or deasserts logged without an assert
+@@ -269,11 +270,27 @@ inline static sdbusplus::bus::match::match startThresholdAssertMonitor(
+                                " Threshold=" + std::to_string(thresholdVal) +
+                                ".");
+ 
+-        selAddSystemRecord(
++        uint16_t recordId = selAddSystemRecord(
+             journalMsg, std::string(msg.get_path()), eventData, assert,
+             selBMCGenID, "REDFISH_MESSAGE_ID=%s", redfishMessageID.c_str(),
+             "REDFISH_MESSAGE_ARGS=%.*s,%f,%f", sensorName.length(),
+             sensorName.data(), assertValue, thresholdVal);
++
++        // Send event signal for PEF processing
++        try
++        {
++            // msg.get_path() is interface->get_object_path()
++            sdbusplus::message::message sig_msg =
++                ifaceAddSel->new_signal(PEFSignal);
++
++            sig_msg.append(recordId, std::string(msg.get_path()), eventData, journalMsg);
++            sig_msg.signal_send();
++        }
++        catch (const sdbusplus::exception::exception& e)
++        {
++            std::cerr
++                << "Failed to send SignalEvent signal with assertValue\n";
++        }
+     };
+     sdbusplus::bus::match::match thresholdAssertMatcher(
+         static_cast<sdbusplus::bus::bus&>(*conn),
+diff --git a/include/watchdog_event_monitor.hpp b/include/watchdog_event_monitor.hpp
+index 84b8cb7..0bc00b3 100644
+--- a/include/watchdog_event_monitor.hpp
++++ b/include/watchdog_event_monitor.hpp
+@@ -55,6 +55,7 @@ static constexpr int interruptTypeBits = 4;
+ 
+ inline static void sendWatchdogEventLog(
+     std::shared_ptr<sdbusplus::asio::connection> conn,
++    std::shared_ptr<sdbusplus::asio::dbus_interface> ifaceAddSel,
+     sdbusplus::message::message& msg, bool assert,
+     std::optional<std::string_view> expireAction = std::nullopt)
+ {
+@@ -227,18 +228,35 @@ inline static void sendWatchdogEventLog(
+ 
+         std::string redfishMessageID = "OpenBMC.0.1.IPMIWatchdog";
+ 
+-        selAddSystemRecord(journalMsg, std::string(msg.get_path()), eventData,
++        uint16_t recordId = selAddSystemRecord(journalMsg, std::string(msg.get_path()), eventData,
+                            assert, selBMCGenID, "REDFISH_MESSAGE_ID=%s",
+                            redfishMessageID.c_str(), "REDFISH_MESSAGE_ARGS=%s",
+                            eventMessageArgs.c_str(), NULL);
++
++        // Send event signal for PEF processing
++        try
++        {
++            // msg.get_path() is interface->get_object_path()
++            sdbusplus::message::message sig_msg =
++                ifaceAddSel->new_signal(PEFSignal);
++
++            sig_msg.append(recordId, std::string(msg.get_path()), eventData, journalMsg);
++            sig_msg.signal_send();
++        }
++        catch (const sdbusplus::exception::exception& e)
++        {
++            std::cerr
++                << "Failed to send SignalEvent signal with assertValue\n";
++        }
+     }
+ }
+ 
+ inline static sdbusplus::bus::match::match
+-    startWatchdogEventMonitor(std::shared_ptr<sdbusplus::asio::connection> conn)
++    startWatchdogEventMonitor(std::shared_ptr<sdbusplus::asio::connection> conn,
++                                std::shared_ptr<sdbusplus::asio::dbus_interface> ifaceAddSel)
+ {
+     auto watchdogEventMatcherCallback =
+-        [conn](sdbusplus::message::message& msg) {
++        [conn, ifaceAddSel](sdbusplus::message::message& msg) {
+             std::string expiredAction;
+             msg.read(expiredAction);
+ 
+@@ -246,7 +264,7 @@ inline static sdbusplus::bus::match::match
+             action.remove_prefix(
+                 std::min(action.find_last_of(".") + 1, action.size()));
+ 
+-            sendWatchdogEventLog(conn, msg, true, action);
++            sendWatchdogEventLog(conn, ifaceAddSel, msg, true, action);
+         };
+ 
+     sdbusplus::bus::match::match watchdogEventMatcher(
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index 0701073..07ab81b 100644
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -359,11 +359,12 @@ int main(int, char*[])
+     ifaceAddSel->register_method("Clear", []() { clearSelLogFiles(); });
+ #endif
+ #endif
++    ifaceAddSel->register_signal<uint16_t, std::string, std::vector<uint8_t>, std::string>(PEFSignal);
+     ifaceAddSel->initialize();
+ 
+ #ifdef SEL_LOGGER_MONITOR_THRESHOLD_EVENTS
+     sdbusplus::bus::match::match thresholdAssertMonitor =
+-        startThresholdAssertMonitor(conn);
++        startThresholdAssertMonitor(conn, ifaceAddSel);
+ #endif
+ 
+ #ifdef REDFISH_LOG_MONITOR_PULSE_EVENTS
+@@ -373,11 +374,11 @@ int main(int, char*[])
+ 
+ #ifdef SEL_LOGGER_MONITOR_WATCHDOG_EVENTS
+     sdbusplus::bus::match::match watchdogEventMonitor =
+-        startWatchdogEventMonitor(conn);
++        startWatchdogEventMonitor(conn, ifaceAddSel);
+ #endif
+ 
+ #ifdef SEL_LOGGER_MONITOR_THRESHOLD_ALARM_EVENTS
+-    startThresholdAlarmMonitor(conn);
++    startThresholdAlarmMonitor(conn, ifaceAddSel);
+ #endif
+     io.run();
+ 
+-- 
+2.33.0
+

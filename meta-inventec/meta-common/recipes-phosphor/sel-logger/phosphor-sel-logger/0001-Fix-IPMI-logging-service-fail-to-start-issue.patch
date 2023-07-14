@@ -1,0 +1,42 @@
+From 40d8ee54c87566c1650a74400482603ddde843f8 Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Wed, 9 Mar 2022 06:40:49 +0000
+Subject: [PATCH 1/7] Fix IPMI logging service fail to start issue
+
+Symptom/Reason :
+    - xyz.openbmc_project.Logging.IPMI failed to start when /var/lib/sel_log path does not exist
+
+Root Cause:
+    - /var/lib/sel_log directory was not created due to redfish event log patch
+
+Solution/Change:
+    [phosphor-sel-logging]
+        - Create /var/lib/sel_log when is does not exist
+
+Entry Test:
+    ipmitool event 2
+    ipmitool sel list
+---
+ src/sel_logger.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/sel_logger.cpp b/src/sel_logger.cpp
+index b7f6a77..1a30926 100644
+--- a/src/sel_logger.cpp
++++ b/src/sel_logger.cpp
+@@ -70,6 +70,12 @@ struct DBusInternalError final : public sdbusplus::exception_t
+ #ifndef SEL_LOGGER_SEND_TO_LOGGING_SERVICE
+ static bool getSELLogFiles(std::vector<std::filesystem::path>& selLogFiles)
+ {
++#ifdef SEL_LOGGER_CLEARS_SEL
++    if (!std::filesystem::exists(selLogDir)) {
++        std::filesystem::create_directory(selLogDir);
++    }
++#endif
++
+     // Loop through the directory looking for ipmi_sel log files
+     for (const std::filesystem::directory_entry& dirEnt :
+          std::filesystem::directory_iterator(selLogDir))
+-- 
+2.33.0
+

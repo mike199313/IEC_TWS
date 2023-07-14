@@ -1,0 +1,129 @@
+From aab4546e7e5572060c824184f29b94907adcfe11 Mon Sep 17 00:00:00 2001
+From: "pj.chen" <chen.pj@inventec.com>
+Date: Mon, 7 Mar 2022 12:03:55 +0000
+Subject: [PATCH] support gpioevent for edge in both directions
+
+- support gpioevent for edge in both directions
+---
+ gpioMon.cpp     | 22 +++++++++++++++++-----
+ gpioMon.hpp     |  7 +++++--
+ gpioMonMain.cpp |  7 +++++--
+ 3 files changed, 27 insertions(+), 9 deletions(-)
+
+diff --git a/gpioMon.cpp b/gpioMon.cpp
+index 2ab079a..eb0bd7b 100644
+--- a/gpioMon.cpp
++++ b/gpioMon.cpp
+@@ -18,6 +18,7 @@
+ 
+ #include <phosphor-logging/log.hpp>
+ #include <sdbusplus/bus.hpp>
++#include <iostream>
+ 
+ namespace phosphor
+ {
+@@ -59,21 +60,32 @@ void GpioMonitor::gpioEventHandler()
+                         entry("GPIO_LINE=%s", gpioLineMsg.c_str()));
+         return;
+     }
+-
++    /*Inventec - showing edge triggered direction will be more  straightforward*/  
+     std::string logMessage =
+         gpioLineMsg + (gpioLineEvent.event_type == GPIOD_LINE_EVENT_RISING_EDGE
+-                           ? " Asserted"
+-                           : " Deasserted");
++                           ? " Rising"
++                           : " Falling");
+ 
+     log<level::INFO>(logMessage.c_str());
+ 
+     /* Execute the target if it is defined. */
+-    if (!target.empty())
++    std::string targetsToStart;
++    if (gpioLineEvent.event_type == GPIOD_LINE_EVENT_RISING_EDGE)
++    {
++       targetsToStart = target["RISING"];
++    }
++    else
++    {
++       targetsToStart = target["FALLING"];
++    }
++
++    //if (!target.empty())
++    if (!targetsToStart.empty())
+     {
+         auto bus = sdbusplus::bus::new_default();
+         auto method = bus.new_method_call(SYSTEMD_SERVICE, SYSTEMD_ROOT,
+                                           SYSTEMD_INTERFACE, "StartUnit");
+-        method.append(target);
++        method.append(targetsToStart);
+         method.append("replace");
+ 
+         bus.call_noreply(method);
+diff --git a/gpioMon.hpp b/gpioMon.hpp
+index b07bb40..4c3f8e0 100644
+--- a/gpioMon.hpp
++++ b/gpioMon.hpp
+@@ -4,6 +4,8 @@
+ 
+ #include <boost/asio/io_service.hpp>
+ #include <boost/asio/posix/stream_descriptor.hpp>
++#include <map>
++#include <vector>
+ 
+ namespace phosphor
+ {
+@@ -35,7 +37,7 @@ class GpioMonitor
+      *  @param[in] continueRun - Whether to continue after event occur
+      */
+     GpioMonitor(gpiod_line* line, gpiod_line_request_config& config,
+-                boost::asio::io_service& io, const std::string& target,
++                boost::asio::io_service& io, std::map<std::string, std::string> target,
+                 const std::string& lineMsg, bool continueRun) :
+         gpioLine(line),
+         gpioConfig(config), gpioEventDescriptor(io), target(target),
+@@ -55,7 +57,8 @@ class GpioMonitor
+     boost::asio::posix::stream_descriptor gpioEventDescriptor;
+ 
+     /** @brief Systemd unit to be started when the condition is met */
+-    const std::string target;
++    //const std::string target;
++    std::map<std::string, std::string> target;
+ 
+     /** @brief GPIO line name message */
+     std::string gpioLineMsg;
+diff --git a/gpioMonMain.cpp b/gpioMonMain.cpp
+index f8084a3..51a6d02 100644
+--- a/gpioMonMain.cpp
++++ b/gpioMonMain.cpp
+@@ -21,6 +21,7 @@
+ #include <fstream>
+ #include <nlohmann/json.hpp>
+ #include <phosphor-logging/log.hpp>
++#include <iostream>
+ 
+ using namespace phosphor::logging;
+ 
+@@ -101,7 +102,8 @@ int main(int argc, char** argv)
+         bool flag = false;
+ 
+         /* target to start */
+-        std::string target;
++        //std::string target;
++        std::map<std::string, std::string> target;
+ 
+         if (obj.find("LineName") == obj.end())
+         {
+@@ -170,7 +172,8 @@ int main(int argc, char** argv)
+          */
+         if (obj.find("Target") != obj.end())
+         {
+-            target = obj["Target"];
++            //target = obj["Target"];
++            obj.at("Target").get_to(target);
+         }
+ 
+         /* Create a monitor object and let it do all the rest */
+-- 
+2.17.1
+
