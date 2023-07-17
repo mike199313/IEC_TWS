@@ -1,0 +1,771 @@
+From a052b0e069f956d992e8f1480a592cd322f42174 Mon Sep 17 00:00:00 2001
+From: "daniel.tsai" <Tsai.Daniel@inventec.com>
+Date: Thu, 29 Jun 2023 15:36:48 +0000
+Subject: [PATCH] IiohwmonSensor - add the iio_hwmon sensor initial and service
+
+Symptom/Reason:
+    Used by adc sensor to iio_hwmon sensor. Need to provide Service to detect iio_hwmon.
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    add the iio_hwmon sensor, also max & min value can use json to config.
+
+Entry Test:
+
+sysadmin@starscream:~# journalctl -u xyz.openbmc_project.iiohwmonsensor.service
+-- Journal begins at Tue 2020-09-01 00:00:20 UTC, ends at Wed 2021-12-15 03:28:43 UTC. --
+Sep 01 00:01:16 starscream systemd[1]: Started iio hwmon Sensor.
+
+sysadmin@starscream:~# busctl tree xyz.openbmc_project.IiohwmonSensor
+`-/xyz
+  `-/xyz/openbmc_project
+    `-/xyz/openbmc_project/sensors
+      `-/xyz/openbmc_project/sensors/voltage
+        |-/xyz/openbmc_project/sensors/voltage/P0_VDD11
+        `-/xyz/openbmc_project/sensors/voltage/P1_VDD11
+---
+ include/IiohwmonSensor.hpp                    |  40 ++
+ meson_options.txt                             |   1 +
+ service_files/meson.build                     |   1 +
+ ...xyz.openbmc_project.iiohwmonsensor.service |  14 +
+ src/IiohwmonSensor.cpp                        | 189 ++++++++
+ src/IiohwmonSensorMain.cpp                    | 410 ++++++++++++++++++
+ src/meson.build                               |  16 +
+ 7 files changed, 671 insertions(+)
+ create mode 100644 include/IiohwmonSensor.hpp
+ create mode 100644 service_files/xyz.openbmc_project.iiohwmonsensor.service
+ create mode 100644 src/IiohwmonSensor.cpp
+ create mode 100644 src/IiohwmonSensorMain.cpp
+
+diff --git a/include/IiohwmonSensor.hpp b/include/IiohwmonSensor.hpp
+new file mode 100644
+index 0000000..c64d4df
+--- /dev/null
++++ b/include/IiohwmonSensor.hpp
+@@ -0,0 +1,40 @@
++#pragma once
++
++#include <Thresholds.hpp>
++#include <boost/asio/streambuf.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sensor.hpp>
++
++#include <memory>
++#include <optional>
++#include <stdexcept>
++#include <string>
++#include <vector>
++
++
++class IiohwmonSensor : public Sensor, public std::enable_shared_from_this<IiohwmonSensor>
++{
++  public:
++    IiohwmonSensor(const std::string& path,
++              sdbusplus::asio::object_server& objectServer,
++              std::shared_ptr<sdbusplus::asio::connection>& conn,
++              boost::asio::io_service& io, const std::string& sensorName,
++              std::vector<thresholds::Threshold>&& thresholds,
++              const double scaleFactor, double max,
++              double min, const float pollRate,
++              PowerState readState, const std::string& sensorConfiguration);
++    ~IiohwmonSensor() override;
++    void setupRead(void);
++
++  private:
++    sdbusplus::asio::object_server& objServer;
++    boost::asio::posix::stream_descriptor inputDev;
++    boost::asio::deadline_timer waitTimer;
++    std::shared_ptr<boost::asio::streambuf> readBuf;
++    std::string path;
++    double scaleFactor;
++    unsigned int sensorPollMs;
++    thresholds::ThresholdTimer thresholdTimer;
++    void handleResponse(const boost::system::error_code& err);
++    void checkThresholds(void) override;
++};
+diff --git a/meson_options.txt b/meson_options.txt
+index 9d4b92e..b287c3c 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -5,6 +5,7 @@ option('cpu', type: 'feature', value: 'enabled', description: 'Enable CPU sensor
+ option('exit-air', type: 'feature', value: 'enabled', description: 'Enable exit air sensor.',)
+ option('fan', type: 'feature', value: 'enabled', description: 'Enable fan sensor.',)
+ option('hwmon-temp', type: 'feature', value: 'enabled', description: 'Enable HWMON temperature sensor.',)
++option('iiohwmon', type: 'feature', value: 'enabled', description: 'Enable iiohwmon sensor.',)
+ option('intrusion', type: 'feature', value: 'enabled', description: 'Enable intrusion sensor.',)
+ option('invcfm', type: 'feature', value: 'enabled', description: 'Enable InvCfm sensor.',)
+ option('ipmb', type: 'feature', value: 'enabled', description: 'Enable IPMB sensor.',)
+diff --git a/service_files/meson.build b/service_files/meson.build
+index 8430254..7efce0d 100644
+--- a/service_files/meson.build
++++ b/service_files/meson.build
+@@ -7,6 +7,7 @@ unit_files = [
+     ['fan', 'xyz.openbmc_project.fansensor.service'],
+     ['hwmon-temp', 'xyz.openbmc_project.hwmontempsensor.service'],
+     ['ipmb', 'xyz.openbmc_project.ipmbsensor.service'],
++    ['iiohwmon', 'xyz.openbmc_project.iiohwmonsensor.service'],
+     ['intrusion', 'xyz.openbmc_project.intrusionsensor.service'],
+     ['invcfm', 'xyz.openbmc_project.invcfmsensor.service'],
+     ['mcu', 'xyz.openbmc_project.mcutempsensor.service'],
+diff --git a/service_files/xyz.openbmc_project.iiohwmonsensor.service b/service_files/xyz.openbmc_project.iiohwmonsensor.service
+new file mode 100644
+index 0000000..6cc69dd
+--- /dev/null
++++ b/service_files/xyz.openbmc_project.iiohwmonsensor.service
+@@ -0,0 +1,14 @@
++[Unit]
++Description=iio hwmon Sensor
++StopWhenUnneeded=false
++Requires=xyz.openbmc_project.EntityManager.service
++After=xyz.openbmc_project.EntityManager.service
++
++[Service]
++Restart=always
++RestartSec=5
++ExecStart=/usr/bin/iiohwmonsensor
++
++[Install]
++WantedBy=multi-user.target
++
+diff --git a/src/IiohwmonSensor.cpp b/src/IiohwmonSensor.cpp
+new file mode 100644
+index 0000000..5c0823e
+--- /dev/null
++++ b/src/IiohwmonSensor.cpp
+@@ -0,0 +1,189 @@
++/*
++// Copyright (c) 2017 Intel Corporation
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#include <unistd.h>
++
++#include <IiohwmonSensor.hpp>
++#include <boost/algorithm/string/predicate.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/asio/read_until.hpp>
++#include <boost/date_time/posix_time/posix_time.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++
++#include <cmath>
++#include <filesystem>
++#include <fstream>
++#include <iostream>
++#include <limits>
++#include <memory>
++#include <optional>
++#include <string>
++#include <vector>
++
++// scaling factor from hwmon
++static constexpr unsigned int sensorScaleFactor = 1000;
++static constexpr double roundFactor = 10000;     // 3 decimal places
++
++static constexpr bool debug = false;
++
++IiohwmonSensor::IiohwmonSensor(const std::string& path,
++                     sdbusplus::asio::object_server& objectServer,
++                     std::shared_ptr<sdbusplus::asio::connection>& conn,
++                     boost::asio::io_service& io, const std::string& sensorName,
++                     std::vector<thresholds::Threshold>&& thresholdsIn,
++                     const double scaleFactor, double max,
++                     double min,const float pollRate,
++                     PowerState readState,
++                     const std::string& sensorConfiguration) :
++    Sensor(boost::replace_all_copy(sensorName, " ", "_"),
++           std::move(thresholdsIn), sensorConfiguration,
++           "xyz.openbmc_project.Configuration.IIO_HWMON",
++           false, false, max , min, conn, readState),
++    std::enable_shared_from_this<IiohwmonSensor>(), objServer(objectServer),
++    inputDev(io, open(path.c_str(), O_RDONLY)), waitTimer(io), path(path),
++    scaleFactor(scaleFactor),
++    sensorPollMs(static_cast<unsigned int>(pollRate * 1000)), thresholdTimer(io)
++{
++    sensorInterface = objectServer.add_interface(
++        "/xyz/openbmc_project/sensors/voltage/" + name,
++        "xyz.openbmc_project.Sensor.Value");
++
++    for (const auto& threshold : thresholds)
++    {
++        std::string interface =
++            thresholds::getInterface(threshold.level);
++        thresholdInterfaces[static_cast<size_t>(threshold.level)] =
++            objectServer.add_interface("/xyz/openbmc_project/sensors/voltage/" + name, interface);
++    }
++
++    association = objectServer.add_interface(
++        "/xyz/openbmc_project/sensors/voltage/" + name, association::interface);
++    setInitialProperties(sensor_paths::unitVolts);
++}
++
++IiohwmonSensor::~IiohwmonSensor()
++{
++    // close the input dev to cancel async operations
++    inputDev.close();
++    waitTimer.cancel();
++    for (const auto& iface : thresholdInterfaces)
++    {
++        objServer.remove_interface(iface);
++    }
++    objServer.remove_interface(sensorInterface);
++    objServer.remove_interface(association);
++}
++
++void IiohwmonSensor::setupRead(void)
++{
++    std::shared_ptr<boost::asio::streambuf> buffer =
++        std::make_shared<boost::asio::streambuf>();
++
++    std::weak_ptr<IiohwmonSensor> weakRef = weak_from_this();
++
++    boost::asio::async_read_until(
++        inputDev, *buffer, '\n',
++        [weakRef, buffer](const boost::system::error_code& ec,
++                            std::size_t /*bytes_transfered*/) {
++            std::shared_ptr<IiohwmonSensor> self = weakRef.lock();
++            if (self)
++            {
++                self->readBuf = buffer;
++                self->handleResponse(ec);
++            }
++        });
++
++}
++
++void IiohwmonSensor::handleResponse(const boost::system::error_code& err)
++{
++    std::weak_ptr<IiohwmonSensor> weakRef = weak_from_this();
++
++    if (err == boost::system::errc::bad_file_descriptor)
++    {
++        return; // we're being destroyed
++    }
++    std::istream responseStream(readBuf.get());
++
++    if (!err)
++    {
++        std::string response;
++        std::getline(responseStream, response);
++
++        // todo read scaling factors from configuration
++        try
++        {
++            rawValue = std::stod(response);
++            double nvalue = (rawValue / sensorScaleFactor) / scaleFactor;
++            nvalue = std::round(nvalue * roundFactor) / roundFactor;
++            updateValue(nvalue);
++        }
++        catch (std::invalid_argument&)
++        {
++            incrementError();
++        }
++    }
++    else
++    {
++        incrementError();
++    }
++
++    responseStream.clear();
++    inputDev.close();
++
++    int fd = open(path.c_str(), O_RDONLY);
++    if (fd < 0)
++    {
++        std::cerr << "Iiohwmonsensor " << name << " failed to open " << path << "\n";
++        return; // we're no longer valid
++    }
++    inputDev.assign(fd);
++    waitTimer.expires_from_now(boost::posix_time::milliseconds(sensorPollMs));
++    waitTimer.async_wait([weakRef](const boost::system::error_code& ec) {
++        std::shared_ptr<IiohwmonSensor> self = weakRef.lock();
++        if (ec == boost::asio::error::operation_aborted)
++        {
++            if (self)
++            {
++                std::cerr << "Iiohwmonsensor " << self->name << " read cancelled\n";
++            }
++            else
++            {
++                std::cerr << "Iiohwmonsensor read cancelled no self\n";
++            }
++            return; // we're being canceled
++        }
++
++        if (self)
++        {
++            self->setupRead();
++        }
++        else
++        {
++            std::cerr << "Iiohwmonsensor weakref no self\n";
++        }
++    });
++}
++
++void IiohwmonSensor::checkThresholds(void)
++{
++    if (!readingStateGood())
++    {
++        return;
++    }
++    thresholds::checkThresholdsPowerDelay(weak_from_this(), thresholdTimer);
++}
+diff --git a/src/IiohwmonSensorMain.cpp b/src/IiohwmonSensorMain.cpp
+new file mode 100644
+index 0000000..0e1299d
+--- /dev/null
++++ b/src/IiohwmonSensorMain.cpp
+@@ -0,0 +1,410 @@
++/*
++// Copyright (c) 2017 Intel Corporation
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//      http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++*/
++
++#include <IiohwmonSensor.hpp>
++#include <Utils.hpp>
++#include <VariantVisitors.hpp>
++#include <boost/algorithm/string/case_conv.hpp>
++#include <boost/algorithm/string/predicate.hpp>
++#include <boost/algorithm/string/replace.hpp>
++#include <boost/container/flat_set.hpp>
++#include <sdbusplus/asio/connection.hpp>
++#include <sdbusplus/asio/object_server.hpp>
++#include <sdbusplus/bus/match.hpp>
++
++#include <filesystem>
++#include <fstream>
++#include <functional>
++#include <memory>
++#include <optional>
++#include <regex>
++#include <string>
++#include <variant>
++#include <vector>
++
++static constexpr bool debug = false;
++static constexpr float pollRateDefault = 0.5;
++
++namespace fs = std::filesystem;
++
++static constexpr std::array<const char*, 1> sensorTypes = {
++    "xyz.openbmc_project.Configuration.IIO_HWMON"};
++static std::regex inputRegex(R"(in(\d+)_input)");
++
++static boost::container::flat_map<size_t, bool> cpuPresence;
++
++// filter in iio from any other voltage sensor
++bool isAdc(const fs::path& parentPath)
++{
++    fs::path namePath = parentPath / "name";
++
++    std::ifstream nameFile(namePath);
++    if (!nameFile.good())
++    {
++        std::cerr << "Failure reading " << namePath.string() << "\n";
++        return false;
++    }
++
++    std::string name;
++    std::getline(nameFile, name);
++    if(name == "iio_hwmon")
++    {
++        return true;
++    }
++
++    return false;
++}
++
++void createSensors(
++    boost::asio::io_service& io, sdbusplus::asio::object_server& objectServer,
++    boost::container::flat_map<std::string, std::shared_ptr<IiohwmonSensor>>&
++        sensors,
++    std::shared_ptr<sdbusplus::asio::connection>& dbusConnection,
++    const std::shared_ptr<boost::container::flat_set<std::string>>&
++        sensorsChanged)
++{
++    auto getter = std::make_shared<GetSensorConfiguration>(
++        dbusConnection,
++        std::move([&io, &objectServer, &sensors, &dbusConnection,
++                   sensorsChanged](
++                      const ManagedObjectType& sensorConfigurations) {
++            bool firstScan = sensorsChanged == nullptr;
++            std::vector<fs::path> paths;
++            if (!findFiles(fs::path("/sys/class/hwmon"), R"(in\d+_input)",
++                           paths))
++            {
++                std::cerr << "No iio_hwmon sensors in system\n";
++                return;
++            }
++            boost::container::flat_set<std::string> directories;
++
++            // iterate through all found adc sensors, and try to match them with
++            // configuration
++            for (auto& path : paths)
++            {
++                if (!isAdc(path.parent_path()))
++                {
++                   continue;
++                }
++                std::cerr << "path: " << path.string() << "\n";
++                std::smatch match;
++                std::string pathStr = path.string();
++
++                std::regex_search(pathStr, match, inputRegex);
++                std::string indexStr = *(match.begin() + 1);
++
++                // convert to 0 based
++                size_t index = std::stoul(indexStr) - 1;
++
++                const SensorData* sensorData = nullptr;
++                const std::string* interfacePath = nullptr;
++                //const char* sensorType = nullptr;
++                const std::pair<
++                    std::string,
++                    boost::container::flat_map<std::string, BasicVariantType>>*
++                    baseConfiguration;
++                for (const std::pair<sdbusplus::message::object_path,
++                                     SensorData>& sensor : sensorConfigurations)
++                {
++                    // clear it out each loop
++                    baseConfiguration = nullptr;
++
++                    // find base configuration
++                    for (const char* type : sensorTypes)
++                    {
++                        auto sensorBase = sensor.second.find(type);
++                        if (sensorBase != sensor.second.end())
++                        {
++                            baseConfiguration = &(*sensorBase);
++                            break;
++                        }
++                    }
++                    if (baseConfiguration == nullptr)
++                    {
++                        continue;
++                    }
++
++                    auto findIndex = baseConfiguration->second.find("Index");
++                    if (findIndex == baseConfiguration->second.end())
++                    {
++                        std::cerr << "Base configuration missing Index"
++                                  << baseConfiguration->first << "\n";
++                        continue;
++                    }
++
++                    unsigned int number = std::visit(
++                        VariantToUnsignedIntVisitor(), findIndex->second);
++
++                    if (number != index)
++                    {
++                        continue;
++                    }
++
++                    sensorData = &(sensor.second);
++                    interfacePath = &(sensor.first.str);
++                    break;
++                }
++                if (sensorData == nullptr)
++                {
++                    std::cerr << "failed to find match for " << path.string()
++                              << "\n";
++                    continue;
++                }
++
++                if (baseConfiguration == nullptr)
++                {
++                    std::cerr << "error finding base configuration for"
++                              << path.string() << "\n";
++                    continue;
++                }
++
++                auto findSensorName = baseConfiguration->second.find("Name");
++                if (findSensorName == baseConfiguration->second.end())
++                {
++                    std::cerr << "could not determine configuration name for "
++                              << path.string() << "\n";
++                    continue;
++                }
++                std::string sensorName =
++                    std::get<std::string>(findSensorName->second);
++
++                // on rescans, only update sensors we were signaled by
++                auto findSensor = sensors.find(sensorName);
++                if (!firstScan && findSensor != sensors.end())
++                {
++                    bool found = false;
++                    for (auto it = sensorsChanged->begin();
++                         it != sensorsChanged->end(); it++)
++                    {
++                        if (findSensor->second &&
++                            boost::ends_with(*it, findSensor->second->name))
++                        {
++                            sensorsChanged->erase(it);
++                            findSensor->second = nullptr;
++                            found = true;
++                            break;
++                        }
++                    }
++                    if (!found)
++                    {
++                        continue;
++                    }
++                }
++                std::vector<thresholds::Threshold> sensorThresholds;
++                if (!parseThresholdsFromConfig(*sensorData, sensorThresholds))
++                {
++                    std::cerr << "error populating thresholds for "
++                              << sensorName << "\n";
++                }
++
++                std::string labelHead = sensorName.substr(0, sensorName.find(" "));
++
++                auto findScaleFactor =
++                    baseConfiguration->second.find("ScaleFactor");
++                float scaleFactor = 1.0;
++                if (findScaleFactor != baseConfiguration->second.end())
++                {
++                    scaleFactor = std::visit(VariantToFloatVisitor(),
++                                             findScaleFactor->second);
++                    // scaleFactor is used in division
++                    if (scaleFactor == 0.0f)
++                    {
++                        scaleFactor = 1.0;
++                    }
++                }
++
++                auto findPollRate = baseConfiguration->second.find("PollRate");
++                float pollRate = pollRateDefault;
++                if (findPollRate != baseConfiguration->second.end())
++                {
++                    pollRate = std::visit(VariantToFloatVisitor(),
++                                          findPollRate->second);
++                    if (pollRate <= 0.0f)
++                    {
++                        pollRate = pollRateDefault; // polling time too short
++                    }
++                }
++
++                auto findPowerOn = baseConfiguration->second.find("PowerState");
++                PowerState readState = PowerState::always;
++                if (findPowerOn != baseConfiguration->second.end())
++                {
++                    std::string powerState = std::visit(
++                        VariantToStringVisitor(), findPowerOn->second);
++                    setReadState(powerState, readState);
++                }
++
++                auto findCustomMin = baseConfiguration->second.find("Min");
++                double minReading = 0;
++                if (findCustomMin != baseConfiguration->second.end())
++                {
++                    try
++                    {
++                        minReading = std::visit(
++                            VariantToDoubleVisitor(), findCustomMin->second);
++                    }
++                    catch (std::invalid_argument&)
++                    {
++                        std::cerr << "Unable to parse Min " << minReading << "\n";
++                    }
++                }
++                auto findCustomMax = baseConfiguration->second.find("Max");
++                double maxReading = 1.8;
++                if (findCustomMax != baseConfiguration->second.end())
++                {
++                    try
++                    {
++                        maxReading = std::visit(
++                            VariantToDoubleVisitor(), findCustomMax->second);
++                    }
++                    catch (std::invalid_argument&)
++                    {
++                        std::cerr << "Unable to parse Max "<< maxReading <<"\n";
++                    }
++                }
++
++                if (!(minReading < maxReading))
++                {
++                    std::cerr << "Min must be less than Max\n";
++                    continue;
++                }
++
++
++                auto& sensor = sensors[sensorName];
++                sensor = nullptr;
++
++                sensor = std::make_shared<IiohwmonSensor>(
++                    path.string(), objectServer, dbusConnection, io, sensorName,
++                    std::move(sensorThresholds),
++                    scaleFactor,maxReading,
++                    minReading, pollRate,
++                    readState, *interfacePath);
++                sensor->setupRead();
++            }
++        }));
++
++    getter->getConfiguration(
++        std::vector<std::string>{sensorTypes.begin(), sensorTypes.end()});
++}
++
++int main()
++{
++    boost::asio::io_service io;
++    auto systemBus = std::make_shared<sdbusplus::asio::connection>(io);
++    systemBus->request_name("xyz.openbmc_project.IiohwmonSensor");
++    sdbusplus::asio::object_server objectServer(systemBus);
++    boost::container::flat_map<std::string, std::shared_ptr<IiohwmonSensor>> sensors;
++    std::vector<std::unique_ptr<sdbusplus::bus::match::match>> matches;
++    auto sensorsChanged =
++        std::make_shared<boost::container::flat_set<std::string>>();
++    io.post([&]() {
++        createSensors(io, objectServer, sensors, systemBus, nullptr);
++    });
++
++    boost::asio::deadline_timer filterTimer(io);
++    std::function<void(sdbusplus::message::message&)> eventHandler =
++        [&](sdbusplus::message::message& message) {
++            if (message.is_method_error())
++            {
++                std::cerr << "callback method error\n";
++                return;
++            }
++            sensorsChanged->insert(message.get_path());
++            // this implicitly cancels the timer
++            filterTimer.expires_from_now(boost::posix_time::seconds(1));
++
++            filterTimer.async_wait([&](const boost::system::error_code& ec) {
++                if (ec == boost::asio::error::operation_aborted)
++                {
++                    /* we were canceled*/
++                    return;
++                }
++                if (ec)
++                {
++                    std::cerr << "timer error\n";
++                    return;
++                }
++                createSensors(io, objectServer, sensors, systemBus,
++                              sensorsChanged);
++            });
++        };
++
++    std::function<void(sdbusplus::message::message&)> cpuPresenceHandler =
++        [&](sdbusplus::message::message& message) {
++            std::string path = message.get_path();
++            boost::to_lower(path);
++
++            if (path.rfind("cpu") == std::string::npos)
++            {
++                return; // not interested
++            }
++            size_t index = 0;
++            try
++            {
++                index = std::stoi(path.substr(path.size() - 1));
++            }
++            catch (std::invalid_argument&)
++            {
++                std::cerr << "Found invalid path " << path << "\n";
++                return;
++            }
++
++            std::string objectName;
++            boost::container::flat_map<std::string, std::variant<bool>> values;
++            message.read(objectName, values);
++            auto findPresence = values.find("Present");
++            if (findPresence != values.end())
++            {
++                cpuPresence[index] = std::get<bool>(findPresence->second);
++            }
++
++            // this implicitly cancels the timer
++            filterTimer.expires_from_now(boost::posix_time::seconds(3));
++
++            filterTimer.async_wait([&](const boost::system::error_code& ec) {
++                if (ec == boost::asio::error::operation_aborted)
++                {
++                    /* we were canceled*/
++                    return;
++                }
++                if (ec)
++                {
++                    std::cerr << "timer error\n";
++                    return;
++                }
++                createSensors(io, objectServer, sensors, systemBus, nullptr);
++            });
++        };
++
++    for (const char* type : sensorTypes)
++    {
++        auto match = std::make_unique<sdbusplus::bus::match::match>(
++            static_cast<sdbusplus::bus::bus&>(*systemBus),
++            "type='signal',member='PropertiesChanged',path_namespace='" +
++                std::string(inventoryPath) + "',arg0namespace='" + type + "'",
++            eventHandler);
++        matches.emplace_back(std::move(match));
++    }
++    matches.emplace_back(std::make_unique<sdbusplus::bus::match::match>(
++        static_cast<sdbusplus::bus::bus&>(*systemBus),
++        "type='signal',member='PropertiesChanged',path_namespace='" +
++            std::string(cpuInventoryPath) +
++            "',arg0namespace='xyz.openbmc_project.Inventory.Item'",
++        cpuPresenceHandler));
++
++    io.run();
++}
++
+diff --git a/src/meson.build b/src/meson.build
+index 687e88d..884ca43 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -121,6 +121,22 @@ if get_option('hwmon-temp').enabled()
+     )
+ endif
+
++if get_option('iiohwmon').enabled()
++    executable(
++        'iiohwmonsensor',
++        'IiohwmonSensorMain.cpp',
++        'IiohwmonSensor.cpp',
++        dependencies: [
++            default_deps,
++            thresholds_dep,
++            utils_dep,
++        ],
++        implicit_include_directories: false,
++        include_directories: '../include',
++        install: true,
++    )
++endif
++
+ if get_option('intrusion').enabled()
+     executable(
+         'intrusionsensor',
+--
+2.17.1
