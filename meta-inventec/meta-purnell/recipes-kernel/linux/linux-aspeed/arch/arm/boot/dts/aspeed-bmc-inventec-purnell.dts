@@ -392,7 +392,7 @@
 	/*N0-N7*/   "","","","","","FM_SPD_SWITCH_CTRL","","",
 	/*O0-O7*/   "","","IRQ_BMC_CPU0_NMI_OUT","","IRQ_BMC_CPU1_NMI_OUT","","I3C_SPDMUX_SELECT1","",
 	/*P0-P7*/   "","","CPU1_BMCINIT","","","","","",
-	/*Q0-Q7*/   "","SPI_BIOS_MUXA_SEL","","SPI_BIOS_MUXB_SEL","","","PSU0_PRESENT","",
+	/*Q0-Q7*/   "","","","","","","PSU0_PRESENT","",
 	/*R0-R7*/   "PSU1_PRESENT","NCSI_OCP_CLK_EN","","NCSI_BMC_CLK_EN","I3C_SPDMUX_SELECT0","","","BMC_READY",
 	/*S0-S7*/   "","","BMC_WAKE","","","","","",
 	/*T0-T7*/   "","","","","","","","",
