@@ -116,6 +116,24 @@
 		reg = <0xbff00000 0x10000>;
 	};
 
+	iio-hwmon {
+		compatible = "iio-hwmon";
+		io-channels =
+			<&adc_u74 0>, // AIN0
+			<&adc_u74 1>, // AIN1
+			<&adc_u74 2>, // P0_3V3_S5
+			<&adc_u74 3>, // P1_3V3_S5
+			<&adc_u74 4>, // P3V3
+			<&adc_u74 5>, // VBAT
+			<&adc_u74 6>, // P3V3_AUX
+			<&adc_u74 7>, // P5V_AUX
+			<&adc_u74 8>, // P5V
+			<&adc_u74 9>, // P12V
+			<&adc_u74 10>, // P1V8_AUX
+			<&adc_u74 11> // P1V05_AUX
+			;
+    };
+
 	vcc_sdhci0: regulator-vcc-sdhci0 {
 		compatible = "regulator-fixed";
 		regulator-name = "SDHCI0 Vcc";
@@ -645,7 +663,7 @@
 			};
 
 			//Voltage Sensor MAX1139
-			voltage-sensor@35 {
+			adc_u74: voltage-sensor@35 {
 				compatible = "maxim,max1139";
 				reg = <0x35>;
 				#io-channel-cells = <1>;
