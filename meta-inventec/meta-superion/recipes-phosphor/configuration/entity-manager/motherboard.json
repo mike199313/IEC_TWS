@@ -3120,106 +3120,36 @@
             "Type": "AccumulateSensor"
         },
         {
-            "Index": 0,
-            "Name": "AIN0",
-            "PowerState": "On",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
-            "Min" : 0,
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 1.3
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 1.25
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 1.05
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 1
-                }
-            ],
-            "Type": "IIO_HWMON"
-        },
-        {
-            "Index": 1,
-            "Name": "AIN1",
-            "PowerState": "On",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
-            "Min" : 0,
-            "Thresholds": [
-                {
-                    "Direction": "greater than",
-                    "Name": "upper critical",
-                    "Severity": 1,
-                    "Value": 1.3
-                },
-                {
-                    "Direction": "greater than",
-                    "Name": "upper non critical",
-                    "Severity": 0,
-                    "Value": 1.25
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower non critical",
-                    "Severity": 0,
-                    "Value": 0.95
-                },
-                {
-                    "Direction": "less than",
-                    "Name": "lower critical",
-                    "Severity": 1,
-                    "Value": 0.9
-                }
-            ],
-            "Type": "IIO_HWMON"
-        },
-        {
             "Index": 2,
             "Name": "P0_3V3_S5",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.411523,
+            "Max" : 3.8,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 3.8
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 3.6
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 3.0
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 2.8
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3228,33 +3158,33 @@
             "Index": 3,
             "Name": "P1_3V3_S5",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.411523,
+            "Max" : 3.8,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 3.8
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 3.6
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 3.0
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 2.8
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3263,33 +3193,33 @@
             "Index": 4,
             "Name": "P3V3",
             "PowerState": "On",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.411523,
+            "Max" : 3.8,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 3.8
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 3.6
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 3.0
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 2.8
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3298,33 +3228,33 @@
             "Index": 5,
             "Name": "VBAT",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.3333335,
+            "Max" : 3.5,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.6
+                    "Value": 3.5
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.5
+                    "Value": 3.3
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 0.7
+                    "Value": 2.7
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 0.6
+                    "Value": 2.5
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3333,33 +3263,33 @@
             "Index": 6,
             "Name": "P3V3_AUX",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.411523,
+            "Max" : 3.8,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 3.8
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 3.6
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 3.0
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 2.8
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3368,33 +3298,33 @@
             "Index": 7,
             "Name": "P5V_AUX",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.270270,
+            "Max" : 5.5,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.6
+                    "Value": 5.5
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.55
+                    "Value": 5.3
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 4.7
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 4.5
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3403,33 +3333,33 @@
             "Index": 8,
             "Name": "P5V",
             "PowerState": "On",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.270270,
+            "Max" : 5.5,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 5.5
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 5.3
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 4.7
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 4.5
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3438,33 +3368,33 @@
             "Index": 9,
             "Name": "P12V",
             "PowerState": "On",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.112739,
+            "Max" : 12.5,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.6
+                    "Value": 12.5
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.55
+                    "Value": 12.3
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 11.7
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 11.5
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3473,33 +3403,33 @@
             "Index": 10,
             "Name": "P1V8_AUX",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.751879,
+            "Max" : 2.3,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 2.3
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 2.1
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 1.5
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 1.3
                 }
             ],
             "Type": "IIO_HWMON"
@@ -3508,33 +3438,33 @@
             "Index": 11,
             "Name": "P1V05_AUX",
             "PowerState": "Always",
-            "ScaleFactor": 1,
-            "Max" : 1.8,
+            "ScaleFactor": 0.751879,
+            "Max" : 1.55,
             "Min" : 0,
             "Thresholds": [
                 {
                     "Direction": "greater than",
                     "Name": "upper critical",
                     "Severity": 1,
-                    "Value": 1.5
+                    "Value": 1.55
                 },
                 {
                     "Direction": "greater than",
                     "Name": "upper non critical",
                     "Severity": 0,
-                    "Value": 1.45
+                    "Value": 1.35
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower non critical",
                     "Severity": 0,
-                    "Value": 1.25
+                    "Value": 0.75
                 },
                 {
                     "Direction": "less than",
                     "Name": "lower critical",
                     "Severity": 1,
-                    "Value": 1.2
+                    "Value": 0.55
                 }
             ],
             "Type": "IIO_HWMON"
