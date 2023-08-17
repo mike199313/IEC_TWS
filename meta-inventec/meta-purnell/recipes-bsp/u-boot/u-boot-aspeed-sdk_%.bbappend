@@ -11,6 +11,9 @@ SRC_URI:append = " file://superion-ast2600.cfg \
                    file://0001-Add-U-boot-tree-for-superion.patch \
                    file://0002-superion-machine-init.patch \
 	           file://0100-purnell_platform-PO-Enable-ESPI-PCIE-VGA-Device-and-.patch \
+		   file://0101-misc-dp-Fix-dp-display-turn-black-for-a-sudden-if-BM.patch \
+		   file://0102-misc-dp-Fix-dp-display-turn-black-for-a-sudden-if-BM.patch \
+		   file://0103-misc-dp-refine-config-for-redriver.patch \
                  "
 
 do_copyfile () {

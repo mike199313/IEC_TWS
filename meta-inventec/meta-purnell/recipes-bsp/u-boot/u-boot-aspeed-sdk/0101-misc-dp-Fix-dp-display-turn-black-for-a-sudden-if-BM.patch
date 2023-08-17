@@ -1,0 +1,42 @@
+From 5d1d46e3c590b987711253ce654ad24045839c4a Mon Sep 17 00:00:00 2001
+From: Jammy Huang <jammy_huang@aspeedtech.com>
+Date: Mon, 24 Oct 2022 16:57:33 +0800
+Subject: [PATCH] misc: dp: Fix dp display turn black for a sudden if BMC
+ reboot
+
+When dp driver probe, reset will be trigger to make sure DP/MCU go to
+expected default status. In this way, dp display will turn black since
+dp is not working for a sudden.
+
+To avoid this situation, we can check if dp-fw is running. Only do reset
+if DP/MCU have never been programmed before.
+
+Change-Id: I2020e5e91fc1375096e05b78bdb3d4c96077e498
+Signed-off-by: Jammy Huang <jammy_huang@aspeedtech.com>
+---
+ drivers/misc/aspeed_dp.c | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/misc/aspeed_dp.c b/drivers/misc/aspeed_dp.c
+index 20e5eabd73..d734be07d7 100644
+--- a/drivers/misc/aspeed_dp.c
++++ b/drivers/misc/aspeed_dp.c
+@@ -63,11 +63,13 @@ static int aspeed_dp_probe(struct udevice *dev)
+ 		return ret;
+ 	}
+ 
+-	/* release reset for DPTX and DPMCU */
+-	reset_assert(&dp_reset_ctl);
+-	reset_assert(&dpmcu_reset_ctrl);
+-	reset_deassert(&dp_reset_ctl);
+-	reset_deassert(&dpmcu_reset_ctrl);
++	/* reset for DPTX and DPMCU if MCU isn't running */
++	if ((readl(0x1e6e2100) & BIT(13)) == 0) {
++		reset_assert(&dp_reset_ctl);
++		reset_assert(&dpmcu_reset_ctrl);
++		reset_deassert(&dp_reset_ctl);
++		reset_deassert(&dpmcu_reset_ctrl);
++	}
+ 
+ 	/* select HOST or BMC as display control master
+ 	enable or disable sending EDID to Host	*/
