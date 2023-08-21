@@ -10,6 +10,7 @@ SRC_URI:append = " file://superion-ast2600.cfg \
                    file://ast2600-purnell.dts \
                    file://0001-Add-U-boot-tree-for-superion.patch \
                    file://0002-superion-machine-init.patch \
+	           file://0100-purnell_platform-PO-Enable-ESPI-PCIE-VGA-Device-and-.patch \
                  "
 
 do_copyfile () {
