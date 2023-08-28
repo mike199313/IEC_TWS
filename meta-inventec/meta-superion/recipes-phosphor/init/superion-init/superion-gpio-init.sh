@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Connect cpu to bios spi rom as the spi mux default setting
-gpioset `gpiofind SPI_BIOS_MUXA_SEL`=0
-gpioset `gpiofind SPI_BIOS_MUXB_SEL`=0
-
 # x86-power-control gpio (default for HOST ON)
 gpioset `gpiofind RST_BTN_BMC_OUT`=1
 gpioset `gpiofind BMC_PWR_BTN_OUT`=1

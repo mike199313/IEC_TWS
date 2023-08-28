@@ -1,0 +1,37 @@
+From d417ef67d3127c060cdff60f0f1137d6573b452e Mon Sep 17 00:00:00 2001
+From: "Huang.Alang" <huang.alang@inventec.corp-partner.google.com>
+Date: Mon, 10 Jul 2023 12:55:20 +0000
+Subject: [PATCH] add espi-flash-channel support
+
+---
+ drivers/soc/aspeed/aspeed-espi-slave.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/soc/aspeed/aspeed-espi-slave.c b/drivers/soc/aspeed/aspeed-espi-slave.c
+index 08ce31179520..e033f27cea93 100644
+--- a/drivers/soc/aspeed/aspeed-espi-slave.c
++++ b/drivers/soc/aspeed/aspeed-espi-slave.c
+@@ -21,6 +21,7 @@
+ #include "aspeed-espi-ctrl.h"
+ #include "aspeed-espi-oob.h"
+ #include "aspeed-espi-vw.h"
++#include "aspeed-espi-flash.h"
+ 
+ struct aspeed_espi {
+ 	struct regmap		*map;
+@@ -350,6 +351,12 @@ static int aspeed_espi_probe(struct platform_device *pdev)
+ 		return PTR_ERR(espi_ctrl->vw);
+ 	}
+ 
++    espi_ctrl->flash = aspeed_espi_flash_alloc(&pdev->dev, espi_ctrl);
++	if (IS_ERR(espi_ctrl->flash)) {
++        dev_err(&pdev->dev, "Failed to allocate flash channel\n");
++        return PTR_ERR(espi_ctrl->flash);
++    }
++
+ 	spin_lock_init(&priv->pltrstn_lock);
+ 	init_waitqueue_head(&priv->pltrstn_waitq);
+ 	priv->pltrstn = 'U'; /* means it's not reported yet from master */
+-- 
+2.17.1
+
