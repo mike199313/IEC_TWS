@@ -353,6 +353,21 @@
 	status = "okay";
 };
 
+&i2c13 {
+        status = "okay";
+};
+
+&i2c14 {
+        status = "okay";
+
+        /* PURNELL DCSCM_EEPROM*/
+        eeprom@51 {
+            compatible = "atmel,24c64";
+            reg = <0x50>;
+            pagesize = <32>;
+            };
+};
+
 &i2c15 {
 	status = "okay";
 };
