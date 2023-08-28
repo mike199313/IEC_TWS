@@ -270,7 +270,9 @@
 };
 
 &espi {
-        status = "okay";
+    status = "okay";
+    flash,dma-mode;
+    flash,safs-mode = <0x2>;
 };
 
 &spi1 {

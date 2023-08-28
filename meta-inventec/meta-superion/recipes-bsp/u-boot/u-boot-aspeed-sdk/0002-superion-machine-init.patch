@@ -1,18 +1,22 @@
-From 5e062a15c89b0eeb4d52fd462d7cc40fb3bd40cc Mon Sep 17 00:00:00 2001
+From db62e058dc6542bc3c6fc8d55492a432d12e0308 Mon Sep 17 00:00:00 2001
 From: "Huang.Alang" <huang.alang@inventec.corp-partner.google.com>
 Date: Wed, 3 May 2023 00:49:37 +0000
-Subject: [PATCH] superion machine init <details> - ast snoop port80 to sgpioA
- configuration
+Subject: [PATCH] superion machine init
 
+<details>
+- ast snoop port80 to sgpioA configuration
+- enable SAFS (slave attached flash sharing mode)
+
+%% original patch: 0002-superion-machine-init.patch
 ---
- arch/arm/mach-aspeed/ast2600/board_common.c | 60 ++++++++++++++++++++-
- 1 file changed, 59 insertions(+), 1 deletion(-)
+ arch/arm/mach-aspeed/ast2600/board_common.c | 90 ++++++++++++++++++++-
+ 1 file changed, 89 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
-index 70d2a97b5d..e790c1f1a2 100644
+index 70d2a97b5d..98b24c93fd 100644
 --- a/arch/arm/mach-aspeed/ast2600/board_common.c
 +++ b/arch/arm/mach-aspeed/ast2600/board_common.c
-@@ -13,6 +13,30 @@
+@@ -13,6 +13,39 @@
  #include <dm/uclass.h>
  
  DECLARE_GLOBAL_DATA_PTR;
@@ -40,23 +44,34 @@ index 70d2a97b5d..e790c1f1a2 100644
 +#define SGPIO_CLK_DIV(N)                ((N) << 16)
 +#define SGPIO_BYTES(N)                  ((N) << 6)
 +#define SGPIO_ENABLE                    1
++
++/* Hardware Strap2 Registers*/
++#define SCU510_HW_STRAP2	(SCU_BASE + 0x510)
++#define BIT_SAFS_MODE       (BIT(7))
++#define GPIO_BASE           (0x1e780000)
++#define GPIOQ_DATA          (GPIO_BASE + 0x080)
++#define GPIOQ_DIR           (GPIO_BASE + 0x084)
++#define BIT_GPIOQ1          (BIT(1))
++#define BIT_GPIOQ3          (BIT(3))
  
  /*
   * RMII daughtercard workaround
-@@ -77,7 +101,8 @@ __weak int board_init(void)
+@@ -77,7 +110,9 @@ __weak int board_init(void)
  #ifdef ASPEED_RMII_DAUGHTER_CARD
  	reset_eth_phy();
  #endif
 -	/*
 +    sgpio_init_port80();
++    safs_enable();
 +    /*
  	 * Loop over all MISC uclass drivers to call the comphy code
  	 * and init all CP110 devices enabled in the DT
  	 */
-@@ -227,3 +252,36 @@ void aspeed_mmc_init(void)
+@@ -227,3 +262,56 @@ void aspeed_mmc_init(void)
  	return;
  
  }
++
 +int sgpio_init_port80(void) {
 +
 +    u32 reg;
@@ -79,6 +94,7 @@ index 70d2a97b5d..e790c1f1a2 100644
 +    reg |= HICR5_EN_SIOGIO | HICR5_EN_SNP0W;
 +    writel(reg, AST_LPC_BASE + HICR5);
 +
++
 +    /* enable port80h snoop on SGPIO */
 +    reg = readl(AST_LPC_BASE + HICRB) | HICRB_EN80HSGIO;
 +    writel(reg, AST_LPC_BASE + HICRB);
@@ -90,6 +106,24 @@ index 70d2a97b5d..e790c1f1a2 100644
 +    return 0;
 +}
 +
++void safs_enable(void)
++{
++    u32 reg = 0;
++    /*SCU510 setting*/    
++    reg = readl(SCU510_HW_STRAP2);
++    reg |= BIT_SAFS_MODE;
++    writel(reg, SCU510_HW_STRAP2);
++    /*gpio setting*/
++    //set GPIO Q1: SPI_BIOS_MUXA_SEL Q3: SPI_BIOS_MUXB_SEL 
++    //output high
++    reg = readl(GPIOQ_DATA);
++    reg = reg | BIT_GPIOQ1 | BIT_GPIOQ3;
++    writel(reg, GPIOQ_DATA);
++
++    reg = readl(GPIOQ_DIR);
++    reg = reg | BIT_GPIOQ1 | BIT_GPIOQ3;
++    writel(reg, GPIOQ_DIR);
++}    
 -- 
 2.17.1
 

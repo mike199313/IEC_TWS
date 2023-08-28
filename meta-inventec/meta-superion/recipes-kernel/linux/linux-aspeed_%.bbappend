@@ -14,6 +14,7 @@ SRC_URI:append = " file://superion.cfg \
                    file://0010-superion-Sync-AspeedTech-for-KCS.patch \
                    file://0011-Modify-JTAG-driver-with-intel-JTAG-driver.patch \
                    file://0012-peci-dimmtemp-presence-detection.patch \
+                   file://0013-add-espi-flash-channel-support.patch \
                  "
 
 do_add_overwrite_files () {
