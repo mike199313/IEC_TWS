@@ -13,6 +13,7 @@ SRC_URI:append = " file://superion.cfg \
                    file://0009-aspeed-mctp-Fix-peci-mctp-device-name-error.patch \
                    file://0010-superion-Sync-AspeedTech-for-KCS.patch \
                    file://0011-Modify-JTAG-driver-with-intel-JTAG-driver.patch \
+		   file://0012-peci-dimmtemp-presence-detection.patch \
                  "
 
 do_add_overwrite_files () {

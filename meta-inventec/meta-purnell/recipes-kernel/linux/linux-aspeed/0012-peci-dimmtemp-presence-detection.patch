@@ -1,0 +1,151 @@
+From 44ce8952f5e53a523cc80656304956f9b693a5c7 Mon Sep 17 00:00:00 2001
+From: "daniel.tsai" <Tsai.Daniel@inventec.com>
+Date: Thu, 3 Aug 2023 11:15:20 +0000
+Subject: [PATCH] peci-dimmtemp presence detection
+
+Symptom/Reason :
+                 only inserted dimm slot create sysfs attribute.
+
+Root Cause     : N/A
+
+Solution/Change:
+                 [peci-dimmtemp.c]
+                         -skip the sysfs attribute creation of absent dimmtemp channels
+
+Entry Test     :
+
+sysadmin@superion:~# ls /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/
+device       subsystem    temp1_label  temp2_input  temp3_crit   temp3_max    temp4_label
+name         temp1_crit   temp1_max    temp2_label  temp3_input  temp4_crit   temp4_max
+power        temp1_input  temp2_crit   temp2_max    temp3_label  temp4_input  uevent
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_input
+32000
+32000
+28000
+28000
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_max
+90000
+90000
+90000
+90000
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_crit
+100000
+100000
+100000
+100000
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_label
+DIMM A1
+DIMM A2
+DIMM C1
+DIMM C2
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_A1_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         32                                       emits-change writable
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_A2_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         32                                       emits-change writable
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_C1_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         28                                       emits-change writable
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_C2_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         28                                       emits-change writable
+sysadmin@superion:~# ipmitool sdr list | grep DIMM
+DIMM A1 CPU1     | 32 degrees C      | ok
+DIMM A2 CPU1     | 32 degrees C      | ok
+DIMM C1 CPU1     | 28 degrees C      | ok
+DIMM C2 CPU1     | 28 degrees C      | ok
+---
+ drivers/hwmon/peci-dimmtemp.c | 38 ++++++++++++++++++++++++++---------
+ 1 file changed, 29 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index 8f37bd75c974..bb31b038b59c 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -17,6 +17,11 @@
+ #define DIMM_TEMP_CRIT_DEFAULT		100000
+ #define BIOS_RST_CPL4			BIT(4)
+ 
++struct dimm_phy_info_t {
++    bool present;
++    int slot; //actual slot number
++};
++
+ struct peci_dimmtemp {
+ 	struct peci_client_manager	*mgr;
+ 	struct device			*dev;
+@@ -34,6 +39,8 @@ struct peci_dimmtemp {
+ 	const struct hwmon_channel_info	*info[2];
+ 	struct hwmon_chip_info		chip;
+ 	char				**dimmtemp_label;
++	struct dimm_phy_info_t dimm_phy_info[DIMM_NUMS_MAX];
++	/*dimm_phy_info[dimm_no], dimm_no: dimm sysfs number*/
+ };
+ 
+ static const u8 support_model[] = {
+@@ -58,8 +65,8 @@ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+ 
+ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ {
+-	int dimm_order = dimm_no % priv->gen_info->dimm_idx_max;
+-	int chan_rank = dimm_no / priv->gen_info->dimm_idx_max;
++	int dimm_order = priv->dimm_phy_info[dimm_no].slot % priv->gen_info->dimm_idx_max;
++	int chan_rank = priv->dimm_phy_info[dimm_no].slot / priv->gen_info->dimm_idx_max;
+ 	struct peci_rd_pci_cfg_local_msg rp_msg;
+ 	struct peci_rd_end_pt_cfg_msg re_msg;
+ 	u32 bios_reset_cpl_cfg;
+@@ -452,8 +459,8 @@ static int create_dimm_temp_label(struct peci_dimmtemp *priv, int chan)
+ 	if (!priv->dimmtemp_label[chan])
+ 		return -ENOMEM;
+ 
+-	rank = chan / priv->gen_info->dimm_idx_max;
+-	idx = chan % priv->gen_info->dimm_idx_max;
++	rank = priv->dimm_phy_info[chan].slot / priv->gen_info->dimm_idx_max;
++	idx = priv->dimm_phy_info[chan].slot % priv->gen_info->dimm_idx_max;
+ 
+ 	snprintf(priv->dimmtemp_label[chan], PECI_HWMON_LABEL_STR_LEN,
+ 		 "DIMM %c%d", 'A' + rank, idx + 1);
+@@ -465,6 +472,8 @@ static int create_dimm_temp_info(struct peci_dimmtemp *priv)
+ {
+ 	int ret, i, config_idx, channels;
+ 	struct device *dev;
++	int dimm_order, chan_rank;
++	u8  cfg_data[4];
+ 
+ 	ret = check_populated_dimms(priv);
+ 	if (ret) {
+@@ -498,14 +507,25 @@ static int create_dimm_temp_info(struct peci_dimmtemp *priv)
+ 
+ 	for (i = 0, config_idx = 0; i < channels; i++)
+ 		if (priv->dimm_mask & BIT(i)) {
+-			while (i >= config_idx)
+-				priv->temp_config[config_idx++] =
++			dimm_order = i % priv->gen_info->dimm_idx_max;
++			chan_rank = i / priv->gen_info->dimm_idx_max;
++			ret = read_ddr_dimm_temp_config(priv, chan_rank, cfg_data);
++			if (ret || cfg_data[dimm_order] == 0 || cfg_data[dimm_order] == 0xff) {
++				priv->dimm_phy_info[config_idx].present = false;
++			}
++			else {
++				priv->dimm_phy_info[config_idx].present = true;
++			}
++			if (priv->dimm_phy_info[config_idx].present) {
++				priv->dimm_phy_info[config_idx].slot = i;
++				priv->temp_config[config_idx] =
+ 					HWMON_T_LABEL | HWMON_T_INPUT |
+ 					HWMON_T_MAX | HWMON_T_CRIT;
+ 
+-			ret = create_dimm_temp_label(priv, i);
+-			if (ret)
+-				return ret;
++				ret = create_dimm_temp_label(priv, config_idx++);
++				if (ret)
++					return ret;
++			}
+ 		}
+ 
+ 	priv->chip.ops = &dimmtemp_ops;
+-- 
+2.17.1
+
