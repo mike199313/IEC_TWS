@@ -1,0 +1,186 @@
+From 47e77fb555bed046df6e85de12c267b2b91891a4 Mon Sep 17 00:00:00 2001
+From: Wein <kuo.wein@inventec.com>
+Date: Thu, 12 Jan 2023 09:26:43 +0800
+Subject: [PATCH] PLDM BMC software updater integration
+
+---
+ activation.cpp    | 74 +++++++++++++++++++++++++++++++++++++++++++++--
+ activation.hpp    |  5 ++++
+ item_updater.cpp  |  3 ++
+ meson.build       |  4 +++
+ meson_options.txt |  3 ++
+ 5 files changed, 87 insertions(+), 2 deletions(-)
+
+diff --git a/activation.cpp b/activation.cpp
+index e1f5d0e..5e87ba3 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -14,10 +14,13 @@
+ #include <xyz/openbmc_project/Common/error.hpp>
+ #include <xyz/openbmc_project/Software/Version/error.hpp>
+ 
++#include <fstream>
++#include <regex>
+ #ifdef WANT_SIGNATURE_VERIFY
+ #include "image_verify.hpp"
+ #endif
+ 
++namespace fs = std::filesystem;
+ extern boost::asio::io_context& getIOContext();
+ 
+ namespace phosphor
+@@ -151,9 +154,22 @@ auto Activation::activation(Activations value) -> Activations
+ 
+             return softwareServer::Activation::activation(value);
+         }
+-#else
+-        auto purpose = parent.versions.find(versionId)->second->purpose();
+ #endif
++
++#ifdef PLDM_UPGRADE
++        if (purpose == VersionPurpose::PLDM)
++        {
++            // Enable systemd signals
++            subscribeToSystemdSignals();
++            // Set initial progress
++            activationProgress->progress(20);
++            // Initiate image writing to flash
++            flashWritePldm();
++
++            return softwareServer::Activation::activation(value);
++        }
++#endif
++
+         if (purpose == VersionPurpose::Other)
+         {
+             if (!activationProgress)
+@@ -631,6 +647,60 @@ void Activation::onStateChangesCpld(sdbusplus::message::message& msg)
+     return;
+ }
+ 
++#ifdef PLDM_UPGRADE
++
++bool findImages(const fs::path& dirPath, const std::string& matchString,
++                std::vector<fs::path>& foundPaths)
++{
++    if (!fs::exists(dirPath))
++    {
++        return false;
++    }
++
++    std::regex search(matchString);
++    std::smatch match;
++    for (const auto& p : fs::directory_iterator(dirPath))
++    {
++        std::string path = p.path().string();
++
++        if (std::regex_search(path, match, search))
++        {
++            foundPaths.emplace_back(p.path());
++        }
++    }
++    return true;
++}
++
++void Activation::flashWritePldm()
++{
++    auto flashId = parent.versions.find(versionId)->second->path();
++    std::vector<fs::path> imagePaths = {};
++    if (!findImages(flashId, R"(.*\.bin)", imagePaths))
++    {
++        return;
++    }
++
++    if (!imagePaths.size())
++    {
++        return;
++    }
++
++    auto method = bus.new_method_call(PLDM_BUSNAME, PLDM_PATH, PLDM_INTERFACE,
++                                      "StartFWUpdate");
++    method.append(imagePaths[0].c_str());
++    try
++    {
++        auto reply = bus.call(method);
++    }
++    catch (const sdbusplus::exception::exception& e)
++    {
++        error("Error in trying to upgrade PLDM: {ERROR}", "ERROR", e);
++        report<InternalFailure>();
++    }
++}
++
++#endif
++
+ void Activation::rebootBmc()
+ {
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+diff --git a/activation.hpp b/activation.hpp
+index c1f8564..e092383 100644
+--- a/activation.hpp
++++ b/activation.hpp
+@@ -252,6 +252,11 @@ class Activation : public ActivationInherit, public Flash
+     std::string biosImagePathNew;
+ #endif
+ 
++#ifdef PLDM_UPGRADE
++    /* @brief write to Pldm flash function */
++    void flashWritePldm();
++#endif
++
+     int32_t getImagePath(std::string&, SVersion::VersionPurpose purpose);
+     /*@brief cpld upgrade*/
+     void flashWriteCpld();
+diff --git a/item_updater.cpp b/item_updater.cpp
+index 4864e66..abf77cb 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -71,6 +71,9 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+                     if (value == VersionPurpose::BMC ||
+ #ifdef HOST_BIOS_UPGRADE
+                         value == VersionPurpose::Host ||
++#endif
++#ifdef PLDM_UPGRADE
++                        value == VersionPurpose::PLDM ||
+ #endif
+                         value == VersionPurpose::System ||
+                         value == VersionPurpose::Other)
+diff --git a/meson.build b/meson.build
+index c6d8023..28028aa 100644
+--- a/meson.build
++++ b/meson.build
+@@ -41,6 +41,9 @@ conf.set_quoted('VERSION_BUSNAME', 'xyz.openbmc_project.Software.Version')
+ conf.set_quoted('VERSION_IFACE', 'xyz.openbmc_project.Software.Version')
+ conf.set_quoted('EXTENDED_VERSION_IFACE', 'xyz.openbmc_project.Software.ExtendedVersion')
+ conf.set_quoted('COMPATIBLE_IFACE', 'xyz.openbmc_project.Inventory.Decorator.Compatible')
++conf.set_quoted('PLDM_BUSNAME', 'xyz.openbmc_project.pldm-')
++conf.set_quoted('PLDM_PATH', '/xyz/openbmc_project/pldm/fwu')
++conf.set_quoted('PLDM_INTERFACE', 'xyz.openbmc_project.PLDM.FWU.FWUBase')
+ 
+ # Names of the forward and reverse associations
+ conf.set_quoted('ACTIVATION_FWD_ASSOCIATION', 'inventory')
+@@ -73,6 +76,7 @@ conf.set('WANT_SIGNATURE_VERIFY', \
+     get_option('verify-signature').enabled() or \
+     get_option('verify-full-signature').enabled())
+ conf.set('WANT_SIGNATURE_FULL_VERIFY', get_option('verify-full-signature').enabled())
++conf.set('PLDM_UPGRADE', get_option('pldm-upgrade').enabled())
+ 
+ # Configurable variables
+ conf.set('ACTIVE_BMC_MAX_ALLOWED', get_option('active-bmc-max-allowed'))
+diff --git a/meson_options.txt b/meson_options.txt
+index de77ab1..f3d3a95 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -12,6 +12,9 @@ option('bmc-layout', type: 'combo',
+ option('host-bios-upgrade', type: 'feature', value: 'enabled',
+     description: 'Enable host bios upgrade support.')
+ 
++option('pldm-upgrade', type: 'feature', value: 'enabled',
++    description: 'Enable pldm upgrade support.')
++
+ option('sync-bmc-files', type: 'feature', value: 'enabled',
+     description: 'Enable sync of filesystem files.')
+ 
+-- 
+2.33.0
+

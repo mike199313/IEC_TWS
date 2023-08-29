@@ -1,0 +1,1070 @@
+From 1bd7b503a3aaf5d4ce51f462e2573ca3b885918d Mon Sep 17 00:00:00 2001
+From: "sun.cwsun" <sun.cwsun@inventec.com>
+Date: Thu, 23 Feb 2023 14:22:56 +0800
+Subject: [PATCH] support 75% Delta DPS2400 EB psu firmware upload. Because
+ improper i2c block transfer size defined by Delta.
+
+---
+ activation.cpp              | 137 +++++++++++++++++++-
+ activation.hpp              |   8 ++
+ i2cutil.c                   |  95 ++++++++++++++
+ i2cutil.h                   |  39 ++++++
+ item_updater.cpp            | 240 +++++++++++++++++++++++++++++++++++-
+ item_updater.hpp            |  43 +++++++
+ item_updater_main.cpp       |   2 +-
+ meson.build                 |  21 +++-
+ meson_options.txt           |  24 ++++
+ mmc/flash.cpp               |   2 +-
+ obmc-psu-update@.service.in |   9 ++
+ static/flash.cpp            |   2 +-
+ ubi/flash.cpp               |   2 +-
+ utils.cpp                   |  24 +++-
+ utils.hpp                   |  40 +++++-
+ version.cpp                 |   2 +
+ version.hpp                 |   3 +
+ 17 files changed, 679 insertions(+), 14 deletions(-)
+ create mode 100644 i2cutil.c
+ create mode 100644 i2cutil.h
+ create mode 100644 obmc-psu-update@.service.in
+
+diff --git a/activation.cpp b/activation.cpp
+index 67bbb42..b6ac839 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -154,6 +154,8 @@ auto Activation::activation(Activations value) -> Activations
+ 
+             return softwareServer::Activation::activation(value);
+         }
++#else
++        auto purpose = parent.versions.find(versionId)->second->purpose();
+ #endif
+ 
+ #ifdef PLDM_UPGRADE
+@@ -170,6 +172,7 @@ auto Activation::activation(Activations value) -> Activations
+         }
+ #endif
+ 
++
+         if (purpose == VersionPurpose::Other)
+         {
+             if (!activationProgress)
+@@ -188,6 +191,24 @@ auto Activation::activation(Activations value) -> Activations
+             return softwareServer::Activation::activation(value);
+         }
+ 
++        if (purpose == VersionPurpose::PSU)
++        {
++            if (!activationProgress)
++            {
++                activationProgress =
++                    std::make_unique<ActivationProgress>(bus, path);
++            }
++            // Enable systemd signals
++            subscribeToSystemdSignals();
++
++            // Set initial progress
++            activationProgress->progress(20);
++            // Initiate image writing to flash
++            flashWritePSU();
++
++            return softwareServer::Activation::activation(value);
++        }
++
+         activationProgress->progress(10);
+ 
+         parent.freeSpace(*this);
+@@ -371,6 +392,12 @@ void Activation::unitStateChange(sdbusplus::message::message& msg)
+         return;
+     }
+ 
++    if (purpose == VersionPurpose::PSU)
++    {
++        onStateChangesPSU(msg);
++        return;
++    }
++
+     onStateChanges(msg);
+ 
+     return;
+@@ -450,7 +477,7 @@ void Activation::flashWriteHost()
+ {
+     
+     std::vector<uint8_t> eventData = {0xAE, 0x02, 0x00};
+-    utils::reportBySEL(this->bus, eventData);
++    utils::reportByBMCHealthSEL(this->bus, eventData);
+ 
+     std::string biosImagePath;
+     auto ret = getImagePath(biosImagePath, VersionPurpose::Host);
+@@ -485,7 +512,7 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
+ {
+ 
+     std::vector<uint8_t> eventData = {0xAF, 0x02, 0x00};
+-    utils::reportBySEL(this->bus, eventData);
++    utils::reportByBMCHealthSEL(this->bus, eventData);
+ 
+     uint32_t newStateID{};
+     sdbusplus::message::object_path newStateObjPath;
+@@ -536,6 +563,7 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
+ 
+ int32_t Activation::getImagePath(std::string& imagePath, SVersion::VersionPurpose purpose)
+ {
++    dbgmsg("imagePATH=%s\n", imagePath.c_str());
+     fs::path dirPath(std::string{IMG_UPLOAD_DIR});
+     dirPath = dirPath / versionId;
+     int fileCounter = 0;
+@@ -559,18 +587,117 @@ int32_t Activation::getImagePath(std::string& imagePath, SVersion::VersionPurpos
+         }
+     }
+     if ((fileCounter == NUM_OF_BIOS_FILES && purpose == VersionPurpose::Host) ||
+-        (fileCounter == NUM_OF_OTHER_FILES && purpose == VersionPurpose::Other)){
++        (fileCounter == NUM_OF_OTHER_FILES && purpose == VersionPurpose::Other)||
++        (fileCounter == NUM_OF_PSU_FILES && purpose == VersionPurpose::PSU)){
++        dbgmsg("\n");
+         return 0;
+     }
++    dbgmsg("Erro in number of files\n");
+     log<level::ERR>("Erro in number of files");
+     return -1;
+ }
+ 
++void Activation::flashWritePSU()
++{
++    
++    std::vector<uint8_t> eventData = {0x00, 0xFF, 0xFF};
++    utils::reportByPSUUploadSEL(this->bus, eventData);
++
++    std::string psuImagePath;
++    auto ret = getImagePath(psuImagePath, VersionPurpose::PSU);
++    if (ret != 0)
++    {
++        std::vector<uint8_t> eventData = {0xF1, 0xFF, 0xFF};
++        utils::reportByPSUUploadSEL(this->bus, eventData);
++        log<level::ERR>("Error in finding PSU image path.");
++        report<InternalFailure>();
++        return;
++    }
++    log<level::INFO>("flashWritePSU start.");
++    /*when instance name is absolute file path need to replace / with -
++  other the service would be recognized*/
++    std::replace(psuImagePath.begin(), psuImagePath.end(), '/', '-');
++    psuImagePathNew.assign(psuImagePath);
++
++    auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
++                                      SYSTEMD_INTERFACE, "StartUnit");
++    auto psuServiceFile = "obmc-psu-update@" + psuImagePath + ".service";
++    method.append(psuServiceFile, "replace");
++    try
++    {
++        auto reply = bus.call(method);
++    }
++    catch (const sdbusplus::exception::SdBusError& e)
++    {
++
++        std::vector<uint8_t> eventData = {0xF1, 0xFF, 0xFF};
++        utils::reportByPSUUploadSEL(this->bus, eventData);
++        log<level::ERR>("Error in trying to upgrade PSU.");
++        report<InternalFailure>();
++    }
++}
++
++
++void Activation::onStateChangesPSU(sdbusplus::message::message& msg)
++{
++    dbgmsg("\n");
++    std::vector<uint8_t> eventData = {0x01, 0xFF, 0xFF};
++    utils::reportByPSUUploadSEL(this->bus, eventData);
++
++    uint32_t newStateID{};
++    sdbusplus::message::object_path newStateObjPath;
++    std::string newStateUnit{};
++    std::string newStateResult{};
++
++    // Read the msg and populate each variable
++    msg.read(newStateID, newStateObjPath, newStateUnit, newStateResult);
++
++    auto psuServiceFile = "obmc-psu-update@" + psuImagePathNew + ".service";
++
++    if (newStateUnit == psuServiceFile)
++    {
++        // unsubscribe to systemd signals
++        unsubscribeFromSystemdSignals();
++
++        if (newStateResult == "done")
++        {
++            // Remove version object from image manager
++            deleteImageManagerObject();
++
++            // Set activation progress to 100
++            activationProgress->progress(100);
++
++
++            std::vector<uint8_t> eventData = {0x01, 0xFF, 0xFF};
++            utils::reportByPSUUploadSEL(this->bus, eventData);
++
++            // Set Activation value to active
++            activation(softwareServer::Activation::Activations::Active);
++
++            log<level::INFO>("PSU upgrade completed successfully.");
++        }
++        else if (newStateResult == "failed")
++        {
++
++            std::vector<uint8_t> eventData = {0xF1, 0xFF, 0xFF};
++            utils::reportByPSUUploadSEL(this->bus, eventData);
++
++            // Set Activation value to Failed
++            activation(softwareServer::Activation::Activations::Failed);
++
++            log<level::ERR>("PSU upgrade failed.");
++        }
++    }
++
++    return;
++}
++
++
+ void Activation::flashWriteCpld()
+ {
+     
+     std::vector<uint8_t> eventData = {0xAE, 0x03, 0x00};
+-    utils::reportBySEL(this->bus, eventData);
++    utils::reportByBMCHealthSEL(this->bus, eventData);
+ 
+     std::string cpldImagePath;
+     auto ret = getImagePath(cpldImagePath, VersionPurpose::Other);
+@@ -605,7 +732,7 @@ void Activation::onStateChangesCpld(sdbusplus::message::message& msg)
+ {
+ 
+     std::vector<uint8_t> eventData = {0xAF, 0x03, 0x00};
+-    utils::reportBySEL(this->bus, eventData);
++    utils::reportByBMCHealthSEL(this->bus, eventData);
+ 
+     uint32_t newStateID{};
+     sdbusplus::message::object_path newStateObjPath;
+diff --git a/activation.hpp b/activation.hpp
+index e092383..2019fb4 100644
+--- a/activation.hpp
++++ b/activation.hpp
+@@ -47,8 +47,10 @@ constexpr auto applyTimeProp = "RequestedApplyTime";
+ 
+ // BIOS: The count of files should be 6 : imageFile, Manifest, publickey and 3 sig of these.
+ // Other: The count of files should be 2 : image file and Manifest.
++// PSU: The count of files should be 2 : image file and Manifest.
+ constexpr int NUM_OF_BIOS_FILES = 6;
+ constexpr int NUM_OF_OTHER_FILES = 2;
++constexpr int NUM_OF_PSU_FILES = 2;
+ 
+ namespace sdbusRule = sdbusplus::bus::match::rules;
+ 
+@@ -209,6 +211,7 @@ class Activation : public ActivationInherit, public Flash
+ 
+         // Emit deferred signal.
+         emit_object_added();
++        dbgmsg("path=%s versionId=%s \n", path.c_str(), versionId.c_str());
+     }
+ 
+     /** @brief Overloaded Activation property setter function
+@@ -263,6 +266,11 @@ class Activation : public ActivationInherit, public Flash
+     void onStateChangesCpld(sdbusplus::message::message&);
+     std::string cpldImagePathNew;
+ 
++    /*@brief psu upgrade*/
++    void flashWritePSU();
++    void onStateChangesPSU(sdbusplus::message::message&);
++    std::string psuImagePathNew;
++
+     /** @brief Overloaded function that acts on service file state changes */
+     void onStateChanges(sdbusplus::message::message&) override;
+ 
+diff --git a/i2cutil.c b/i2cutil.c
+new file mode 100644
+index 0000000..55511d2
+--- /dev/null
++++ b/i2cutil.c
+@@ -0,0 +1,95 @@
++/*
++    i2cbusses: Print the installed i2c busses for both 2.4 and 2.6 kernels.
++               Part of user-space programs to access for I2C
++               devices.
++    Copyright (c) 1999-2003  Frodo Looijaard <frodol@dds.nl> and
++                             Mark D. Studebaker <mdsxyz123@yahoo.com>
++    Copyright (C) 2008-2012  Jean Delvare <jdelvare@suse.de>
++
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, write to the Free Software
++    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
++    MA 02110-1301 USA.
++*/
++
++/* For strdup and snprintf */
++#define _BSD_SOURCE 1 /* for glibc <= 2.19 */
++#define _DEFAULT_SOURCE 1 /* for glibc >= 2.19 */
++
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/param.h>	/* for NAME_MAX */
++#include <sys/ioctl.h>
++#include <string.h>
++#include <strings.h>	/* for strcasecmp() */
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <limits.h>
++#include <dirent.h>
++#include <fcntl.h>
++#include <errno.h>
++#include "i2cutil.h"
++#include <linux/i2c.h>
++#include <linux/i2c-dev.h>
++
++
++int open_i2c_dev(int i2cbus, char *filename, size_t size, int quiet)
++{
++	int file, len;
++
++	len = snprintf(filename, size, "/dev/i2c/%d", i2cbus);
++	if (len >= (int)size) {
++		fprintf(stderr, "%s: path truncated\n", filename);
++		return -EOVERFLOW;
++	}
++	file = open(filename, O_RDWR);
++
++	if (file < 0 && (errno == ENOENT || errno == ENOTDIR)) {
++		len = snprintf(filename, size, "/dev/i2c-%d", i2cbus);
++		if (len >= (int)size) {
++			fprintf(stderr, "%s: path truncated\n", filename);
++			return -EOVERFLOW;
++		}
++		file = open(filename, O_RDWR);
++	}
++
++	if (file < 0 && !quiet) {
++		if (errno == ENOENT) {
++			fprintf(stderr, "Error: Could not open file "
++				"`/dev/i2c-%d' or `/dev/i2c/%d': %s\n",
++				i2cbus, i2cbus, strerror(ENOENT));
++		} else {
++			fprintf(stderr, "Error: Could not open file "
++				"`%s': %s\n", filename, strerror(errno));
++			if (errno == EACCES)
++				fprintf(stderr, "Run as root?\n");
++		}
++	}
++
++	return file;
++}
++
++int set_slave_addr(int file, int address, int force)
++{
++	/* With force, let the user read from/write to the registers
++	   even when a driver is also running */
++	if (ioctl(file, force ? I2C_SLAVE_FORCE : I2C_SLAVE, address) < 0) {
++		fprintf(stderr,
++			"Error: Could not set address to 0x%02x: %s\n",
++			address, strerror(errno));
++		return -errno;
++	}
++
++	return 0;
++}
+diff --git a/i2cutil.h b/i2cutil.h
+new file mode 100644
+index 0000000..5efb5cf
+--- /dev/null
++++ b/i2cutil.h
+@@ -0,0 +1,39 @@
++/*
++    i2cbusses.h - Part of the i2c-tools package
++
++    Copyright (C) 2004-2010  Jean Delvare <jdelvare@suse.de>
++
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, write to the Free Software
++    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
++    MA 02110-1301 USA.
++*/
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#ifndef _I2CUTIL_H_
++#define _I2CUTIL_H_
++
++#include <unistd.h>
++
++int open_i2c_dev(int i2cbus, char *filename, size_t size, int quiet);
++int set_slave_addr(int file, int address, int force);
++
++#define MISSING_FUNC_FMT	"Error: Adapter does not have %s capability\n"
++
++#endif
++
++#ifdef __cplusplus
++}
++#endif
+diff --git a/item_updater.cpp b/item_updater.cpp
+index abf77cb..dfbb045 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -19,6 +19,30 @@
+ #include <queue>
+ #include <set>
+ #include <string>
++#include <sstream>
++#include <nlohmann/json.hpp>
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#include <sys/ioctl.h>
++#include <errno.h>
++#include <string.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <linux/i2c.h>
++#include <linux/i2c-dev.h>
++#include <i2c/smbus.h>
++#include <i2cutil.h>
++#include <unistd.h>
++
++#ifdef __cplusplus
++}
++#endif
++
+ 
+ namespace phosphor
+ {
+@@ -76,7 +100,8 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+                         value == VersionPurpose::PLDM ||
+ #endif
+                         value == VersionPurpose::System ||
+-                        value == VersionPurpose::Other)
++                        value == VersionPurpose::Other ||
++                        value == VersionPurpose::PSU)
+                     {
+                         purpose = value;
+                     }
+@@ -911,6 +936,219 @@ void ItemUpdater::getRunningSlot()
+     f >> runningImageSlot;
+ }
+ 
++
++using Json = nlohmann::json;
++
++const int I2CTOOL_FORCE_FLAG = 1;
++enum PSUErrCode{
++    PSU_ERRCODE_SUCCESS = 0,
++    PSU_ERRCODE_FIRMWARE_FAILED = -1,
++    PSU_ERRCODE_SMBUS_CONFIG_FAILED = -2,
++    PSU_ERRCODE_SMBUS_READ_WRITE_FAILED = -3,
++};
++
++
++static Json readJsonFile(const std::string &configFile)
++{
++    std::ifstream jsonFile(configFile);
++    if (!jsonFile.good())
++    {
++        log<level::ERR>("JSON file not found",
++                         entry("FILE_NAME=%s", configFile.c_str()));
++        return nullptr;
++    }
++
++    Json data = nullptr;
++    try
++    {
++        data = Json::parse(jsonFile, nullptr, false);
++    }
++    catch (const Json::parse_error &e)
++    {
++        log<level::ERR>("Corrupted config.",
++                          entry("MSG=%s", e.what()));
++        return nullptr;
++    }
++
++    return data;
++}
++
++
++[[maybe_unused]]void static load_psu_config(std::vector<PSU>& PSUs)
++{
++    const std::string psuConfigFileName = "/usr/share/ipmi-providers/psu_config.json";
++   
++    //load the PSU i2c information by readin psu_config.json
++    Json root = readJsonFile(psuConfigFileName);
++    if(root == nullptr){
++        log<level::ERR>("load PSU config file failed, skipping checking PSU");
++        dbgmsg("load PSU config file failed, skipping checking PSU\n");
++        return;
++    }
++
++    for(auto& p : root["psu"]){
++        PSU psu;
++        psu.bus = p["bus"].get<int>();
++        psu.address = p["address"].get<int>();
++        PSUs.emplace_back(psu);
++    }
++}
++
++[[maybe_unused]]static int init_PSU_I2C(PSU &p)
++{
++    char filename[32];
++    p.fh = open_i2c_dev(p.bus, filename, sizeof(filename), 0);
++    if (p.fh < 0) {
++        log<level::ERR>("open I2C bus failed",
++            entry("bus=%d", p.bus));
++        dbgmsg("open I2C bus failed bus=%d \n", p.bus);
++        return PSU_ERRCODE_SMBUS_CONFIG_FAILED;
++    }
++
++    int rt = set_slave_addr(p.fh, p.address, I2CTOOL_FORCE_FLAG);
++    if (rt) {
++        log<level::ERR>("set I2C address failed",
++            entry("address=%d", p.address));
++        dbgmsg("set I2C address failed address=%d \n", p.address);
++        close(p.fh);
++        return PSU_ERRCODE_SMBUS_CONFIG_FAILED;
++    }
++    return PSU_ERRCODE_SUCCESS;
++}
++
++#ifdef PSU_MODEL_DPS2400EB
++//The fetch psu firmware version is depends on the Delta DPS2400 model
++static std::string get_psu_firmware_version(int index)
++{
++    const int MFR_FW_REVISION = 0xD9;
++
++    std::vector<PSU> PSUs;
++
++    load_psu_config(PSUs);
++
++    PSU p = PSUs.at(index-1);
++
++    int rt = init_PSU_I2C(p);
++    if (rt != PSU_ERRCODE_SUCCESS) {
++        return  "unknown_version";
++    }
++
++    unsigned char databuf[32];
++    bzero(databuf, sizeof(databuf));
++    std::stringstream ss;
++    rt = i2c_smbus_read_block_data(p.fh, MFR_FW_REVISION, databuf);
++    if (rt != 3) {
++        return "uncertain_version";
++    }
++    ss << std::to_string(databuf[2]) << ".";
++    ss << std::to_string(databuf[1]) << ".";
++    ss << std::to_string(databuf[0]);
++    close(p.fh);
++    return ss.str();
++
++}
++#else
++static std::string get_psu_firmware_version(int index[[maybe_unused]])
++    {
++        return "not support fetching psu firmware version feature";
++    }
++#endif
++
++#ifdef PSU1_OBJPATH
++void ItemUpdater::createPSU1Object()
++{
++    std::string path = PSU1_OBJPATH;
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++    ("PSU1 Object Path : " + path).c_str());
++
++    auto pos = path.rfind("/");
++    if (pos == std::string::npos)
++    {
++        error("No version id found in object path {PATH}", "PATH", path);
++        return;
++    }
++
++    createActiveAssociation(path);
++    createFunctionalAssociation(path);
++    createUpdateableAssociation(path);
++
++    auto versionId = path.substr(pos + 1);
++    auto version = getPSU1Version();
++    AssociationList assocs = {};
++    psu1Activation = std::make_unique<Activation>(
++        bus, path, *this, versionId, server::Activation::Activations::Active,
++        assocs);
++    auto dummyErase = [](std::string /*entryId*/) {
++        // Do nothing;
++    };
++
++    std::vector<std::string> compatibleNames;
++    psu1Version = std::make_unique<VersionClass>(
++        bus, path, version, VersionPurpose::Other, "", "",
++        compatibleNames,
++        std::bind(dummyErase, std::placeholders::_1), "");
++    psu1Version->deleteObject =
++        std::make_unique<phosphor::software::manager::Delete>(bus, path,
++                                                              *psu1Version);
++}
++
++std::string ItemUpdater::getPSU1Version()
++{
++    int index = 1; //PSU1
++    return "PSU1_v" + get_psu_firmware_version(index);
++}
++#endif
++
++
++#ifdef PSU2_OBJPATH
++void ItemUpdater::createPSU2Object()
++{
++    std::string path = PSU2_OBJPATH;
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++    ("PSU2 Object Path : " + path).c_str());
++
++    auto pos = path.rfind("/");
++    if (pos == std::string::npos)
++    {
++        error("No version id found in object path {PATH}", "PATH", path);
++        return;
++    }
++
++    createActiveAssociation(path);
++    createFunctionalAssociation(path);
++    createUpdateableAssociation(path);
++
++    auto versionId = path.substr(pos + 1);
++    auto version = getPSU2Version();
++    AssociationList assocs = {};
++    psu2Activation = std::make_unique<Activation>(
++        bus, path, *this, versionId, server::Activation::Activations::Active,
++        assocs);
++    auto dummyErase = [](std::string /*entryId*/) {
++        // Do nothing;
++    };
++
++    std::vector<std::string> compatibleNames;
++    psu2Version = std::make_unique<VersionClass>(
++        bus, path, version, VersionPurpose::Other, "", "",
++        compatibleNames,
++        std::bind(dummyErase, std::placeholders::_1), "");
++    psu2Version->deleteObject =
++        std::make_unique<phosphor::software::manager::Delete>(bus, path,
++                                                              *psu1Version);
++}
++
++std::string ItemUpdater::getPSU2Version()
++{
++    int index = 2; //PSU2
++    return "PSU2_v" + get_psu_firmware_version(index);
++}
++#endif
++
++
++
+ #ifdef CPLD_MB_OBJPATH
+ void ItemUpdater::createCPLDMBObject()
+ {
+diff --git a/item_updater.hpp b/item_updater.hpp
+index a71f2f4..bb1f593 100644
+--- a/item_updater.hpp
++++ b/item_updater.hpp
+@@ -38,6 +38,15 @@ using VersionClass = phosphor::software::manager::Version;
+ using AssociationList =
+     std::vector<std::tuple<std::string, std::string, std::string>>;
+ 
++
++struct PSU{
++    int bus;
++    int address;
++    int fh;
++};
++
++
++
+ /** @class ItemUpdater
+  *  @brief Manages the activation of the BMC version items.
+  */
+@@ -75,6 +84,14 @@ class ItemUpdater : public ItemUpdaterInherit
+ #ifdef HOST_BIOS_UPGRADE
+         createBIOSObject();
+ #endif
++#ifdef PSU1_OBJPATH
++        createPSU1Object();
++#endif
++
++#ifdef PSU2_OBJPATH
++        createPSU2Object();
++#endif
++
+ #ifdef CPLD_MB_OBJPATH
+         createCPLDMBObject();
+ #endif
+@@ -299,6 +316,32 @@ class ItemUpdater : public ItemUpdaterInherit
+     /** @brief Get the slot number of running image */
+     void getRunningSlot();
+ 
++
++#ifdef PSU1_OBJPATH
++    /** @brief Create the PSU1 object without knowing the version. */
++    void createPSU1Object();
++    /** @brief Get PSU1 version from psu */
++    std::string getPSU1Version();
++    /** @brief Persistent Activation D-Bus object for PSU*/
++    std::unique_ptr<Activation> psu1Activation;
++    public:
++    /** @brief Persistent Version D-Bus object for PSU */
++    std::unique_ptr<VersionClass> psu1Version;
++#endif
++
++
++#ifdef PSU2_OBJPATH
++    /** @brief Create the PSU1 object without knowing the version. */
++    void createPSU2Object();
++    /** @brief Get PSU2 version from psu */
++    std::string getPSU2Version();
++    /** @brief Persistent Activation D-Bus object for PSU*/
++    std::unique_ptr<Activation> psu2Activation;
++    public:
++    /** @brief Persistent Version D-Bus object for PSU */
++    std::unique_ptr<VersionClass> psu2Version;
++#endif
++
+ #ifdef CPLD_MB_OBJPATH
+     /** @brief Create the CPLD MB object without knowing the version. */
+     void createCPLDMBObject();
+diff --git a/item_updater_main.cpp b/item_updater_main.cpp
+index 76165a0..9b37c8f 100644
+--- a/item_updater_main.cpp
++++ b/item_updater_main.cpp
+@@ -32,7 +32,7 @@ int main()
+         remove("/var/lib/os-release");
+ 
+         std::vector<uint8_t> eventData = {0xAF, 0x01, 0x00};
+-        utils::reportBySEL(bus, eventData);
++        utils::reportByBMCHealthSEL(bus, eventData);
+     }
+ 
+     // Add sdbusplus ObjectManager.
+diff --git a/meson.build b/meson.build
+index 28028aa..70cc3d4 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1,4 +1,4 @@
+-project('phosphor-bmc-code-mgmt', 'cpp',
++project('phosphor-bmc-code-mgmt', 'cpp', 'c',
+     default_options: [
+         'buildtype=debugoptimized',
+         'cpp_std=c++20',
+@@ -72,6 +72,9 @@ conf.set('MMC_LAYOUT', get_option('bmc-layout').contains('mmc'))
+ conf.set('HOST_BIOS_UPGRADE', get_option('host-bios-upgrade').enabled())
+ conf.set('CPLD_MB_UPGRADE', get_option('cpld-mb-upgrade').enabled())
+ conf.set('CPLD_SCM_UPGRADE', get_option('cpld-scm-upgrade').enabled())
++conf.set('PSU_MODEL_DPS2400EB', get_option('dps2400eb').enabled())
++conf.set('PSU1_UPGRADE', get_option('psu1-upgrade').enabled())
++conf.set('PSU2_UPGRADE', get_option('psu2-upgrade').enabled())
+ conf.set('WANT_SIGNATURE_VERIFY', \
+     get_option('verify-signature').enabled() or \
+     get_option('verify-full-signature').enabled())
+@@ -110,6 +113,15 @@ else
+   conf.set_quoted('ALT_RWFS', '/media/alt/var/persist')
+ endif
+ 
++
++if get_option('psu1-upgrade').enabled()
++conf.set_quoted('PSU1_OBJPATH', get_option('psu1-object-path'))
++endif
++
++if get_option('psu2-upgrade').enabled()
++conf.set_quoted('PSU2_OBJPATH', get_option('psu2-object-path'))
++endif
++
+ if get_option('cpld-mb-upgrade').enabled()
+ conf.set_quoted('CPLD_MB_OBJPATH', get_option('cpld-mb-object-path'))
+ endif
+@@ -144,11 +156,14 @@ if not has_cereal
+     cereal_dep = cereal_proj.dependency('cereal')
+ endif
+ 
++# i2c-tools doesn't ship a pkg-config file for libi2c
++i2c = meson.get_compiler('cpp').find_library('i2c')
+ deps = [
+     cereal_dep,
+     pdi_dep,
+     phosphor_logging_dep,
+     sdbusplus_dep,
++    i2c
+ ]
+ 
+ ssl = dependency('openssl')
+@@ -178,7 +193,8 @@ image_updater_sources = files(
+     'serialize.cpp',
+     'version.cpp',
+     'utils.cpp',
+-    'msl_verify.cpp'
++    'msl_verify.cpp',
++    'i2cutil.c',
+ )
+ 
+ if get_option('bmc-layout').contains('static')
+@@ -230,6 +246,7 @@ if get_option('bmc-static-dual-image').enabled()
+ endif
+ 
+ unit_files += 'obmc-cpld-update@.service.in'
++unit_files += 'obmc-psu-update@.service.in'
+ 
+ if get_option('sync-bmc-files').enabled()
+     executable(
+diff --git a/meson_options.txt b/meson_options.txt
+index f3d3a95..d0e8b6e 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -138,12 +138,36 @@ option(
+     description: 'The dir for alt-rwfs partition.',
+ )
+ 
++option('dps2400eb', type: 'feature', value: 'disabled', 
++    description: 'Support PSU MODEL Delta DPS2400 EB')
++
++option('psu1-upgrade', type: 'feature', value: 'disabled',
++    description: 'Enable psu1 upgrade support.')
++
++
++option('psu2-upgrade', type: 'feature', value: 'disabled',
++    description: 'Enable psu2 upgrade support.')
++
++
+ option('cpld-mb-upgrade', type: 'feature', value: 'enabled',
+     description: 'Enable CPLD MB upgrade support.')
+ 
+ option('cpld-scm-upgrade', type: 'feature', value: 'enabled',
+     description: 'Enable CPLD SCM upgrade support.')
+ 
++
++option(
++    'psu1-object-path', type: 'string',
++    value: '/xyz/openbmc_project/software/psu1',
++    description: 'The psu1 upgrading object path.',
++)
++
++option(
++    'psu2-object-path', type: 'string',
++    value: '/xyz/openbmc_project/software/psu2',
++    description: 'The psu2 upgrading object path.',
++)
++
+ option(
+     'cpld-mb-object-path', type: 'string',
+     value: '/xyz/openbmc_project/software/cpld_mb',
+diff --git a/mmc/flash.cpp b/mmc/flash.cpp
+index 03aaf8d..6652d32 100644
+--- a/mmc/flash.cpp
++++ b/mmc/flash.cpp
+@@ -28,7 +28,7 @@ void Activation::flashWrite()
+     auto copyOption = fs::copy_options::overwrite_existing;
+     fs::copy("/usr/lib/os-release", "/var/lib/os-release");
+     std::vector<uint8_t> eventData = {0xAE, 0x01, 0x00};
+-    utils::reportBySEL(bus, eventData);
++    utils::reportByBMCHealthSEL(bus, eventData);
+ 
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+diff --git a/obmc-psu-update@.service.in b/obmc-psu-update@.service.in
+new file mode 100644
+index 0000000..4fa5b7c
+--- /dev/null
++++ b/obmc-psu-update@.service.in
+@@ -0,0 +1,9 @@
++[Unit]
++Description=FLASH PSU %I to PSU
++
++[Service]
++Type=oneshot
++RemainAfterExit=no
++ExecStart=/usr/bin/dps2400eb-psu-upgrade %i
++StandardOutput=journal+console
++
+diff --git a/static/flash.cpp b/static/flash.cpp
+index b43eb1f..9e3b4af 100644
+--- a/static/flash.cpp
++++ b/static/flash.cpp
+@@ -53,7 +53,7 @@ void Activation::flashWrite()
+     auto copyOption = fs::copy_options::overwrite_existing;
+     fs::copy("/usr/lib/os-release", "/var/lib/os-release", copyOption);
+     std::vector<uint8_t> eventData = {0xAE, 0x01, 0x00};
+-    utils::reportBySEL(bus, eventData);
++    utils::reportByBMCHealthSEL(bus, eventData);
+     
+     // For static layout code update, just put images in /run/initramfs.
+     // It expects user to trigger a reboot and an updater script will program
+diff --git a/ubi/flash.cpp b/ubi/flash.cpp
+index fbd8f73..7e18d6a 100644
+--- a/ubi/flash.cpp
++++ b/ubi/flash.cpp
+@@ -27,7 +27,7 @@ void Activation::flashWrite()
+     auto copyOption = fs::copy_options::overwrite_existing;
+     fs::copy("/usr/lib/os-release", "/var/lib/os-release");
+     std::vector<uint8_t> eventData = {0xAE, 0x01, 0x00};
+-    utils::reportBySEL(bus, eventData);
++    utils::reportByBMCHealthSEL(bus, eventData);
+ 
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+diff --git a/utils.cpp b/utils.cpp
+index 746a1aa..f402132 100644
+--- a/utils.cpp
++++ b/utils.cpp
+@@ -141,7 +141,7 @@ int executeCmd(const char* path, char** args)
+ 
+ } // namespace internal
+ 
+-void reportBySEL(sdbusplus::bus::bus& bus, std::vector<uint8_t>& eventData)
++void reportByBMCHealthSEL(sdbusplus::bus::bus& bus, std::vector<uint8_t>& eventData)
+ {
+     sdbusplus::message::message writeSEL = bus.new_method_call(
+         "xyz.openbmc_project.Logging.IPMI", "/xyz/openbmc_project/Logging/IPMI",
+@@ -160,4 +160,26 @@ void reportBySEL(sdbusplus::bus::bus& bus, std::vector<uint8_t>& eventData)
+         fprintf(stderr, "%s:%d exception=%s \n", __func__, __LINE__, e.what());
+     }
+ }
++
++
++void reportByPSUUploadSEL(sdbusplus::bus::bus& bus, std::vector<uint8_t>& eventData)
++{
++    sdbusplus::message::message writeSEL = bus.new_method_call(
++        "xyz.openbmc_project.Logging.IPMI", "/xyz/openbmc_project/Logging/IPMI",
++        "xyz.openbmc_project.Logging.IPMI", "IpmiSelAdd");
++
++    writeSEL.append(
++        std::string("PSU firmware uploading"),
++        "/xyz/openbmc_project/sensors/discrete_6fh/power_supply/PSUFirmwareUpload",
++        eventData, true, static_cast<uint16_t>(0x20));
++    try
++    {
++        bus.call(writeSEL);
++    }
++    catch (sdbusplus::exception_t& e)
++    {
++        fprintf(stderr, "%s:%d exception=%s \n", __func__, __LINE__, e.what());
++    }
++}
++
+ } // namespace utils
+diff --git a/utils.hpp b/utils.hpp
+index 7187481..ae4db4a 100644
+--- a/utils.hpp
++++ b/utils.hpp
+@@ -1,3 +1,5 @@
++#pragma once
++
+ #include "config.h"
+ 
+ #include <sdbusplus/server.hpp>
+@@ -6,6 +8,32 @@
+ #include <map>
+ #include <string>
+ 
++
++#ifndef DEBUG__
++#define DEBUG__
++#endif 
++
++#ifdef DEBUG__
++#define dbgmsg(...) do{ {logmsg_impl_v1(__FILE__, __LINE__, __func__, __VA_ARGS__);} }while(0)
++
++[[maybe_unused]]inline static void logmsg_impl_v1(const char* srcname, int linenum, const char* funcname, const char* fmt, ...)
++{
++		va_list ap;
++		char *filename = basename(strdup(srcname));
++
++		fprintf(stderr, "{%s:%d:%s}:",filename, linenum, funcname);
++		va_start(ap, fmt);
++        vfprintf(stderr, fmt, ap);
++        va_end(ap);
++        fflush(stderr);
++}
++
++#else
++#define dbgmsg(...) do{}while(0)
++#endif
++
++
++
+ namespace utils
+ {
+ 
+@@ -125,7 +153,17 @@ int execute(const char* path, Arg&&... args)
+  * @param bus the dbus bus object
+  * @param eventData the eventData of system sel
+  */
+-void reportBySEL(sdbusplus::bus::bus& bus,
++void reportByBMCHealthSEL(sdbusplus::bus::bus& bus,
++                        std::vector<uint8_t>& eventData);
++
++
++/**
++ * @brief do system sel log for PSU firmware update
++ * 
++ * @param bus the dbus bus object
++ * @param eventData the eventData of system sel
++ */
++void reportByPSUUploadSEL(sdbusplus::bus::bus& bus,
+                         std::vector<uint8_t>& eventData);
+ 
+ } // namespace utils
+diff --git a/version.cpp b/version.cpp
+index f7fbd2b..a0331f3 100644
+--- a/version.cpp
++++ b/version.cpp
+@@ -15,6 +15,8 @@
+ #include <stdexcept>
+ #include <string>
+ 
++#include "utils.hpp"
++
+ namespace phosphor
+ {
+ namespace software
+diff --git a/version.hpp b/version.hpp
+index 8f284dd..a40b6cb 100644
+--- a/version.hpp
++++ b/version.hpp
+@@ -12,6 +12,8 @@
+ #include <string>
+ #include <vector>
+ 
++#include "utils.hpp"
++
+ namespace phosphor
+ {
+ namespace software
+@@ -97,6 +99,7 @@ class Version : public VersionInherit
+         names(compatibleNames);
+         // Emit deferred signal.
+         emit_object_added();
++        dbgmsg("filePath=%s version=%s purpose=%d \n", filePath.c_str(), versionString.c_str(), static_cast<int>(versionPurpose));
+     }
+ 
+     /**

@@ -1,0 +1,305 @@
+From e3ea4c8f9163f558124bbb223459ce8832b168b7 Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Wed, 2 Mar 2022 09:01:03 +0000
+Subject: [PATCH 1/6] add bios image upload flow Bug 1082 -
+ [Transformers][OpenBMC][FirmwareUpdate]Can't upgrade CPLD image via Redfish.
+ Bug 1083 - [Transformers][OpenBMC][FirmwareUpdate]Can't upgrade BIOS image
+ via Redfish.
+
+[comment for 2.12 upgrade]
+    Related code in activation.cpp is moved to other lines in commit bee624 (Create Activiation...)
+    Move code in this patch as well.
+---
+ activation.cpp                   | 141 ++++++++++++++++++++++++++++++-
+ activation.hpp                   |  11 ++-
+ item_updater.cpp                 |   3 +-
+ meson.build                      |   2 +
+ obmc-cpld-update@.service.in     |   9 ++
+ obmc-flash-host-bios@.service.in |   5 +-
+ 6 files changed, 162 insertions(+), 9 deletions(-)
+ create mode 100644 obmc-cpld-update@.service.in
+
+diff --git a/activation.cpp b/activation.cpp
+index e057814..18f28ee 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -150,7 +150,26 @@ auto Activation::activation(Activations value) -> Activations
+ 
+             return softwareServer::Activation::activation(value);
+         }
++#else
++        auto purpose = parent.versions.find(versionId)->second->purpose();
+ #endif
++        if (purpose == VersionPurpose::Other)
++        {
++            if (!activationProgress)
++            {
++                activationProgress =
++                    std::make_unique<ActivationProgress>(bus, path);
++            }
++            // Enable systemd signals
++            subscribeToSystemdSignals();
++
++            // Set initial progress
++            activationProgress->progress(20);
++            // Initiate image writing to flash
++            flashWriteCpld();
++
++            return softwareServer::Activation::activation(value);
++        }
+ 
+         activationProgress->progress(10);
+ 
+@@ -326,7 +345,14 @@ void Activation::unitStateChange(sdbusplus::message::message& msg)
+         onStateChangesBios(msg);
+         return;
+     }
++#else
++     auto purpose = parent.versions.find(versionId)->second->purpose();
+ #endif
++    if (purpose == VersionPurpose::Other)
++    {
++        onStateChangesCpld(msg);
++        return;
++    }
+ 
+     onStateChanges(msg);
+ 
+@@ -404,9 +430,23 @@ bool Activation::checkApplyTimeImmediate()
+ #ifdef HOST_BIOS_UPGRADE
+ void Activation::flashWriteHost()
+ {
++    std::string biosImagePath;
++    auto ret = getImagePath(biosImagePath);
++    if(ret!=0)
++    {
++        log<level::ERR>("Error in finding host bios path.");
++        report<InternalFailure>();
++        return;
++    }
++    log<level::INFO>("flashWriteBios start.");
++      /*when instance name is absolute file path need to replace / with -
++    other the service would be recognized*/
++    std::replace( biosImagePath.begin(), biosImagePath.end(), '/', '-');
++    biosImagePathNew.assign(biosImagePath);
++
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+-    auto biosServiceFile = "obmc-flash-host-bios@" + versionId + ".service";
++    auto biosServiceFile = "obmc-flash-host-bios@" + biosImagePath + ".service";
+     method.append(biosServiceFile, "replace");
+     try
+     {
+@@ -429,7 +469,7 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
+     // Read the msg and populate each variable
+     msg.read(newStateID, newStateObjPath, newStateUnit, newStateResult);
+ 
+-    auto biosServiceFile = "obmc-flash-host-bios@" + versionId + ".service";
++    auto biosServiceFile = "obmc-flash-host-bios@" + biosImagePathNew + ".service";
+ 
+     if (newStateUnit == biosServiceFile)
+     {
+@@ -467,6 +507,103 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
+ 
+ #endif
+ 
++int32_t Activation::getImagePath(std::string& imagePath)
++{
++    fs::path dirPath(std::string{IMG_UPLOAD_DIR});
++    dirPath = dirPath / versionId;
++
++    int fileCounter = 0;
++    for (auto& it: fs::directory_iterator(dirPath))
++    {
++        if ( it.path().filename() != "MANIFEST" )
++        {
++            imagePath = it.path();
++        }
++        fileCounter++;
++    }
++
++   // The count of files should be 2 : image file and Manifest.
++    if (fileCounter != 2)
++    {
++        log<level::ERR>("Erro in number of files");
++        return -1;
++    }
++    return 0;
++}
++
++void Activation::flashWriteCpld()
++{
++    std::string cpldImagePath;
++    auto ret = getImagePath(cpldImagePath);
++    if(ret!=0)
++    {
++        log<level::ERR>("Error in finding image path.");
++        report<InternalFailure>();
++        return;
++    }
++     log<level::INFO>("flashWriteCpld start.");
++      /*when instance name is absolute file path need to replace / with -
++    other the service would be recognized*/
++    std::replace( cpldImagePath.begin(), cpldImagePath.end(), '/', '-');
++    cpldImagePathNew.assign(cpldImagePath);
++
++    auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
++                                      SYSTEMD_INTERFACE, "StartUnit");
++    auto cpldServiceFile = "obmc-cpld-update@" + cpldImagePath + ".service";
++    method.append(cpldServiceFile, "replace");
++    try
++    {
++        auto reply = bus.call(method);
++    }
++    catch (const sdbusplus::exception::SdBusError& e)
++    {
++        log<level::ERR>("Error in trying to upgrade Cpld.");
++        report<InternalFailure>();
++    }
++}
++
++void Activation::onStateChangesCpld(sdbusplus::message::message& msg)
++{
++    uint32_t newStateID{};
++    sdbusplus::message::object_path newStateObjPath;
++    std::string newStateUnit{};
++    std::string newStateResult{};
++
++    // Read the msg and populate each variable
++    msg.read(newStateID, newStateObjPath, newStateUnit, newStateResult);
++
++    auto cpldServiceFile = "obmc-cpld-update@" + cpldImagePathNew + ".service";
++
++    if (newStateUnit == cpldServiceFile)
++    {
++        // unsubscribe to systemd signals
++        unsubscribeFromSystemdSignals();
++
++        if (newStateResult == "done")
++        {
++            // Remove version object from image manager
++            deleteImageManagerObject();
++
++            // Set activation progress to 100
++            activationProgress->progress(100);
++
++            // Set Activation value to active
++            activation(softwareServer::Activation::Activations::Active);
++
++            log<level::INFO>("Cpld upgrade completed successfully.");
++        }
++        else if (newStateResult == "failed")
++        {
++            // Set Activation value to Failed
++            activation(softwareServer::Activation::Activations::Failed);
++
++            log<level::ERR>("CPLD upgrade failed.");
++        }
++   }
++
++    return;
++}
++
+ void Activation::rebootBmc()
+ {
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+diff --git a/activation.hpp b/activation.hpp
+index 7425a54..20b33a7 100644
+--- a/activation.hpp
++++ b/activation.hpp
+@@ -12,9 +12,7 @@
+ #include <xyz/openbmc_project/Software/Activation/server.hpp>
+ #include <xyz/openbmc_project/Software/ActivationBlocksTransition/server.hpp>
+ 
+-#ifdef WANT_SIGNATURE_VERIFY
+ #include <filesystem>
+-#endif
+ 
+ namespace phosphor
+ {
+@@ -23,9 +21,7 @@ namespace software
+ namespace updater
+ {
+ 
+-#ifdef WANT_SIGNATURE_VERIFY
+ namespace fs = std::filesystem;
+-#endif
+ 
+ using AssociationList =
+     std::vector<std::tuple<std::string, std::string, std::string>>;
+@@ -246,8 +242,15 @@ class Activation : public ActivationInherit, public Flash
+ 
+     /** @brief Function that acts on Bios upgrade service file state changes */
+     void onStateChangesBios(sdbusplus::message::message&);
++    std::string biosImagePathNew;
+ #endif
+ 
++    int32_t getImagePath(std::string&);
++    /*@brief cpld upgrade*/
++    void flashWriteCpld();
++    void onStateChangesCpld(sdbusplus::message::message&);
++    std::string cpldImagePathNew;
++
+     /** @brief Overloaded function that acts on service file state changes */
+     void onStateChanges(sdbusplus::message::message&) override;
+ 
+diff --git a/item_updater.cpp b/item_updater.cpp
+index c8fda76..4ca8a6a 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -72,7 +72,8 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+ #ifdef HOST_BIOS_UPGRADE
+                         value == VersionPurpose::Host ||
+ #endif
+-                        value == VersionPurpose::System)
++                        value == VersionPurpose::System ||
++                        value == VersionPurpose::Other)
+                     {
+                         purpose = value;
+                     }
+diff --git a/meson.build b/meson.build
+index 0dca8c0..e3d38ea 100644
+--- a/meson.build
++++ b/meson.build
+@@ -215,6 +215,8 @@ if get_option('bmc-static-dual-image').enabled()
+     ]
+ endif
+ 
++unit_files += 'obmc-cpld-update@.service.in'
++
+ if get_option('sync-bmc-files').enabled()
+     executable(
+         'phosphor-sync-software-manager',
+diff --git a/obmc-cpld-update@.service.in b/obmc-cpld-update@.service.in
+new file mode 100644
+index 0000000..bb14133
+--- /dev/null
++++ b/obmc-cpld-update@.service.in
+@@ -0,0 +1,9 @@
++[Unit]
++Description=FLASH CPLD %I to CPLD
++
++[Service]
++Type=oneshot
++RemainAfterExit=no
++ExecStart=/usr/bin/cpldupdate-i2c %i
++StandardOutput=journal+console
++
+diff --git a/obmc-flash-host-bios@.service.in b/obmc-flash-host-bios@.service.in
+index 13a01af..919d332 100644
+--- a/obmc-flash-host-bios@.service.in
++++ b/obmc-flash-host-bios@.service.in
+@@ -1,7 +1,8 @@
+ [Unit]
+-Description=Flash Host Bios image %I to Host
++Description=Flash Host Bios image %i to Host
+ 
+ [Service]
+ Type=oneshot
+ RemainAfterExit=no
+-ExecStart=echo Please add custom command for flashing image /tmp/image/%i
++ExecStart=/usr/sbin/bios-update %i
++StandardOutput=journal+console
+-- 
+2.33.0
+

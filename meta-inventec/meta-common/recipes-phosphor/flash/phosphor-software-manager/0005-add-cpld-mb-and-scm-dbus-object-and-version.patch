@@ -1,0 +1,264 @@
+From 18ea46f4a2d49409a6daad1659c80b90b0a6939b Mon Sep 17 00:00:00 2001
+From: ykchiu <Chiu.YK@inventec.com>
+Date: Tue, 24 May 2022 20:37:55 +0800
+Subject: [PATCH] add cpld mb and scm dbus object and version
+
+Symptom/Reason:
+	- haven't cpld mb and scm dbus object and version
+
+Root Cause:
+	- create the cpld mb and scm dbus object
+	- add cpld mb and scm version in dbus object
+
+Solution/Change:
+	[phosphor-software-manager]
+	  - create the cpld mb and scm dbus object, add cpld mb and scm version in dbus object
+
+Entry Test:
+sysadmin@transformers:~# busctl tree xyz.openbmc_project.Software.BMC.Updater
+`-/xyz
+  `-/xyz/openbmc_project
+    `-/xyz/openbmc_project/software
+      |-/xyz/openbmc_project/software/2fe6c1d2
+      |-/xyz/openbmc_project/software/bios_active
+      |-/xyz/openbmc_project/software/cpld_mb
+      `-/xyz/openbmc_project/software/cpld_scm
+
+[comment for 2.12 upgrade]
+Change the way to call Version because official code changed the class definition
+---
+ item_updater.cpp  | 112 ++++++++++++++++++++++++++++++++++++++++++++++
+ item_updater.hpp  |  31 +++++++++++++
+ meson.build       |  10 +++++
+ meson_options.txt |  18 ++++++++
+ 4 files changed, 171 insertions(+)
+
+diff --git a/item_updater.cpp b/item_updater.cpp
+index 49cc130..4864e66 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -908,6 +908,118 @@ void ItemUpdater::getRunningSlot()
+     f >> runningImageSlot;
+ }
+ 
++#ifdef CPLD_MB_OBJPATH
++void ItemUpdater::createCPLDMBObject()
++{
++    std::string path = CPLD_MB_OBJPATH;
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++    ("CPLD MB Path : " + path).c_str());
++
++    auto pos = path.rfind("/");
++    if (pos == std::string::npos)
++    {
++        error("No version id found in object path {PATH}", "PATH", path);
++        return;
++    }
++
++    createActiveAssociation(path);
++    createFunctionalAssociation(path);
++    createUpdateableAssociation(path);
++
++    auto versionId = path.substr(pos + 1);
++    auto version = getcpldmbVersion();
++    AssociationList assocs = {};
++    cpldmbActivation = std::make_unique<Activation>(
++        bus, path, *this, versionId, server::Activation::Activations::Active,
++        assocs);
++    auto dummyErase = [](std::string /*entryId*/) {
++        // Do nothing;
++    };
++
++    std::vector<std::string> compatibleNames;
++    cpldmbVersion = std::make_unique<VersionClass>(
++        bus, path, version, VersionPurpose::Other, "", "",
++        compatibleNames,
++        std::bind(dummyErase, std::placeholders::_1), "");
++    cpldmbVersion->deleteObject =
++        std::make_unique<phosphor::software::manager::Delete>(bus, path,
++                                                              *cpldmbVersion);
++}
++
++std::string ItemUpdater::getcpldmbVersion()
++{
++    std::string file = "/usr/share/version/MB_CPLD_Version";
++    if (!std::filesystem::exists(file)){
++        return "N/A";
++    }
++    std::ifstream input(file, std::ifstream::in );
++    std::string name;
++    std::getline(input, name);
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++    ("CPLD MB Version: " + name).c_str());
++    input.close();
++    return name;
++}
++#endif
++
++#ifdef CPLD_SCM_OBJPATH
++void ItemUpdater::createCPLDSCMObject()
++{
++    std::string path = CPLD_SCM_OBJPATH;
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++    ("CPLD SCM Path: " + path).c_str());
++
++    auto pos = path.rfind("/");
++    if (pos == std::string::npos)
++    {
++        error("No version id found in object path {PATH}", "PATH", path);
++        return;
++    }
++
++    createActiveAssociation(path);
++    createFunctionalAssociation(path);
++    createUpdateableAssociation(path);
++
++    auto versionId = path.substr(pos + 1);
++    auto version = getcpldscmVersion();
++    AssociationList assocs = {};
++    cpldscmActivation = std::make_unique<Activation>(
++        bus, path, *this, versionId, server::Activation::Activations::Active,
++        assocs);
++    auto dummyErase = [](std::string /*entryId*/) {
++        // Do nothing;
++    };
++    
++    std::vector<std::string> compatibleNames;
++    cpldscmVersion = std::make_unique<VersionClass>(
++        bus, path, version, VersionPurpose::Other, "", "",
++        compatibleNames,
++        std::bind(dummyErase, std::placeholders::_1), "");
++    cpldscmVersion->deleteObject =
++        std::make_unique<phosphor::software::manager::Delete>(bus, path,
++                                                              *cpldscmVersion);
++}
++
++std::string ItemUpdater::getcpldscmVersion()
++{
++    std::string file = "/usr/share/version/SCM_CPLD_Version";
++    if (!std::filesystem::exists(file)){
++        return "N/A";
++    }
++    std::ifstream input(file, std::ifstream::in );
++    std::string name;
++    std::getline(input, name);
++
++    phosphor::logging::log<phosphor::logging::level::INFO>(
++    ("CPLD SCM Version: " + name).c_str());
++    input.close();
++    return name;
++}
++#endif
++
+ } // namespace updater
+ } // namespace software
+ } // namespace phosphor
+diff --git a/item_updater.hpp b/item_updater.hpp
+index 46e5fd9..a71f2f4 100644
+--- a/item_updater.hpp
++++ b/item_updater.hpp
+@@ -74,6 +74,12 @@ class ItemUpdater : public ItemUpdaterInherit
+         restoreFieldModeStatus();
+ #ifdef HOST_BIOS_UPGRADE
+         createBIOSObject();
++#endif
++#ifdef CPLD_MB_OBJPATH
++        createCPLDMBObject();
++#endif
++#ifdef CPLD_SCM_OBJPATH
++        createCPLDSCMObject();
+ #endif
+         emit_object_added();
+     };
+@@ -292,6 +298,31 @@ class ItemUpdater : public ItemUpdaterInherit
+ 
+     /** @brief Get the slot number of running image */
+     void getRunningSlot();
++
++#ifdef CPLD_MB_OBJPATH
++    /** @brief Create the CPLD MB object without knowing the version. */
++    void createCPLDMBObject();
++    /** @brief Get CPLD MB version from /usr/share/version/MB_CPLD_Version */
++    std::string getcpldmbVersion();
++    /** @brief Persistent Activation D-Bus object for CPLD MB */
++    std::unique_ptr<Activation> cpldmbActivation;
++    public:
++    /** @brief Persistent Version D-Bus object for CPLD MB */
++    std::unique_ptr<VersionClass> cpldmbVersion;
++#endif
++
++#ifdef CPLD_SCM_OBJPATH
++    /** @brief Create the CPLD SCM object without knowing the version. */
++    void createCPLDSCMObject();
++    /** @brief Get CPLD SCM version from /usr/share/version/SCM_CPLD_Version */
++    std::string getcpldscmVersion();
++    /** @brief Persistent Activation D-Bus object for CPLD SCM */
++    std::unique_ptr<Activation> cpldscmActivation;
++    public:
++    /** @brief Persistent Version D-Bus object for CPLD SCM */
++    std::unique_ptr<VersionClass> cpldscmVersion;
++#endif
++
+ };
+ 
+ } // namespace updater
+diff --git a/meson.build b/meson.build
+index e3d38ea..c6d8023 100644
+--- a/meson.build
++++ b/meson.build
+@@ -67,6 +67,8 @@ conf.set('MMC_LAYOUT', get_option('bmc-layout').contains('mmc'))
+ 
+ # Configurable features
+ conf.set('HOST_BIOS_UPGRADE', get_option('host-bios-upgrade').enabled())
++conf.set('CPLD_MB_UPGRADE', get_option('cpld-mb-upgrade').enabled())
++conf.set('CPLD_SCM_UPGRADE', get_option('cpld-scm-upgrade').enabled())
+ conf.set('WANT_SIGNATURE_VERIFY', \
+     get_option('verify-signature').enabled() or \
+     get_option('verify-full-signature').enabled())
+@@ -104,6 +106,14 @@ else
+   conf.set_quoted('ALT_RWFS', '/media/alt/var/persist')
+ endif
+ 
++if get_option('cpld-mb-upgrade').enabled()
++conf.set_quoted('CPLD_MB_OBJPATH', get_option('cpld-mb-object-path'))
++endif
++
++if get_option('cpld-scm-upgrade').enabled()
++conf.set_quoted('CPLD_SCM_OBJPATH', get_option('cpld-scm-object-path'))
++endif
++
+ configure_file(output: 'config.h', configuration: conf)
+ 
+ sdbusplus_dep = dependency('sdbusplus')
+diff --git a/meson_options.txt b/meson_options.txt
+index e9eecff..de77ab1 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -134,3 +134,21 @@ option(
+     value: '/run/media/rwfs-alt/cow',
+     description: 'The dir for alt-rwfs partition.',
+ )
++
++option('cpld-mb-upgrade', type: 'feature', value: 'enabled',
++    description: 'Enable CPLD MB upgrade support.')
++
++option('cpld-scm-upgrade', type: 'feature', value: 'enabled',
++    description: 'Enable CPLD SCM upgrade support.')
++
++option(
++    'cpld-mb-object-path', type: 'string',
++    value: '/xyz/openbmc_project/software/cpld_mb',
++    description: 'The cpld mb object path.',
++)
++
++option(
++    'cpld-scm-object-path', type: 'string',
++    value: '/xyz/openbmc_project/software/cpld_scm',
++    description: 'The cpld scm object path.',
++)
+-- 
+2.33.0
+

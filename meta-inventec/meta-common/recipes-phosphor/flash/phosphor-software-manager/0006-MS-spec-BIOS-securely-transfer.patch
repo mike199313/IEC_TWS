@@ -1,0 +1,324 @@
+From 18e7c62d40f168d73ea5c2e151a432e18d8bc3f6 Mon Sep 17 00:00:00 2001
+From: link <link@inventec.com>
+Date: Thu, 21 Jul 2022 11:28:07 +0800
+Subject: [PATCH 6/6] MS spec BIOS securely transfer - Modify validation
+ process (2022/8/24)
+
+---
+ activation.cpp   | 56 ++++++++++++++++++++++++++------------------
+ activation.hpp   | 13 ++++++++---
+ image_verify.cpp | 61 +++++++++++++++++++++++++++++++++++++-----------
+ image_verify.hpp |  8 ++++++-
+ 4 files changed, 97 insertions(+), 41 deletions(-)
+
+diff --git a/activation.cpp b/activation.cpp
+index 14b9d91..e1f5d0e 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -90,15 +90,17 @@ auto Activation::activation(Activations value) -> Activations
+ 
+     if (value == softwareServer::Activation::Activations::Activating)
+     {
++        auto purpose = parent.versions.find(versionId)->second->purpose();
+ #ifdef WANT_SIGNATURE_VERIFY
+         fs::path uploadDir(IMG_UPLOAD_DIR);
+-        if (!verifySignature(uploadDir / versionId, SIGNED_IMAGE_CONF_PATH))
++        if (!verifySignature(uploadDir / versionId, SIGNED_IMAGE_CONF_PATH, purpose))
+         {
+             using InvalidSignatureErr = sdbusplus::xyz::openbmc_project::
+                 Software::Version::Error::InvalidSignature;
+             report<InvalidSignatureErr>();
+-            // Stop the activation process, if fieldMode is enabled.
+-            if (parent.control::FieldMode::fieldModeEnabled())
++
++            // Stop the activation process, if fieldMode is enabled or bios validation fail
++            if (parent.control::FieldMode::fieldModeEnabled() || purpose == VersionPurpose::Host)
+             {
+                 return softwareServer::Activation::activation(
+                     softwareServer::Activation::Activations::Failed);
+@@ -136,7 +138,6 @@ auto Activation::activation(Activations value) -> Activations
+         }
+ 
+ #ifdef HOST_BIOS_UPGRADE
+-        auto purpose = parent.versions.find(versionId)->second->purpose();
+         if (purpose == VersionPurpose::Host)
+         {
+             // Enable systemd signals
+@@ -361,11 +362,12 @@ void Activation::unitStateChange(sdbusplus::message::message& msg)
+ 
+ #ifdef WANT_SIGNATURE_VERIFY
+ bool Activation::verifySignature(const fs::path& imageDir,
+-                                 const fs::path& confDir)
++                                 const fs::path& confDir,
++                                 const SVersion::VersionPurpose purpose)
+ {
+     using Signature = phosphor::software::image::Signature;
+ 
+-    Signature signature(imageDir, confDir);
++    Signature signature(imageDir, confDir, purpose);
+ 
+     return signature.verify();
+ }
+@@ -435,7 +437,7 @@ void Activation::flashWriteHost()
+     utils::reportBySEL(this->bus, eventData);
+ 
+     std::string biosImagePath;
+-    auto ret = getImagePath(biosImagePath);
++    auto ret = getImagePath(biosImagePath, VersionPurpose::Host);
+     if (ret != 0)
+     {
+         log<level::ERR>("Error in finding host bios path.");
+@@ -516,28 +518,36 @@ void Activation::onStateChangesBios(sdbusplus::message::message& msg)
+ 
+ #endif
+ 
+-int32_t Activation::getImagePath(std::string& imagePath)
++int32_t Activation::getImagePath(std::string& imagePath, SVersion::VersionPurpose purpose)
+ {
+     fs::path dirPath(std::string{IMG_UPLOAD_DIR});
+     dirPath = dirPath / versionId;
+-
+     int fileCounter = 0;
+-    for (auto& it : fs::directory_iterator(dirPath))
+-    {
+-        if (it.path().filename() != "MANIFEST")
+-        {
+-            imagePath = it.path();
++
++    if(purpose == VersionPurpose::Host){
++        for (auto const & it : fs::recursive_directory_iterator(dirPath)){
++            //if extension is not sig and file name is not manifest or publickey
++            if (fs::is_regular_file(it) && it.path().filename() != PUBLICKEY_FILE_NAME
++                    && it.path().filename() != MANIFEST_FILE_NAME 
++                    && it.path().extension() != SIGNATURE_FILE_EXT){
++                imagePath = it.path();
++            }
++            fileCounter++;
++        }
++    }else{
++        for (auto& it : fs::directory_iterator(dirPath)){
++            if (it.path().filename() != "MANIFEST"){
++                imagePath = it.path();
++            }
++            fileCounter++;
+         }
+-        fileCounter++;
+     }
+-
+-    // The count of files should be 2 : image file and Manifest.
+-    if (fileCounter != 2)
+-    {
+-        log<level::ERR>("Erro in number of files");
+-        return -1;
++    if ((fileCounter == NUM_OF_BIOS_FILES && purpose == VersionPurpose::Host) ||
++        (fileCounter == NUM_OF_OTHER_FILES && purpose == VersionPurpose::Other)){
++        return 0;
+     }
+-    return 0;
++    log<level::ERR>("Erro in number of files");
++    return -1;
+ }
+ 
+ void Activation::flashWriteCpld()
+@@ -547,7 +557,7 @@ void Activation::flashWriteCpld()
+     utils::reportBySEL(this->bus, eventData);
+ 
+     std::string cpldImagePath;
+-    auto ret = getImagePath(cpldImagePath);
++    auto ret = getImagePath(cpldImagePath, VersionPurpose::Other);
+     if (ret != 0)
+     {
+         log<level::ERR>("Error in finding image path.");
+diff --git a/activation.hpp b/activation.hpp
+index 20b33a7..c1f8564 100644
+--- a/activation.hpp
++++ b/activation.hpp
+@@ -11,6 +11,7 @@
+ #include <xyz/openbmc_project/Association/Definitions/server.hpp>
+ #include <xyz/openbmc_project/Software/Activation/server.hpp>
+ #include <xyz/openbmc_project/Software/ActivationBlocksTransition/server.hpp>
++#include "xyz/openbmc_project/Software/Version/server.hpp"
+ 
+ #include <filesystem>
+ 
+@@ -22,7 +23,8 @@ namespace updater
+ {
+ 
+ namespace fs = std::filesystem;
+-
++namespace server = sdbusplus::xyz::openbmc_project::Software::server;
++using SVersion = server::Version;
+ using AssociationList =
+     std::vector<std::tuple<std::string, std::string, std::string>>;
+ using ActivationInherit = sdbusplus::server::object::object<
+@@ -43,6 +45,11 @@ constexpr auto dbusPropIntf = "org.freedesktop.DBus.Properties";
+ constexpr auto applyTimeObjPath = "/xyz/openbmc_project/software/apply_time";
+ constexpr auto applyTimeProp = "RequestedApplyTime";
+ 
++// BIOS: The count of files should be 6 : imageFile, Manifest, publickey and 3 sig of these.
++// Other: The count of files should be 2 : image file and Manifest.
++constexpr int NUM_OF_BIOS_FILES = 6;
++constexpr int NUM_OF_OTHER_FILES = 2;
++
+ namespace sdbusRule = sdbusplus::bus::match::rules;
+ 
+ class ItemUpdater;
+@@ -245,7 +252,7 @@ class Activation : public ActivationInherit, public Flash
+     std::string biosImagePathNew;
+ #endif
+ 
+-    int32_t getImagePath(std::string&);
++    int32_t getImagePath(std::string&, SVersion::VersionPurpose purpose);
+     /*@brief cpld upgrade*/
+     void flashWriteCpld();
+     void onStateChangesCpld(sdbusplus::message::message&);
+@@ -348,7 +355,7 @@ class Activation : public ActivationInherit, public Flash
+      *
+      * @return true if verification successful and false otherwise
+      */
+-    bool verifySignature(const fs::path& imageDir, const fs::path& confDir);
++    bool verifySignature(const fs::path& imageDir, const fs::path& confDir, const SVersion::VersionPurpose purpose);
+ 
+     /** @brief Called when image verification fails. */
+     void onVerifyFailed();
+diff --git a/image_verify.cpp b/image_verify.cpp
+index 098ad9d..d549e50 100644
+--- a/image_verify.cpp
++++ b/image_verify.cpp
+@@ -36,9 +36,11 @@ constexpr auto keyTypeTag = "KeyType";
+ constexpr auto hashFunctionTag = "HashType";
+ 
+ Signature::Signature(const fs::path& imageDirPath,
+-                     const fs::path& signedConfPath) :
++                     const fs::path& signedConfPath,
++                     const SVersion::VersionPurpose purpose) :
+     imageDirPath(imageDirPath),
+-    signedConfPath(signedConfPath)
++    signedConfPath(signedConfPath),
++    purpose(purpose)
+ {
+     fs::path file(imageDirPath / MANIFEST_FILE_NAME);
+ 
+@@ -139,7 +141,6 @@ bool Signature::verify()
+         bool bmcFilesFound = false;
+         // image specific publickey file name.
+         fs::path publicKeyFile(imageDirPath / PUBLICKEY_FILE_NAME);
+-
+         // Record the images which are being updated
+         // First check and Validate for the fullimage, then check and Validate
+         // for images with partitions
+@@ -397,17 +398,25 @@ bool Signature::checkAndVerifyImage(const std::string& filePath,
+     bool valid = true;
+ 
+     fileFound = false;
+-    for (auto& bmcImage : imageList)
+-    {
++    if(purpose == SVersion::VersionPurpose::Host){
++        int64_t binCount = 0;
+         fs::path file(filePath);
+-        file /= bmcImage;
+-
+-        if (!fs::exists(file))
+-        {
+-            valid = false;
+-            break;
++        //get all file in dir
++        for (auto const & it : fs::recursive_directory_iterator(filePath))
++        {//if extension is bin of bios, valid!
++            if (fs::is_regular_file(it) && it.path().filename() != PUBLICKEY_FILE_NAME
++                    && it.path().filename() != MANIFEST_FILE_NAME  && it.path().extension() != SIGNATURE_FILE_EXT){
++                binCount++;
++                if(binCount > 1){
++                    error("Error!Multiple obfuscate bios image.");
++                    return false;
++                }
++                file /= it.path().filename();
++                fileFound = true;
++            }
+         }
+-        fileFound = true;
++        if(!fileFound)
++            return false;
+ 
+         fs::path sigFile(file);
+         sigFile += SIGNATURE_FILE_EXT;
+@@ -416,10 +425,34 @@ bool Signature::checkAndVerifyImage(const std::string& filePath,
+         valid = verifyFile(file, sigFile, publicKeyPath, hashType);
+         if (valid == false)
+         {
+-            error("Image file Signature Validation failed on {PATH}", "PATH",
+-                  bmcImage);
++            error("BIOS image file Signature Validation failed");
+             return false;
+         }
++    }else{
++        for (auto& bmcImage : imageList)
++        {
++            fs::path file(filePath);
++            file /= bmcImage;
++
++            if (!fs::exists(file))
++            {
++                valid = false;
++                break;
++            }
++            fileFound = true;
++
++            fs::path sigFile(file);
++            sigFile += SIGNATURE_FILE_EXT;
++
++            // Verify the signature.
++            auto valid = verifyFile(file, sigFile, publicKeyPath, hashType);
++            if (valid == false)
++            {
++                error("Image file Signature Validation failed on {PATH}", "PATH",
++                      bmcImage);
++                return false;
++            }
++        }
+     }
+ 
+     return valid;
+diff --git a/image_verify.hpp b/image_verify.hpp
+index 8cda65c..06e033d 100644
+--- a/image_verify.hpp
++++ b/image_verify.hpp
+@@ -12,6 +12,8 @@
+ #include <string>
+ #include <vector>
+ 
++#include "xyz/openbmc_project/Software/Version/server.hpp"
++
+ namespace phosphor
+ {
+ namespace software
+@@ -20,6 +22,8 @@ namespace image
+ {
+ 
+ namespace fs = std::filesystem;
++namespace server = sdbusplus::xyz::openbmc_project::Software::server;
++using SVersion = server::Version;
+ using Key_t = std::string;
+ using Hash_t = std::string;
+ using PublicKeyPath = fs::path;
+@@ -130,7 +134,7 @@ class Signature
+      * @param[in]  signedConfPath - Path of public key
+      *                              hash function files
+      */
+-    Signature(const fs::path& imageDirPath, const fs::path& signedConfPath);
++    Signature(const fs::path& imageDirPath, const fs::path& signedConfPath, const SVersion::VersionPurpose purpose);
+ 
+     /**
+      * @brief Image signature verification function.
+@@ -218,6 +222,8 @@ class Signature
+     /** @brief Hash type defined in mainfest file */
+     Hash_t hashType;
+ 
++    /** @brief Distingush between BMC and BIOS */
++    SVersion::VersionPurpose purpose;
+     /** @brief Check and Verify the required image files
+      *
+      * @param[in] filePath - BMC tarball file path
+-- 
+2.33.0
+

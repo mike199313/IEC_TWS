@@ -1,0 +1,37 @@
+From 0e444ec0effbbf629974aba10f4cbf943bcd8d9f Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Fri, 17 Jun 2022 02:08:17 +0000
+Subject: [PATCH 4/6] Fix Updateable parameter displays false issue
+
+Symptom/Reason:
+- bios_active's "Updateable" parameter displays "false".
+
+Root Cause:
+- Updateable associations was not created for Bios object
+
+Solution/Change:
+- [phosphor-software-manager]
+  - Create updateable associations for Bios object
+
+Entry Test:
+- Get BIOS info
+  - curl -X GET https://$bmc/redfish/v1/UpdateService/FirmwareInventory/bios_active
+---
+ item_updater.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/item_updater.cpp b/item_updater.cpp
+index cd07dfa..49cc130 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -848,6 +848,7 @@ void ItemUpdater::createBIOSObject()
+ 
+     createActiveAssociation(path);
+     createFunctionalAssociation(path);
++    createUpdateableAssociation(path);
+ 
+     auto versionId = path.substr(pos + 1);
+     auto version = getBiosVersion();
+-- 
+2.33.0
+
