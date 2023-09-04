@@ -16,13 +16,11 @@ SRC_URI += " \
             file://0006-MS-spec-BIOS-securely-transfer.patch \
             file://0007-PLDM-BMC-software-updater-integration.patch \
             file://0008-PLDM-firmware-update-with-specified-PID-and-interface.patch \
-            file://0009-fetch-delta-dps2400-psu-firmare-version-by-redfish.patch \
            "
 
 #add cpld and psu service
 SYSTEMD_SERVICE:${PN}-updater += " \
    obmc-cpld-update@.service \
-   obmc-psu-update@.service \
 "
 
 
