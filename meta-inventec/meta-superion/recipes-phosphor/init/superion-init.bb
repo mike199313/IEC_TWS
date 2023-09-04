@@ -15,6 +15,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/superion-init:"
 SRC_URI += "file://superion-init.sh \
             file://superion-fan-init.sh \
             file://superion-gpio-init.sh \
+            file://superion-cpld-init.sh \
             "
 
 S = "${WORKDIR}"
@@ -24,6 +25,7 @@ do_install() {
         install -m 0755 superion-init.sh ${D}${sbindir}
         install -m 0755 superion-fan-init.sh ${D}${sbindir}
         install -m 0755 superion-gpio-init.sh ${D}${sbindir}
+        install -m 0755 superion-cpld-init.sh ${D}${sbindir}
 }
 
 SYSTEMD_SERVICE:${PN} += "superion-init.service"
