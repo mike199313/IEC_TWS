@@ -8,13 +8,13 @@
     },
     {
       "Name" : "PowerOut",
-      "LineName" : "BMC_PWR_BTN_OUT",
+      "LineName" : "PWR_BTN_BMC_OUT_N",
       "Type" : "GPIO",
       "Polarity" : "ActiveLow"
     },
     {
       "Name" : "ResetOut",
-      "LineName" : "RST_BTN_BMC_OUT",
+      "LineName" : "RST_BTN_BMC_OUT_N",
       "Type" : "GPIO",
       "Polarity" : "ActiveLow"
     }
