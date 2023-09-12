@@ -304,6 +304,40 @@
                         #address-cells = <1>;
                         #size-cells = <0>;
                         reg = <0>;
+
+                        eeprom@51 {
+                                compatible = "atmel,24c64";
+                                reg = <0x51>;
+                                pagesize = <32>;
+                        };
+
+                        //PWR MON INA220
+                        ina220@44 {
+                                compatible = "ti,ina220";
+                                reg = <0x44>;
+                                shunt-resistor = <200>;
+                        };
+
+                        //PWR MON INA220
+                        ina220@45 {
+                                compatible = "ti,ina220";
+                                reg = <0x45>;
+                                shunt-resistor = <200>;
+                        };
+
+                        //PWR MON INA220
+                        ina220@4c {
+                                compatible = "ti,ina220";
+                                reg = <0x4c>;
+                                shunt-resistor = <200>;
+                        };
+
+                        //PWR MON INA220
+                        ina220@4d {
+                                compatible = "ti,ina220";
+                                reg = <0x4d>;
+                                shunt-resistor = <200>;
+                        };
                 };
         };
 
