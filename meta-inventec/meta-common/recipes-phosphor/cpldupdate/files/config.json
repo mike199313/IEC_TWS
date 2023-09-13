@@ -1,12 +1,12 @@
 {
     "SCM" : {
-        "bus"    : 1,
-        "addr"   : "0x1",
-        "type"   : "MachXO3D"
+        "bus"    : 15,
+        "addr"   : "0x44",
+        "type"   : "MachXO3"
     },
     "MB"  :{
-        "bus"    : 2,
-        "addr"   : "0x2",
+        "bus"    : 15,
+        "addr"   : "0x40",
         "type"   : "MachXO3"
     }
 }
