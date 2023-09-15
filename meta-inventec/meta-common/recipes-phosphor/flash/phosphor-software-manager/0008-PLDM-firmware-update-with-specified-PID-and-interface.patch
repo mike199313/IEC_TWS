@@ -1,0 +1,154 @@
+From 981dd1f0ff2b3e0c495886e6ba4c83ef2b4e7553 Mon Sep 17 00:00:00 2001
+From: Wein <kuo.wein@inventec.com>
+Date: Thu, 12 Jan 2023 17:39:22 +0800
+Subject: [PATCH] PLDM firmware update with specified PID and interface
+
+---
+ activation.cpp | 109 +++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 106 insertions(+), 3 deletions(-)
+
+diff --git a/activation.cpp b/activation.cpp
+index 5e87ba3..67bbb42 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -671,23 +671,126 @@ bool findImages(const fs::path& dirPath, const std::string& matchString,
+     return true;
+ }
+ 
++std::vector<std::string> getRepeatedValues(const std::string& manifestFilePath, std::string key)
++{
++    key = key + "=";
++    auto keySize = key.length();
++
++    if (manifestFilePath.empty())
++    {
++        error("ManifestFilePath is empty.");
++    }
++
++    std::vector<std::string> values{};
++    std::ifstream efile;
++    std::string line;
++    efile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
++
++    // Too many GCC bugs (53984, 66145) to do this the right way...
++    try
++    {
++        efile.open(manifestFilePath);
++        while (getline(efile, line))
++        {
++            if (!line.empty() && line.back() == '\r')
++            {
++                // If the manifest has CRLF line terminators, e.g. is created on
++                // Windows, the line will contain \r at the end, remove it.
++                line.pop_back();
++            }
++            if (line.compare(0, keySize, key) == 0)
++            {
++                values.push_back(line.substr(keySize));
++            }
++        }
++        efile.close();
++    }
++    catch (const std::exception& e)
++    {
++        if (!efile.eof())
++        {
++            error("Error occurred when reading MANIFEST file: {ERROR}", "KEY", key, "ERROR", e);
++        }
++    }
++
++    if (values.empty())
++    {
++        info("No values found in MANIFEST file for key: {KEY}", "KEY", key);
++    }
++
++    return values;
++}
++
++std::string getValue(const std::string& manifestFilePath, std::string key)
++{
++    std::vector<std::string> values = getRepeatedValues(manifestFilePath, key);
++    if (values.empty())
++    {
++        return std::string{};
++    }
++    if (values.size() > 1)
++    {
++        error("Multiple values found in MANIFEST file for key: {KEY}", "KEY",
++              key);
++    }
++    return values.at(0);
++}
++
+ void Activation::flashWritePldm()
+ {
++    // get image file
+     auto flashId = parent.versions.find(versionId)->second->path();
+     std::vector<fs::path> imagePaths = {};
+     if (!findImages(flashId, R"(.*\.bin)", imagePaths))
+     {
++        error("Unable to find firmware image from: {FLASH_ID}", "FLASH_ID",
++              flashId);
+         return;
+     }
+ 
+     if (!imagePaths.size())
+     {
++        error("Unable to find firmware image from: {FLASH_ID}", "FLASH_ID",
++              flashId);
++        return;
++    }
++
++    // Get PLDM interface
++    std::string manifestFile = flashId + "/" + MANIFEST_FILE_NAME;
++    auto pldmInterface = getValue(manifestFile, "interface");
++    if (pldmInterface.empty())
++    {
++        error("Unable to read interface from manifest file");
++        return;
++    }
++
++    // In the case of tid = 0, all devices with matched tid will be updated,
++    // Otherwise, update a device with a specific tid.
++    auto pldmTid = getValue(manifestFile, "tid");
++    if (pldmTid.empty())
++    {
++        error("Unable to read tid from manifest file");
+         return;
+     }
+ 
+-    auto method = bus.new_method_call(PLDM_BUSNAME, PLDM_PATH, PLDM_INTERFACE,
++    std::string serviceName = PLDM_BUSNAME + pldmInterface;
++    std::string fileName = imagePaths[0];
++    info("Downloading {PATH} to TID: {TID} via D-Bus service: {SERVERADDRESS}",
++         "PATH", fileName, "TID", pldmTid, "SERVERADDRESS", serviceName);
++    auto method = bus.new_method_call(serviceName.c_str(), PLDM_PATH, PLDM_INTERFACE,
+                                       "StartFWUpdate");
+-    method.append(imagePaths[0].c_str());
++    uint8_t tid = 0; 
++    try
++    {
++        tid = atoi(pldmTid.c_str());
++    }
++    catch (std::invalid_argument const& e)
++    {
++        error("Error in invalid TID: {ERROR}", "ERROR", e);
++        return;
++    }
++
++    method.append(tid, fileName.c_str());
+     try
+     {
+         auto reply = bus.call(method);
+@@ -695,7 +798,7 @@ void Activation::flashWritePldm()
+     catch (const sdbusplus::exception::exception& e)
+     {
+         error("Error in trying to upgrade PLDM: {ERROR}", "ERROR", e);
+-        report<InternalFailure>();
++        return;
+     }
+ }
+ 
+-- 
+2.33.0
+

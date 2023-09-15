@@ -1,0 +1,105 @@
+From 2a5bc5198817571c70e9adc941db58747c4f0fca Mon Sep 17 00:00:00 2001
+From: Tommy Lin <lin.tommysc@inventec.com>
+Date: Wed, 2 Mar 2022 09:54:00 +0000
+Subject: [PATCH 2/6] Fix BIOS version is null issue
+
+Symptom/Reason:
+    - bios Version is null in /xyz/openbmc_project/software/bios_active dbus object
+
+Root Cause:
+    - phosphor-software-manager did not try to get bios version when init VersionClass
+
+Solution/Change:
+    [phosphor-software-manager]
+      - Get bios version from /xyz/openbmc_project/inventory/system/chassis/motherboard/bios dbus object
+
+Entry Test:
+    - Get bios version
+    busctl introspect xyz.openbmc_project.Software.BMC.Updater /xyz/openbmc_project/software/bios_active
+---
+ item_updater.cpp | 33 ++++++++++++++++++++++++++++++++-
+ item_updater.hpp | 10 ++++++++++
+ 2 files changed, 42 insertions(+), 1 deletion(-)
+
+diff --git a/item_updater.cpp b/item_updater.cpp
+index 4ca8a6a..cd07dfa 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -850,7 +850,7 @@ void ItemUpdater::createBIOSObject()
+     createFunctionalAssociation(path);
+ 
+     auto versionId = path.substr(pos + 1);
+-    auto version = "null";
++    auto version = getBiosVersion();
+     AssociationList assocs = {};
+     biosActivation = std::make_unique<Activation>(
+         bus, path, *this, versionId, server::Activation::Activations::Active,
+@@ -866,6 +866,37 @@ void ItemUpdater::createBIOSObject()
+         std::make_unique<phosphor::software::manager::Delete>(bus, path,
+                                                               *biosVersion);
+ }
++
++std::string ItemUpdater::getBiosVersion()
++{
++    auto method = bus.new_method_call(mdrv2Service, systemPath, PROP_INTF, METHOD_GET);
++    method.append(revisionIntf, biosVersionProp);
++    std::variant<std::string> version;
++
++    try
++    {
++        auto reply = bus.call(method);
++        reply.read(version);
++
++        if (reply.is_method_error())
++        {
++            phosphor::logging::log<phosphor::logging::level::ERR>(
++                "Fail to Get bios data",
++                phosphor::logging::entry("SERVICE=%s", mdrv2Service),
++                phosphor::logging::entry("PATH=%s", systemPath));
++        }
++    }
++    catch (sdbusplus::exception_t& e)
++    {
++        phosphor::logging::log<phosphor::logging::level::ERR>(
++            "Error get bios data with service",
++            phosphor::logging::entry("ERROR=%s", e.what()),
++            phosphor::logging::entry("SERVICE=%s", mdrv2Service),
++            phosphor::logging::entry("PATH=%s", systemPath));
++    }
++
++    return std::get<std::string>(version);
++}
+ #endif
+ 
+ void ItemUpdater::getRunningSlot()
+diff --git a/item_updater.hpp b/item_updater.hpp
+index ccacd28..46e5fd9 100644
+--- a/item_updater.hpp
++++ b/item_updater.hpp
+@@ -20,6 +20,13 @@ namespace software
+ namespace updater
+ {
+ 
++constexpr const char* mdrv2Service = "xyz.openbmc_project.Smbios.MDR_V2";
++constexpr const char* systemPath = "/xyz/openbmc_project/inventory/system/chassis/motherboard/bios";
++constexpr const char* revisionIntf = "xyz.openbmc_project.Inventory.Decorator.Revision";
++constexpr const char* biosVersionProp = "Version";
++constexpr auto PROP_INTF = "org.freedesktop.DBus.Properties";
++constexpr auto METHOD_GET = "Get";
++
+ using ItemUpdaterInherit = sdbusplus::server::object::object<
+     sdbusplus::xyz::openbmc_project::Common::server::FactoryReset,
+     sdbusplus::xyz::openbmc_project::Control::server::FieldMode,
+@@ -272,6 +279,9 @@ class ItemUpdater : public ItemUpdaterInherit
+      */
+     void createBIOSObject();
+ 
++    /** @brief Get BIOS version from smbios */
++    std::string getBiosVersion();
++
+     /** @brief Persistent Activation D-Bus object for BIOS */
+     std::unique_ptr<Activation> biosActivation;
+ 
+-- 
+2.33.0
+
