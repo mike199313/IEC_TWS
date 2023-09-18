@@ -237,28 +237,73 @@
 			#size-cells = <0x1>;
 
 			u-boot@0 {
-				reg = <0x0 0xe0000>;
+				reg = <0x0 0xe0000>;  //896KB
 				label = "u-boot";
 			};
 
-			u-boot-env@e0000 {
-				reg = <0xe0000 0x20000>;
+			pfm@e0000 {
+				reg = <0xe0000 0x20000>;  //128KB
+				label = "pfm";
+			};
+
+			u-boot-env@100000 {
+				reg = <0x100000 0x20000>;  //128KB
 				label = "u-boot-env";
 			};
 
-			kernel@100000 {
-				reg = <0x100000 0x900000>;
+			sofs@120000 {
+				reg = <0x120000 0x200000>;  //2048KB
+				label = "sofs";
+			};
+
+			rwfs@320000 {
+				reg = <0x320000 0x1200000>;  //18432KB
+				label = "rwfs";
+			};
+
+			kernel@1520000 {
+				reg = <0x1520000 0x900000>;  //9216KB
 				label = "kernel";
 			};
 
-			rofs@a00000 {
-				reg = <0xa00000 0x2000000>;
+			rofs@1e20000 {
+				reg = <0x1e20000 0x2400000>;  //36864KB
 				label = "rofs";
 			};
 
-			rwfs@2a00000 {
-				reg = <0x2a00000 0x1600000>;
-				label = "rwfs";
+			rc-image@4220000 {
+				reg = <0x4220000 0x3de0000>;  //63360KB
+				label = "rc-image";
+			};
+
+			image-stg@8000000 {
+				reg = <0x8000000 0x3de0000>;  //63360KB
+				label = "bmc-stg";
+			};
+
+			pch-stg@bde0000 {
+				reg = <0xbde0000 0x1000000>;  //16384KB
+				label = "bios-stg";
+			};
+
+			pfr-stg@cde0000 {
+				reg = <0xcde0000 0x500000>;  //5120KB
+				label = "pfr-stg";
+			};
+
+			afm-stg@d2e0000 {
+				reg = <0xd2e0000 0x20000>;  //128KB
+				label = "afm-stg";
+			};
+
+			afm-rc@d300000 {
+				reg = <0xd300000 0x20000>;  //128KB
+				label = "afm-rc";
+			};
+
+			reserved@d320000 {
+				reg = <0xd320000 0x2ce0000>;  //45952KB
+				label = "reserved";
 			};
 		};
 	};
