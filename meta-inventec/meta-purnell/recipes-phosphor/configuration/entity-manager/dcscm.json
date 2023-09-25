@@ -1,0 +1,30 @@
+{
+    "Exposes": [
+        {
+            "Address": "0x51",
+            "Bus": "14",
+            "Name": "SCM_24C64",
+            "Type": "EEPROM_24C64"
+        }
+    ],
+    "Name": "dcscm",
+    "Probe": "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': 'DCSCM'})",
+    "Type": "Board",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER",
+        "BuildDate": "$BOARD_MANUFACTURE_DATE",
+        "SubModel": "",
+        "SparePartNumber": ""
+    },
+    "xyz.openbmc_project.Inventory.Decorator.FruDevice":{
+        "Bus":"$BUS",
+        "Address":"$ADDRESS"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.Ipmi": {
+        "EntityId": "0x11",
+        "EntityInstance": 2
+    }
+
+}

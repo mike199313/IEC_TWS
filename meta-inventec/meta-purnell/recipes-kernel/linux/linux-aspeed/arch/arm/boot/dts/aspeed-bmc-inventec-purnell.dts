@@ -293,13 +293,20 @@
 
 &i2c6 {
 	status = "okay";
+
+        eeprom@51 {
+                compatible = "atmel,24c64";
+                reg = <0x50>;
+                pagesize = <32>;
+        };
+
         i2c-switch@70 {
                 compatible = "nxp,pca9546";
                 #address-cells = <1>;
                 #size-cells = <0>;
                 reg = <0x70>;
 
-                /* 12c-16 */
+                /* 12c-21 */
                 fan_bd1: i2c@0 {
                         #address-cells = <1>;
                         #size-cells = <0>;
