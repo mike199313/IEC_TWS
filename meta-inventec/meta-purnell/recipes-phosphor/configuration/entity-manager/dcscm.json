@@ -1,10 +1,42 @@
 {
     "Exposes": [
         {
-            "Address": "0x51",
+            "Address": "0x50",
             "Bus": "14",
-            "Name": "SCM_24C64",
+            "Name": "DCSCM_24C64",
             "Type": "EEPROM_24C64"
+        },
+        {
+            "Address": "0x48",
+            "Bus": "14",
+            "Name":  "DCSCM_Temp",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 60
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 50
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "Type": "TMP75"
         }
     ],
     "Name": "dcscm",
@@ -24,7 +56,7 @@
     },
     "xyz.openbmc_project.Inventory.Decorator.Ipmi": {
         "EntityId": "0x11",
-        "EntityInstance": 2
+        "EntityInstance": 1
     }
 
 }

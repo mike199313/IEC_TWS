@@ -15,6 +15,7 @@
 	aliases {
 		serial4 = &uart5;
                 i2c21 = &fan_bd1;
+                i2c22 = &i2c6_mux_3;
 	};
 
 	chosen {
@@ -332,6 +333,12 @@
                                 shunt-resistor = <200>;
                         };
 
+                        //Fan Thermal Sensor
+                        tmp75@48 {
+                               compatible = "ti,tmp75";
+                               reg = <0x48>;
+                        };
+
                         //PWR MON INA220
                         ina220@4c {
                                 compatible = "ti,ina220";
@@ -344,6 +351,18 @@
                                 compatible = "ti,ina220";
                                 reg = <0x4d>;
                                 shunt-resistor = <200>;
+                        };
+                };
+
+                /* i2c-22 */
+                i2c6_mux_3: i2c@3 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <3>;
+
+                        tmp75@48 {
+                               compatible = "ti,tmp75";
+                               reg = <0x48>;
                         };
                 };
         };
@@ -401,6 +420,11 @@
             reg = <0x50>;
             pagesize = <32>;
             };
+
+        tmp75@48 {
+               compatible = "ti,tmp75";
+               reg = <0x48>;
+        };
 };
 
 &i2c15 {
