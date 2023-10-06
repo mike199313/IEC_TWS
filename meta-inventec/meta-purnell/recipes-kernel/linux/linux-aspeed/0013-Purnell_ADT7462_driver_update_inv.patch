@@ -1,0 +1,98 @@
+From 901516f88e2b8f4c88fcfec4fb812e3fe882a0ee Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Lee=2EGaryCI=20=E6=9D=8E=E4=BF=8A=E9=80=B8=20TAO?=
+ <Lee.GaryCI@inventec.com>
+Date: Fri, 6 Oct 2023 11:15:45 +0800
+Subject: [PATCH 1/1] Purnell_ADT7462_driver_update
+
+---
+ drivers/hwmon/adt7462.c | 52 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/drivers/hwmon/adt7462.c b/drivers/hwmon/adt7462.c
+index e75bbd87ad09..4be489daf7cd 100644
+--- a/drivers/hwmon/adt7462.c
++++ b/drivers/hwmon/adt7462.c
+@@ -39,7 +39,12 @@ static const unsigned short normal_i2c[] = { 0x58, 0x5C, I2C_CLIENT_END };
+ #define ADT7462_REG_FAN_MIN_BASE_ADDR		0x78
+ #define ADT7462_REG_FAN_MIN_MAX_ADDR		0x7F
+ 
++#define ADT7462_REG_CFG1			0x01
++#define ADT7462_REG_CFG1_SETUP_COMPLETE			0x20
+ #define ADT7462_REG_CFG2			0x02
++#define ADT7462_REG_CFG2_PWM_MODE			0x04
++#define ADT7462_REG_CFG2_TACH_PULSES		1
++#define ADT7462_REG_CFG2_TACH_SHIFT			6
+ #define		ADT7462_FSPD_MASK		0x20
+ 
+ #define ADT7462_REG_PWM_BASE_ADDR		0xAA
+@@ -140,6 +145,9 @@ static const unsigned short normal_i2c[] = { 0x58, 0x5C, I2C_CLIENT_END };
+ #define ADT7462_PIN_CFG_REG_COUNT	4
+ #define ADT7462_REG_PIN_CFG(x)		(ADT7462_REG_PIN_CFG_BASE_ADDR + (x))
+ #define ADT7462_REG_PWM_CFG(x)		(ADT7462_REG_PWM_CFG_BASE_ADDR + (x))
++#define ADT7462_REG_PWM_CFG_INV		0x10
++#define ADT7462_REG_PWM_CFG_BHVR		7
++#define ADT7462_REG_PWM_CFG_BHVR_SHIFT	5
+ 
+ #define ADT7462_ALARM_REG_COUNT		4
+ 
+@@ -1393,6 +1401,49 @@ static ssize_t pwm_auto_temp_store(struct device *dev,
+ 	return count;
+ }
+ 
++static void set_purnell(struct i2c_client *client,
++			    struct adt7462_data *data)
++{
++	u8 Reg_temp;
++	int i;
++	mutex_lock(&data->lock);
++	// # Setting ADT7462 Reg 0x01 Config_1 BIT5 SC is High.
++	Reg_temp = i2c_smbus_read_byte_data(client, ADT7462_REG_CFG1);
++	Reg_temp |= ADT7462_REG_CFG1_SETUP_COMPLETE;
++	i2c_smbus_write_byte_data(client, ADT7462_REG_CFG1, Reg_temp);
++
++	// Setting ADT7462 Reg 0x02 Config_2 BIT2 PWM Mode is high frequency mode, 22.5 kHz 
++	// Setting ADT7462 Reg 0x02 Config_2 BIT[7:6] TACH Pulses x = 2 = 01
++	Reg_temp = i2c_smbus_read_byte_data(client, ADT7462_REG_CFG2);
++	Reg_temp |= ADT7462_REG_CFG2_PWM_MODE;
++	Reg_temp |= ADT7462_REG_CFG2_TACH_PULSES << ADT7462_REG_CFG2_TACH_SHIFT;
++	i2c_smbus_write_byte_data(client, ADT7462_REG_CFG2, Reg_temp);
++
++	// Setting PWM1 ~ PWM4 [7:5] 111 = Manual Mode , [4] INV = 0
++	// Refer to http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Purnell-DOCS?_a=history&path=/HW_Schematic/Purnell_Schematic/FAN%20BD/INTEL_BHS_2U4N_FAN%20BD_20230608_decrypted.pdf
++	// Q1 , Q2 , Q3 , Q4 is NMOS , So that INV = 0
++	for (i = 0; i < ADT7462_PWM_COUNT; i++) {
++		Reg_temp = i2c_smbus_read_byte_data(client, ADT7462_REG_PWM_CFG(i));
++		Reg_temp &= ~ADT7462_REG_PWM_CFG_INV;
++		Reg_temp |= ADT7462_REG_PWM_CFG_BHVR << ADT7462_REG_PWM_CFG_BHVR_SHIFT;
++		i2c_smbus_write_byte_data(client, ADT7462_REG_PWM_CFG(i), Reg_temp);
++	}
++
++	// Setting PWM1 ~ PWM4 MAX PWM is 0xFF
++	i2c_smbus_write_byte_data(client, ADT7462_REG_PWM_MAX, 0xFF);
++
++	// Follow Thermal team requirement ; Setting PWM1 ~ PWM4 is 100%
++	for (i = 0; i < ADT7462_PWM_COUNT; i++) {
++		i2c_smbus_write_byte_data(client, ADT7462_REG_PWM(i), 0xFF);
++	}
++
++	// Setting ADT7462 Reg 0x07 to enables the TACH measurement.
++	i2c_smbus_write_byte_data(client, ADT7462_REG_FAN_ENABLE, 0xFF);
++	mutex_unlock(&data->lock);
++
++	dev_info(&client->dev, "%s chip found. Purnell setting.\n", client->name);
++}
++
+ static SENSOR_DEVICE_ATTR_RW(temp1_max, temp_max, 0);
+ static SENSOR_DEVICE_ATTR_RW(temp2_max, temp_max, 1);
+ static SENSOR_DEVICE_ATTR_RW(temp3_max, temp_max, 2);
+@@ -1801,6 +1852,7 @@ static int adt7462_probe(struct i2c_client *client)
+ 	mutex_init(&data->lock);
+ 
+ 	dev_info(&client->dev, "%s chip found\n", client->name);
++	set_purnell(client, data);
+ 
+ 	hwmon_dev = devm_hwmon_device_register_with_groups(dev, client->name,
+ 							   data,
+-- 
+2.34.1
+
