@@ -485,11 +485,6 @@
 			compatible = "intel,peci-client";
 			reg = <0x30>;
 		};
-
-		peci-client@31 {
-			compatible = "intel,peci-client";
-			reg = <0x31>;
-		};
 	};
 };
 
