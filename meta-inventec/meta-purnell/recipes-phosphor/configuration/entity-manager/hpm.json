@@ -7,6 +7,174 @@
             "Type": "EEPROM_24C64"
         },
         {
+            "Address": "0x60",
+            "Bus": "23",
+            "Labels": [
+                "temp1"
+            ],
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "IN0_TEMP0",
+            "Name": "PVCCIN0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
+            "Address": "0x62",
+            "Bus": "23",
+            "Labels": [
+                "temp1"
+            ],
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "F0_TEMP0",
+            "Name": "PVCCINF0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
+            "Address": "0x76",
+            "Bus": "23",
+            "Labels": [
+                "temp1"
+            ],
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "D0_HV0_TEMP0",
+            "Name": "PVCCD0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
+            "Address": "0x74",
+            "Bus": "23",
+            "Labels": [
+                "temp1"
+            ],
+            "temp1_Scale" : 1000,
+            "temp1_Max" : 95,
+            "temp1_Name" : "FA_EHV0_TEMP0",
+            "Name": "PVNN0",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 70
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "temp1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 65
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 5
+                },
+                {
+                    "Direction": "less than",
+                    "Label": "temp1",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "XDPE152C4"
+        },
+        {
             "Address": "0x48",
             "Bus": "22",
             "Name":  "HPM_Temp",

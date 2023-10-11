@@ -16,6 +16,7 @@
 		serial4 = &uart5;
                 i2c21 = &fan_bd1;
                 i2c22 = &i2c6_mux_3;
+		i2c23 = &i2c7_mux_0;
 	};
 
 	chosen {
@@ -376,6 +377,46 @@
 
 &i2c7 {
 	status = "okay";
+
+        i2c-switch@70 {
+                compatible = "nxp,pca9546";
+                #address-cells = <1>;
+                #size-cells = <0>;
+                reg = <0x70>;
+
+		/* i2c-23 */
+		i2c7_mux_0: i2c@0 {
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+
+			/* XDPE19284B - PVCCIN VR */
+			xdpe152c4@60 {
+				compatible = "infineon,xdpe152c4";
+				reg = <0x60>;
+			};	
+			
+			/* XDPE19284B - PVCCFA EHV FIVRA */
+			xdpe152c4@62 {
+				compatible = "infineon,xdpe152c4";
+				reg = <0x62>;
+			};	
+			
+			/* XDPE19284B - PVCCD0 & D1 VR */
+			xdpe152c4@76 {
+				compatible = "infineon,xdpe152c4";
+				reg = <0x76>;
+			};	
+			
+			/* XDPE19284B - PVCCA EHV PVNN VR */
+			xdpe152c4@74 {
+				compatible = "infineon,xdpe152c4";
+				reg = <0x74>;
+			};
+
+		};
+	};
 };
 
 &i2c8 {
