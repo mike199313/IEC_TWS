@@ -537,7 +537,7 @@
 			eeprom@51 {
 				compatible = "atmel,24c64";
 				reg = <0x51>;
-				pagesize = <128>;
+				pagesize = <32>;
 			};
 		};
 		/* i2c-21 */
