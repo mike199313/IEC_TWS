@@ -1,34 +1,26 @@
-From 2dfbca8c2bed9973a1703b464e5000610a9763f6 Mon Sep 17 00:00:00 2001
-From: Matt Cheng <cheng.matt@inventec.com>
-Date: Tue, 6 Jun 2023 15:20:50 +0800
-Subject: [PATCH] Support OOB PFR secure update.
+From 5c5bbf86c7039676f2cbf33ebaaa83c32c88a5e5 Mon Sep 17 00:00:00 2001
+From: "jimmy.chen" <Chen.JimmyHC@inventec.com>
+Date: Fri, 1 Sep 2023 05:43:54 +0000
+Subject: [PATCH] Fix patch conflict
 
+original patch : 0001-Support-OOB-PFR-secure-update.patch
 ---
- activation.cpp   | 66 ++++++++++++++++++++++++++++++++++++++++++++++--
+ activation.cpp   | 66 ++++++++++++++++++++++++++++++++++++++++++++++++
  activation.hpp   | 14 ++++++++++
  image_verify.cpp | 25 ++++++++++++++++++
  images.hpp       |  3 +++
- item_updater.cpp | 28 +++++++++++++++++---
- 5 files changed, 130 insertions(+), 6 deletions(-)
- mode change 100644 => 100755 activation.cpp
- mode change 100644 => 100755 activation.hpp
- mode change 100644 => 100755 image_verify.cpp
- mode change 100644 => 100755 images.hpp
- mode change 100644 => 100755 item_updater.cpp
+ item_updater.cpp | 33 +++++++++++++++++++-----
+ 5 files changed, 135 insertions(+), 6 deletions(-)
 
 diff --git a/activation.cpp b/activation.cpp
-old mode 100644
-new mode 100755
-index e057814..ff5a048
+index 67bbb42..64af859 100644
 --- a/activation.cpp
 +++ b/activation.cpp
-@@ -218,8 +218,19 @@ void Activation::onFlashWriteSuccess()
+@@ -254,6 +254,20 @@ void Activation::onFlashWriteSuccess()
  
      if (Activation::checkApplyTimeImmediate() == true)
      {
--        info("Image Active and ApplyTime is immediate; rebooting BMC.");
--        Activation::rebootBmc();
-+        auto purpose = parent.versions.find(versionId)->second->purpose();
++	auto purpose = parent.versions.find(versionId)->second->purpose();
 +        if (purpose == VersionPurpose::PFRBMC || purpose == VersionPurpose::PFRRoT)
 +        {
 +            if (Activation::getUfmProvisioned())
@@ -41,10 +33,11 @@ index e057814..ff5a048
 +            info("Image Active and ApplyTime is immediate; rebooting BMC.");
 +            Activation::rebootBmc();
 +        }
++
+         info("Image Active and ApplyTime is immediate; rebooting BMC.");
+         Activation::rebootBmc();
      }
-     else
-     {
-@@ -485,6 +496,57 @@ void Activation::rebootBmc()
+@@ -822,6 +836,58 @@ void Activation::rebootBmc()
      }
  }
  
@@ -99,16 +92,15 @@ index e057814..ff5a048
 +    return false;
 +}
 +
++
  } // namespace updater
  } // namespace software
  } // namespace phosphor
 diff --git a/activation.hpp b/activation.hpp
-old mode 100644
-new mode 100755
-index 7425a54..a895646
+index e092383..35b9515 100644
 --- a/activation.hpp
 +++ b/activation.hpp
-@@ -300,6 +300,20 @@ class Activation : public ActivationInherit, public Flash
+@@ -315,6 +315,20 @@ class Activation : public ActivationInherit, public Flash
       **/
      void rebootBmc();
  
@@ -130,12 +122,10 @@ index 7425a54..a895646
      sdbusplus::bus::bus& bus;
  
 diff --git a/image_verify.cpp b/image_verify.cpp
-old mode 100644
-new mode 100755
-index 098ad9d..46e2c25
+index d549e50..5955359 100644
 --- a/image_verify.cpp
 +++ b/image_verify.cpp
-@@ -164,6 +164,31 @@ bool Signature::verify()
+@@ -165,6 +165,31 @@ bool Signature::verify()
              }
          }
  
@@ -168,9 +158,7 @@ index 098ad9d..46e2c25
          auto optionalImages = getOptionalImages();
          bool optionalFilesFound = false;
 diff --git a/images.hpp b/images.hpp
-old mode 100644
-new mode 100755
-index 7801ea3..dbe60e8
+index 7801ea3..dbe60e8 100644
 --- a/images.hpp
 +++ b/images.hpp
 @@ -16,6 +16,9 @@ const std::vector<std::string> bmcImages = {"image-kernel", "image-rofs",
@@ -184,38 +172,39 @@ index 7801ea3..dbe60e8
  
  } // namespace image
 diff --git a/item_updater.cpp b/item_updater.cpp
-old mode 100644
-new mode 100755
-index c8fda76..f801c29
+index abf77cb..0fa54a2 100644
 --- a/item_updater.cpp
 +++ b/item_updater.cpp
-@@ -72,7 +72,9 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
- #ifdef HOST_BIOS_UPGRADE
-                         value == VersionPurpose::Host ||
+@@ -76,7 +76,9 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+                         value == VersionPurpose::PLDM ||
  #endif
--                        value == VersionPurpose::System)
-+                        value == VersionPurpose::System ||
+                         value == VersionPurpose::System ||
+-                        value == VersionPurpose::Other)
 +                        value == VersionPurpose::PFRRoT ||
-+                        value == VersionPurpose::PFRBMC)
++                        value == VersionPurpose::PFRBMC ||
++			value == VersionPurpose::Other)
                      {
                          purpose = value;
                      }
-@@ -136,7 +138,8 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+@@ -140,8 +142,9 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
          // Determine the Activation state by processing the given image dir.
          auto activationState = server::Activation::Activations::Invalid;
          ItemUpdater::ActivationStatus result;
 -        if (purpose == VersionPurpose::BMC || purpose == VersionPurpose::System)
+-            result = ItemUpdater::validateSquashFSImage(filePath);
 +        if (purpose == VersionPurpose::BMC || purpose == VersionPurpose::System
 +            || purpose == VersionPurpose::PFRRoT || purpose == VersionPurpose::PFRBMC)
-             result = ItemUpdater::validateSquashFSImage(filePath);
++	    result = ItemUpdater::validateSquashFSImage(filePath);
          else
              result = ItemUpdater::ActivationStatus::ready;
-@@ -484,8 +487,25 @@ ItemUpdater::ActivationStatus
+ 
+@@ -488,9 +491,27 @@ ItemUpdater::ActivationStatus
          valid = checkImage(filePath, imageUpdateList);
          if (!valid)
          {
 -            error("Failed to find the needed BMC images.");
 -            return ItemUpdater::ActivationStatus::invalid;
+-        }
 +            for (auto& image : signedImages)
 +            {
 +                fs::path file(filePath);
@@ -235,9 +224,11 @@ index c8fda76..f801c29
 +                error("Failed to find the needed BMC images.");
 +                return ItemUpdater::ActivationStatus::invalid;
 +            }
-         }
++
++	}
      }
  
+     return ItemUpdater::ActivationStatus::ready;
 -- 
-2.25.1
+2.17.1
 

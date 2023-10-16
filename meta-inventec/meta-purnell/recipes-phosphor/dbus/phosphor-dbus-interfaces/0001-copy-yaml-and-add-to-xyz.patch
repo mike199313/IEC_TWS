@@ -1,7 +1,7 @@
-From 418efc3fc4d4da9f64f081822bd12a4cf078b3ba Mon Sep 17 00:00:00 2001
-From: Matt Cheng <cheng.matt@inventec.com>
-Date: Mon, 22 May 2023 13:38:44 +0800
-Subject: [PATCH 1/1] copy yaml and add to xyz/
+From 866da2c68ecf2cfd57b63595076b0c0e866c0b2a Mon Sep 17 00:00:00 2001
+From: "jimmy.chen" <Chen.JimmyHC@inventec.com>
+Date: Wed, 30 Aug 2023 02:08:39 +0000
+Subject: [PATCH] Subject: [PATCH 1/1] copy yaml and add to xyz/
 
 Root Cause:
 
@@ -32,23 +32,38 @@ Entry Test:
 	bitbake phosphor-software-manager
 
 -------------------------------------------------------------------------------------
+Solve conflict with common patch.
 
+Root Cause:
+
+    - conflict with patch: 0024-Add-PLDM-version-purpose-enumeration.patch
+
+Solution:
+
+    - remove original patch: 0001-copy-yaml-and-add-to-xyz.patch
+    - devtool modify "phosphor-dbus-interfaces"
+    - add patch content
+    - bitbake phosphor-dbus-interfaces success
+    - bitbake obmc-phosphor-image success
+
+Entry Test:
+
+    $bitbake obmc-phosphor-image success
 ---
- .../Control/OCOTShutdownPolicy/meson.build    | 14 +++++++++++
- gen/xyz/openbmc_project/Control/meson.build   | 14 +++++++++++
+ .../Control/OCOTShutdownPolicy/meson.build    | 15 ++++++++++++
+ gen/xyz/openbmc_project/Control/meson.build   | 15 ++++++++++++
  .../Control/OCOTShutdownPolicy.interface.yaml | 23 +++++++++++++++++++
  .../Software/Version.interface.yaml           |  9 ++++++++
- 4 files changed, 60 insertions(+)
- create mode 100755 gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
- mode change 100644 => 100755 gen/xyz/openbmc_project/Control/meson.build
- create mode 100755 yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+ 4 files changed, 62 insertions(+)
+ create mode 100644 gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+ create mode 100644 yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
 
 diff --git a/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
-new file mode 100755
-index 0000000..7363340
+new file mode 100644
+index 0000000..ba9dc6a
 --- /dev/null
 +++ b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,15 @@
 +# Generated file; do not modify.
 +generated_sources += custom_target(
 +    'xyz/openbmc_project/Control/OCOTShutdownPolicy__cpp'.underscorify(),
@@ -63,13 +78,12 @@ index 0000000..7363340
 +    ],
 +)
 +
++
 diff --git a/gen/xyz/openbmc_project/Control/meson.build b/gen/xyz/openbmc_project/Control/meson.build
-old mode 100644
-new mode 100755
-index 9d22099..2d297cc
+index 9d22099..d74134f 100644
 --- a/gen/xyz/openbmc_project/Control/meson.build
 +++ b/gen/xyz/openbmc_project/Control/meson.build
-@@ -140,6 +140,20 @@ generated_others += custom_target(
+@@ -140,6 +140,21 @@ generated_others += custom_target(
      ],
  )
  
@@ -87,11 +101,12 @@ index 9d22099..2d297cc
 +    ],
 +)
 +
++
  subdir('Power')
  subdir('PowerSupplyAttributes')
  generated_others += custom_target(
 diff --git a/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
-new file mode 100755
+new file mode 100644
 index 0000000..86d239e
 --- /dev/null
 +++ b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
@@ -120,10 +135,10 @@ index 0000000..86d239e
 +            description: >
 +                Shutdown node on an OC/OT event.
 diff --git a/yaml/xyz/openbmc_project/Software/Version.interface.yaml b/yaml/xyz/openbmc_project/Software/Version.interface.yaml
-index 6176010..0a28f63 100644
+index a2b1eb6..d23eec7 100644
 --- a/yaml/xyz/openbmc_project/Software/Version.interface.yaml
 +++ b/yaml/xyz/openbmc_project/Software/Version.interface.yaml
-@@ -41,3 +41,12 @@ enumerations:
+@@ -41,6 +41,15 @@ enumerations:
            - name: PSU
              description: >
                  The version is a version for a PSU.
@@ -136,6 +151,9 @@ index 6176010..0a28f63 100644
 +          - name: PFRHost
 +            description: >
 +                The version is a version for a PFRHost.
+           - name: PLDM
+             description: >
+                 The version is a version for a PLDM.
 -- 
-2.25.1
+2.17.1
 
