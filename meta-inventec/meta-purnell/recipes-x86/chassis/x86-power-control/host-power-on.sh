@@ -12,6 +12,10 @@ echo 0-31 > /sys/bus/peci/drivers/intel_peci_client/bind
 # Re-start cpusensor service
 systemctl restart xyz.openbmc_project.cpusensor.service
 
+# Rebind OCP network driver
+echo 1e670000.ftgmac > /sys/bus/platform/drivers/ftgmac100/unbind
+echo 1e670000.ftgmac > /sys/bus/platform/drivers/ftgmac100/bind
+
 # Re-start phosphor-pid-control
 # systemctl restart phosphor-pid-control.service
 
