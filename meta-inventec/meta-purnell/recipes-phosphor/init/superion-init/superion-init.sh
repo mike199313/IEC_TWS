@@ -8,3 +8,7 @@ bash $FAN_INIT_SH
 GPIO_INIT_SH="/usr/sbin/superion-gpio-init.sh"
 bash $GPIO_INIT_SH
 
+# Read cpld verion
+CPLD_CHECK="/usr/sbin/superion-cpld-init.sh"
+bash $CPLD_CHECK
+
