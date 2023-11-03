@@ -37,6 +37,118 @@
                 }
             ],
             "Type": "TMP75"
+        },
+	{
+            "Address": "0x44",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN1_Power",
+            "Name": "U9_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        },
+        {
+            "Address": "0x45",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN2_Power",
+            "Name": "U5_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        },
+	{
+            "Address": "0x4c",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN3_Power",
+            "Name": "U12_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        },
+        {
+            "Address": "0x4d",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN4_Power",
+            "Name": "U7_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
         }
     ],
     "Name": "fan_bd",
