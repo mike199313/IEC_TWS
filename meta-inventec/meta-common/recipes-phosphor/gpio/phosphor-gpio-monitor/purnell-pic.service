@@ -1,0 +1,6 @@
+[Unit]
+Description=Purnell press power button 6 seconds assert
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/HOTSWAP_EN.sh
