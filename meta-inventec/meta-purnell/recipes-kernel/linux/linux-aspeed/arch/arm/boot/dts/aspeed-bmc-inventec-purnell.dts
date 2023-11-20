@@ -73,8 +73,6 @@
 
 	iio-hwmon {
 		compatible = "iio-hwmon";
-#if 0 //Because in this commit "7ce44bd7 [purnell][sync ca35761][superion][bringup][dbus] add dbus sensors
-      //we have already added it, but at the Power On stage, we temporarily remove all I2C devices.
 		io-channels =
 			<&adc_u74 0>, // AIN0
 			<&adc_u74 1>, // AIN1
@@ -89,7 +87,6 @@
 			<&adc_u74 10>, // P1V8_AUX
 			<&adc_u74 11> // P1V05_AUX
 			;
-#endif
     };
 
 	vcc_sdhci0: regulator-vcc-sdhci0 {
@@ -416,6 +413,17 @@
 			};
 
 		};
+		i2c7_mux_1: i2c@1 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <1>;
+	            		//Voltage Sensor MAX1139
+	                        adc_u74: voltage-sensor@35 {
+	                                compatible = "maxim,max1139";
+	                                reg = <0x35>;
+	                                #io-channel-cells = <1>;
+	                        };
+			};
 	};
 };
 
