@@ -1,0 +1,11 @@
+[Unit]
+Description=post complete vgpio detection
+After=superion-init.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/post-complete.sh
+
+[Install]
+WantedBy=multi-user.target

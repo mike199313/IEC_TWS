@@ -1,0 +1,118 @@
+From e4082a08861fbc60f74300330e3aa8edf8fa5ee4 Mon Sep 17 00:00:00 2001
+From: kian <Lee.Kian@inventec.com>
+Date: Thu, 17 Aug 2023 11:26:32 +0800
+Subject: [PATCH] [cxl_platform][PO] Enable "ESPI" "PCIE VGA Device" and
+ "HBLED" if need.
+
+Symptom/Reason:
+	HBLED , ESPI , VGA device is disable.
+
+Root Cause:
+	Refer to AST2600_Datasheet_v11.pdf page 521 , CH24 SCU51Ch
+	    1. [8] = 0b  Enable HBLED
+                   = 1b  Disable HBLED
+	    2. [7] = 0b  Is ESPI mode
+	           = 1b  Is LPC mode
+ 	    3. [6] = 0b  Enable PCIE VGA device
+                   = 1b  Disable PCIE VGA device
+	Refer to cxl DCSCM SCH DCSCM.SCH.0703_decrypted page 11
+	    GPIOZ5 is HBLED HW strapping
+	    GPIOZ4 is ESPI/LPC mode HW strapping
+	    GPIOZ3 is PCIE VGA device HW strapping
+	    Those devices will be affected by these issues, in other words, experiencing power leaks.
+
+Solution/Change:
+	Using SW strapping in uboot phase.
+
+Entry Test:
+        http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Cxl-DOCS?path=%2FCommit_memo%2FCxl_0011_OpenBMC_Self_Test_Log&version=GBdocs&_a=contents
+        Cxl_Self_Test_0003
+---
+ arch/arm/mach-aspeed/ast2600/board_common.c | 67 +++++++++++++++++++++
+ 1 file changed, 67 insertions(+)
+
+diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
+index e790c1f1a2..22a9674298 100644
+--- a/arch/arm/mach-aspeed/ast2600/board_common.c
++++ b/arch/arm/mach-aspeed/ast2600/board_common.c
+@@ -38,6 +38,71 @@ DECLARE_GLOBAL_DATA_PTR;
+ #define SGPIO_BYTES(N)                  ((N) << 6)
+ #define SGPIO_ENABLE                    1
+ 
++#define IEC_CXL_DBG			0
++#define	AST_SCU_BASE			0x1e6e2000
++#define SCU51C				0x51c
++#define HW_STRAP3_SCU51C		AST_SCU_BASE + SCU51C
++#define HBLED_REG			BIT(8)
++#define LPC_ESPI_MODE_REG		BIT(7)
++#define PCIE_VGA_DEVICE_REG		BIT(6)
++#define DISABLE_HBLED			1
++#define ENABLE_LPC			1
++#define DISABLE_PCIE_VGA_DEVICE		1
++#define REGISTER_NONE			-1
++void inventec_cxl (void)
++{
++	u32 HW_Strap3_Tmp = REGISTER_NONE;
++	HW_Strap3_Tmp = readl(HW_STRAP3_SCU51C);
++
++	#ifdef IEC_CXL_DBG
++	{
++		printf("HW Strap3 SCU512 = %08x \n",HW_Strap3_Tmp);
++	}
++	#endif
++
++	if (((HW_Strap3_Tmp & HBLED_REG) >> 8) == DISABLE_HBLED)
++	{
++		// Enable HBLED
++		HW_Strap3_Tmp = HW_Strap3_Tmp & (~HBLED_REG);
++		writel(HW_Strap3_Tmp, HW_STRAP3_SCU51C);
++		#ifdef IEC_CXL_DBG
++		{
++			HW_Strap3_Tmp = readl(HW_STRAP3_SCU51C);
++			printf("Enalbe HBLED, HW Strap3 SCU512 = %08x \n",HW_Strap3_Tmp);
++		}
++		#endif
++	}
++
++	if (((HW_Strap3_Tmp & LPC_ESPI_MODE_REG) >> 7) == ENABLE_LPC)
++	{
++		// It will be disable LPC , change to ESPI mode
++		HW_Strap3_Tmp = HW_Strap3_Tmp & (~LPC_ESPI_MODE_REG);
++		writel(HW_Strap3_Tmp, HW_STRAP3_SCU51C);
++		#ifdef IEC_CXL_DBG
++		{
++			HW_Strap3_Tmp = readl(HW_STRAP3_SCU51C);
++			printf("Enable ESPI mode, HW Strap3 SCU512 = %08x \n",HW_Strap3_Tmp);
++		}
++		#endif
++	}
++
++	if (((HW_Strap3_Tmp & PCIE_VGA_DEVICE_REG) >> 6) == DISABLE_PCIE_VGA_DEVICE)
++	{
++		// It will be enalbe PCIE VGA device.
++		HW_Strap3_Tmp = HW_Strap3_Tmp & (~PCIE_VGA_DEVICE_REG);
++		writel(HW_Strap3_Tmp, HW_STRAP3_SCU51C);
++		#ifdef IEC_CXL_DBG
++		{
++			HW_Strap3_Tmp = readl(HW_STRAP3_SCU51C);
++			printf("Enable PCIE VGA device,HW Strap3 SCU512 = %08x \n",HW_Strap3_Tmp);
++		}
++		#endif
++	}
++		writel(HW_Strap3_Tmp, HW_STRAP3_SCU51C);
++		HW_Strap3_Tmp = readl(HW_STRAP3_SCU51C);
++		printf("inventec cxl init finish HW Stramp SCU512= %08x \n",HW_Strap3_Tmp);
++}
++
+ /*
+  * RMII daughtercard workaround
+  */
+@@ -115,6 +180,8 @@ __weak int board_init(void)
+ 		if (ret)
+ 			break;
+ 	}
++	
++	inventec_cxl();
+ 
+ 	return 0;
+ }

@@ -1,5 +1,5 @@
 [Unit]
-Description=Purnell press power button 6 seconds assert
+Description=Cxl press power button 6 seconds assert
 
 [Service]
 Type=oneshot

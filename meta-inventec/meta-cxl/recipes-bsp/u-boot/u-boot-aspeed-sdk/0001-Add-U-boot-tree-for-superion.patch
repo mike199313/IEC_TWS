@@ -1,0 +1,387 @@
+From bf389b256f3db9fd7c464fa3be9c4901fb7d924e Mon Sep 17 00:00:00 2001
+From: mikec <Cheng.Mike@inventec.com>
+Date: Fri, 9 Dec 2022 17:18:48 +0800
+Subject: [PATCH 1/1] Add-U-boot-tree-for-superion
+
+---
+ arch/arm/dts/Makefile                |   3 +-
+ arch/arm/dts/ast2600-cxl.dts     | 242 +++++++++++++++++++++++++++
+ configs/superion-ast2600_defconfig   |  83 +++++++++
+ include/configs/IECplatformConfigs.h |  12 ++
+ 4 files changed, 339 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/dts/ast2600-superion.dts
+ create mode 100644 configs/superion-ast2600_defconfig
+ create mode 100644 include/configs/IECplatformConfigs.h
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 97580df59b..94d724c12c 100755
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -691,7 +691,8 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
+ 	ast2600-slt.dtb \
+ 	ast2600-tacoma.dtb \
+ 	ast2600-intel.dtb \
+-	ast2600-tacoma.dtb
++	ast2600-tacoma.dtb \
++	ast2600-cxl.dtb
+ 
+ dtb-$(CONFIG_ARCH_STI) += stih410-b2260.dtb
+ 
+diff --git a/arch/arm/dts/ast2600-superion.dts b/arch/arm/dts/ast2600-superion.dts
+new file mode 100644
+index 0000000000..1ada5fd432
+--- /dev/null
++++ b/arch/arm/dts/ast2600-cxl.dts
+@@ -0,0 +1,242 @@
++/dts-v1/;
++
++#include "ast2600-u-boot.dtsi"
++
++/ {
++
++	memory {
++		device_type = "memory";
++		reg = <0x80000000 0x40000000>;
++	};
++
++	chosen {
++		stdout-path = &uart5;
++	};
++
++	aliases {
++		mmc0 = &emmc_slot0;
++		mmc1 = &sdhci_slot0;
++		mmc2 = &sdhci_slot1;
++		spi0 = &fmc;
++		spi1 = &spi1;
++		spi2 = &spi2;
++		ethernet0 = &mac3;
++	};
++
++	cpus {
++		cpu@0 {
++			clock-frequency = <800000000>;
++		};
++		cpu@1 {
++			clock-frequency = <800000000>;
++		};
++	};
++};
++
++&uart5 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++};
++
++&sdrammc {
++	clock-frequency = <400000000>;
++};
++
++&wdt1 {
++	status = "okay";
++};
++
++&mdio {
++        status = "okay";
++        pinctrl-names = "default";
++        pinctrl-0 = <&pinctrl_mdio1_default>;
++        #address-cells = <1>;
++        #size-cells = <0>;
++        ethphy0: ethernet-phy@0 {
++                reg = <1>;
++        };
++};
++
++&mac3 {
++        status = "okay";
++        phy-mode = "rgmii";
++        phy-handle = <&ethphy0>;
++        reg = <0x1e690000 0x180>, <0x1e650000 0x8>;
++        pinctrl-names = "default";
++        pinctrl-0 = <&pinctrl_rgmii4_default>;
++};
++
++&fmc {
++	status = "okay";
++#if 0
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_fmcquad_default>;
++#endif
++	flash@0 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++
++	flash@1 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++};
++
++&spi1 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_spi1_default &pinctrl_spi1abr_default
++			&pinctrl_spi1cs1_default &pinctrl_spi1wp_default
++			&pinctrl_spi1wp_default &pinctrl_spi1quad_default>;
++
++	flash@0 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++
++	flash@1 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++};
++
++&spi2 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_spi2_default &pinctrl_spi2cs1_default
++			&pinctrl_spi2cs2_default &pinctrl_spi2quad_default>;
++
++	flash@0 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++
++	flash@1 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++
++	flash@2 {
++		compatible = "spi-flash", "sst,w25q256";
++		status = "okay";
++		spi-max-frequency = <50000000>;
++		spi-tx-bus-width = <2>;
++		spi-rx-bus-width = <2>;
++	};
++};
++
++&emmc {
++	u-boot,dm-pre-reloc;
++	timing-phase = <0x700ff>;
++};
++
++&emmc_slot0 {
++	u-boot,dm-pre-reloc;
++	status = "okay";
++	bus-width = <8>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_emmc_default>;
++	sdhci-drive-type = <3>;
++};
++
++&sdhci {
++	timing-phase = <0xc6ffff>;
++};
++
++&sdhci_slot0 {
++	status = "okay";
++	bus-width = <4>;
++	pwr-gpios = <&gpio0 ASPEED_GPIO(V, 0) GPIO_ACTIVE_HIGH>;
++	pwr-sw-gpios = <&gpio0 ASPEED_GPIO(V, 1) GPIO_ACTIVE_HIGH>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_sd1_default>;
++	sdhci-drive-type = <1>;
++};
++
++&sdhci_slot1 {
++	status = "okay";
++	bus-width = <4>;
++	pwr-gpios = <&gpio0 ASPEED_GPIO(V, 2) GPIO_ACTIVE_HIGH>;
++	pwr-sw-gpios = <&gpio0 ASPEED_GPIO(V, 3) GPIO_ACTIVE_HIGH>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_sd2_default>;
++	sdhci-drive-type = <1>;
++};
++
++&i2c4 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c5_default>;
++};
++
++&i2c5 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c6_default>;
++};
++
++&i2c6 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c7_default>;
++};
++
++&i2c7 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c8_default>;
++};
++
++&i2c8 {
++	status = "okay";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_i2c9_default>;
++};
++
++&pcie_bridge {
++        status = "okay";
++};
++
++#if 0
++&fsim0 {
++	status = "okay";
++};
++
++&fsim1 {
++	status = "okay";
++};
++#endif
++
++&ehci1 {
++	status = "okay";
++};
++
++&display_port {
++	status = "okay";
++};
+diff --git a/configs/superion-ast2600_defconfig b/configs/superion-ast2600_defconfig
+new file mode 100644
+index 0000000000..3fc0a0faa0
+--- /dev/null
++++ b/configs/superion-ast2600_defconfig
+@@ -0,0 +1,83 @@
++CONFIG_ARM=y
++CONFIG_ARCH_ASPEED=y
++CONFIG_SYS_TEXT_BASE=0x0
++CONFIG_ASPEED_AST2600=y
++CONFIG_TARGET_EVB_AST2600A1=y
++CONFIG_SYS_MALLOC_F_LEN=0x2000
++CONFIG_ENV_SIZE=0x20000
++CONFIG_ENV_OFFSET=0xE0000
++CONFIG_ARMV7_BOOT_SEC_DEFAULT=y
++CONFIG_CMD_EEPROM=y
++CONFIG_DEFAULT_DEVICE_TREE="ast2600-cxl"
++CONFIG_NR_DRAM_BANKS=1
++CONFIG_FIT=y
++CONFIG_USE_BOOTARGS=y
++CONFIG_BOOTARGS="console=ttyS4,115200n8 root=/dev/ram rw mem.devmem=1"
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="bootm 20100000"
++CONFIG_PRE_CONSOLE_BUFFER=y
++CONFIG_PRE_CON_BUF_ADDR=0x10000000
++CONFIG_DISPLAY_BOARDINFO_LATE=y
++CONFIG_ARCH_EARLY_INIT_R=y
++CONFIG_HUSH_PARSER=y
++# CONFIG_AUTO_COMPLETE is not set
++CONFIG_SYS_PROMPT="ast# "
++CONFIG_CMD_MEMTEST=y
++CONFIG_SYS_ALT_MEMTEST=y
++CONFIG_CMD_CLK=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_PCI=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_SF=y
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_MII=y
++CONFIG_CMD_PING=y
++CONFIG_ENV_IS_IN_SPI_FLASH=y
++CONFIG_USE_ENV_SPI_BUS=y
++CONFIG_ENV_SPI_BUS=0
++CONFIG_USE_ENV_SPI_CS=y
++CONFIG_ENV_SPI_CS=0
++CONFIG_USE_ENV_SPI_MAX_HZ=y
++CONFIG_ENV_SPI_MAX_HZ=100000000
++CONFIG_NET_RANDOM_ETHADDR=y
++CONFIG_REGMAP=y
++CONFIG_SYSCON=y
++CONFIG_CLK=y
++CONFIG_DM_GPIO=y
++CONFIG_ASPEED_GPIO=y
++CONFIG_DM_I2C=y
++CONFIG_SYS_I2C_ASPEED=y
++CONFIG_MISC=y
++CONFIG_ASPEED_AHBC=y
++CONFIG_ASPEED_H2X=y
++CONFIG_DM_MMC=y
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_ASPEED=y
++CONFIG_DM_SPI_FLASH=y
++CONFIG_SPI_FLASH=y
++CONFIG_SPI_FLASH_GIGADEVICE=y
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_SPI_FLASH_SPANSION=y
++CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_SPI_FLASH_WINBOND=y
++CONFIG_PHY_BROADCOM=y
++CONFIG_PHY_REALTEK=y
++CONFIG_DM_ETH=y
++CONFIG_FTGMAC100=y
++CONFIG_MDIO=y
++CONFIG_PCI=y
++CONFIG_DM_PCI=y
++CONFIG_DM_PCI_COMPAT=y
++CONFIG_PCIE_ASPEED=n
++CONFIG_PHY=y
++CONFIG_PINCTRL=y
++CONFIG_RAM=y
++CONFIG_DM_SERIAL=y
++CONFIG_SYS_NS16550=y
++CONFIG_SPI=y
++CONFIG_DM_SPI=y
++CONFIG_SYSRESET=y
++CONFIG_WDT=y
++CONFIG_DM_I2C_COMPAT=y
++CONFIG_MAX31790_I2C=y
+diff --git a/include/configs/IECplatformConfigs.h b/include/configs/IECplatformConfigs.h
+new file mode 100644
+index 0000000000..26de27fe64
+--- /dev/null
++++ b/include/configs/IECplatformConfigs.h
+@@ -0,0 +1,12 @@
++// This header file is automatically created, DO NOT EDIT IT.
++#ifndef __IEC_PLATFORM_CONFIGS_H__
++#define __IEC_PLATFORM_CONFIGS_H__
++
++#define EEPROM_MAC_I2C_BUS (8)
++#define EEPROM_MAC_I2C_ADDRESS (0x51)
++#define EEPROM_MAC_OFFSET (0x400)
++#define EEPROM_MAC_I2C_DEV_SPEED (100000)
++#define EEPROM_MAC_I2C_ADDR_LEN (2)
++#define EEPROM_ETH0_ADDR (0x1e690000)
++
++#endif /* __IEC_PLATFORM_CONFIGS_H__ */
+-- 
+2.25.1
+

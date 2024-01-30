@@ -7,7 +7,7 @@ SRC_URI += "file://0002-support-triggering-multiple-services.patch"
 SRC_URI += "file://HOTSWAP_EN.sh"
 
 
-SYSTEMD_SERVICE:${PN}-monitor += "purnell-pic.service"
+SYSTEMD_SERVICE:${PN}-monitor += "cxl-pic.service"
 
 do_install:append(){
     install -d ${D}/usr/share/phosphor-gpio-monitor

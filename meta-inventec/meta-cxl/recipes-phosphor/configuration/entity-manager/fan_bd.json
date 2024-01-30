@@ -1,0 +1,516 @@
+{
+    "Exposes": [
+        {
+            "Address": "0x51",
+            "Bus": "21",
+            "Name": "FAN_BD_24C64",
+            "Type": "EEPROM_24C64"
+        },
+    	{
+            "Address": "0x48",
+            "Bus": "21",
+            "Name":  "Fan_Board_Temp",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 60
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 50
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 10
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 5
+                }
+            ],
+            "Type": "TMP75"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_1",
+                "Pwm": 0,
+                "PwmName": "FAN_PWM_1"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 0,
+            "MaxReading": 44000,
+            "Name": "FAN1_TACH1",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN1_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_1",
+                "Pwm": 0,
+                "PwmName": "FAN_PWM_1"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 1,
+            "MaxReading": 44000,
+            "Name": "FAN1_TACH2",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN11_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_2",
+                "Pwm": 1,
+                "PwmName": "FAN_PWM_2"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 2,
+            "MaxReading": 44000,
+            "Name": "FAN2_TACH1",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN2_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_2",
+                "Pwm": 1,
+                "PwmName": "FAN_PWM_2"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 3,
+            "MaxReading": 44000,
+            "Name": "FAN2_TACH2",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN22_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_3",
+                "Pwm": 2,
+                "PwmName": "FAN_PWM_3"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 4,
+            "MaxReading": 44000,
+            "Name": "FAN3_TACH1",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN3_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_3",
+                "Pwm": 2,
+                "PwmName": "FAN_PWM_3"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 5,
+            "MaxReading": 44000,
+            "Name": "FAN3_TACH2",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN33_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_4",
+                "Pwm": 3,
+                "PwmName": "FAN_PWM_4"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 6,
+            "MaxReading": 44000,
+            "Name": "FAN4_TACH1",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN4_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+        {
+            "Connector": {
+                "Name": "FAN_PWM_4",
+                "Pwm": 3,
+                "PwmName": "FAN_PWM_4"
+            },
+            "Address": "0x58",
+            "Bus": "21",
+            "Index": 7,
+            "MaxReading": 44000,
+            "Name": "FAN4_TACH2",
+            "Presence": {
+                "Polarity": "Low",
+                "PinName": "FAN44_INSTALL_R_N"
+            },
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 43992
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 43000
+                },   
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1400
+                },                 
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 1296
+                }
+            ],
+            "Type": "I2CFan"
+        },
+	    {
+            "Address": "0x44",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN1_Power",
+            "Name": "U9_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        },
+        {
+            "Address": "0x45",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN2_Power",
+            "Name": "U5_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        },
+	    {
+            "Address": "0x4c",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN3_Power",
+            "Name": "U12_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        },
+        {
+            "Address": "0x4d",
+            "Bus": "21",
+            "Labels": [
+                "power1"
+            ],
+            "power1_Scale" : 1000000,
+            "power1_Max" : 1760,
+            "power1_Name" : "FAN4_Power",
+            "Name": "U7_INA220",
+            "Thresholds": [
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 120
+                },
+                {
+                    "Direction": "greater than",
+                    "Label": "power1",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 100
+                }
+            ],
+            "Type": "INA220"
+        }
+    ],
+    "Name": "fan_bd",
+    "Probe": "xyz.openbmc_project.FruDevice({'BOARD_PRODUCT_NAME': 'FB'})",
+    "Type": "Board",
+    "xyz.openbmc_project.Inventory.Decorator.Asset": {
+        "Manufacturer": "$BOARD_MANUFACTURER",
+        "PartNumber": "$BOARD_PART_NUMBER",
+        "SerialNumber": "$BOARD_SERIAL_NUMBER",
+        "BuildDate": "$BOARD_MANUFACTURE_DATE"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.FruDevice":{
+        "Bus":"$BUS",
+        "Address":"$ADDRESS"
+    },
+    "xyz.openbmc_project.Inventory.Decorator.Ipmi": {
+        "EntityId": "0x11",
+        "EntityInstance": 2
+    }
+}
+
