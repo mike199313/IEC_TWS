@@ -5,7 +5,7 @@
        "EventMon": "FALLING",
        "Continue": true,
        "Target": {
-	       "FALLING": ["purnell-pic.service"]
+	       "FALLING": ["cxl-pic.service"]
        }
    }
 ]

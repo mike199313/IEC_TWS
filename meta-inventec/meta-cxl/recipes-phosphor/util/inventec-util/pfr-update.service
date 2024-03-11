@@ -1,0 +1,8 @@
+[Unit]
+Description=PFR secure update
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/pfr-update
+StandardOutput=journal+console

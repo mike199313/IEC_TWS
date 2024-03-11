@@ -1,8 +1,8 @@
 #!/bin/sh
 
-echo The purnell press power button , AC will OFF
+echo The cxl press power button , AC will OFF
 
-# sysadmin@purnell:~# i2ctransfer -f -y 24 w4@0x5d 0x11 0x1b 0x00 0x00 r1
+# sysadmin@cxl:~# i2ctransfer -f -y 24 w4@0x5d 0x11 0x1b 0x00 0x00 r1
 # 0x00
 # The PDB MCU_PA27_PDB_BD_00_HOTSWAP_EN = LOW , AC Power is OFF. (*1)
 # Why I2C address is 0x5d , refer to PDB spec (*2)
@@ -33,10 +33,10 @@ fi
 
 # Remark:
 # (*1) 	PDB Schematic : INTEL_BHS_2U4N_PDB_20230531_decrypted.pdf
-#    	http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Purnell-DOCS/commit/e31895942d51449846ab8af1d95d013f04723ae5?refName=refs%2Fheads%2Fdocs&path=%2FHW_Schematic%2FPurnell_Schematic%2FPDB%2FINTEL_BHS_2U4N_PDB_20230531_decrypted.pdf&_a=contents
+#    	http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Cxl-DOCS/commit/e31895942d51449846ab8af1d95d013f04723ae5?refName=refs%2Fheads%2Fdocs&path=%2FHW_Schematic%2FCxl_Schematic%2FPDB%2FINTEL_BHS_2U4N_PDB_20230531_decrypted.pdf&_a=contents
 
-# (*2)	PDB FW Spec : Purnell_PDB_PIC_FW_Spec_V0.07.docx page 14 , SET_GPIO_STATUS Command
-#	http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Purnell-DOCS/commit/635c110da2e62cc45b46d190c43c205b642176fc?refName=refs%2Fheads%2Fdocs&path=%2FPurnell_Project_Information%2FPDB%2FPurnell_PDB_PIC_FW_Spec_V0.07.docx&_a=compare	
+# (*2)	PDB FW Spec : Cxl_PDB_PIC_FW_Spec_V0.07.docx page 14 , SET_GPIO_STATUS Command
+#	http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Cxl-DOCS/commit/635c110da2e62cc45b46d190c43c205b642176fc?refName=refs%2Fheads%2Fdocs&path=%2FCxl_Project_Information%2FPDB%2FCxl_PDB_PIC_FW_Spec_V0.07.docx&_a=compare	
 
-# (*3) SGPIO Table : Purnell_SGPIO_Mapping_20231108.xlsx
-#	http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Purnell-DOCS/commit/70ed010483dd00065ee465d603bbdf13f4f28792?refName=refs%2Fheads%2Fdocs&path=%2FPurnell_Project_Information%2FCPLD%2FPurnell_SGPIO_Mapping_20231124.xlsx&_a=contents
+# (*3) SGPIO Table : Cxl_SGPIO_Mapping_20231108.xlsx
+#	http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/Cxl-DOCS/commit/70ed010483dd00065ee465d603bbdf13f4f28792?refName=refs%2Fheads%2Fdocs&path=%2FCxl_Project_Information%2FCPLD%2FCxl_SGPIO_Mapping_20231124.xlsx&_a=contents
