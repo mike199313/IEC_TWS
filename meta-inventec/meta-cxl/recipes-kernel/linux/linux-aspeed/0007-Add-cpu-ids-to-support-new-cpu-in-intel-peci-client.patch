@@ -1,0 +1,168 @@
+From cfa6df708fe2617be5dd3edc911b7e41678de596 Mon Sep 17 00:00:00 2001
+From: ykchiu <Chiu.YK@inventec.com>
+Date: Wed, 19 Apr 2023 05:55:07 +0000
+Subject: [PATCH] Add cpu ids to support new cpu in intel peci client
+
+Sympton/Reason:
+    Add following cpu ids to support new cpu
+	- Sapphire Rapids
+	- Granite Rapids
+
+Root Cause:
+    N/A
+
+Solution/Change:
+    Add new cpu id support for peci.
+
+Entry Test:
+sysadmin@superion:/sys/bus/peci/devices/0-30# ls
+driver            of_node           peci-cputemp.0    peci-dimmtemp.0   subsystem
+name              peci-cpupower.0   peci-dimmpower.0  power             uevent
+---
+ drivers/hwmon/peci-dimmtemp.c         | 68 +++++++++++++++++++++++++++
+ drivers/mfd/intel-peci-client.c       | 12 +++++
+ include/linux/mfd/intel-peci-client.h | 12 +++++
+ 3 files changed, 92 insertions(+)
+
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index 456991169716..8f37bd75c974 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -43,6 +43,8 @@ static const u8 support_model[] = {
+ 	INTEL_FAM6_SKYLAKE_XD,
+ 	INTEL_FAM6_ICELAKE_X,
+ 	INTEL_FAM6_ICELAKE_XD,
++	INTEL_FAM6_SAPPHIRERAPIDS,
++	INTEL_FAM6_GRANITERAPIDS,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -267,6 +269,72 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 		priv->temp_max[dimm_no] = rp_msg.pci_config[1] * 1000;
+ 		priv->temp_crit[dimm_no] = rp_msg.pci_config[2] * 1000;
+ 		break;
++	case INTEL_FAM6_SAPPHIRERAPIDS:
++	case INTEL_FAM6_GRANITERAPIDS:
++		re_msg.addr = priv->mgr->client->addr;
++		re_msg.rx_len = 4;
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
++		re_msg.params.pci_cfg.seg = 0;
++		re_msg.params.pci_cfg.bus = 30;
++		re_msg.params.pci_cfg.device = 0;
++		re_msg.params.pci_cfg.function = 2;
++		re_msg.params.pci_cfg.reg = 0xd4;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, sizeof(re_msg), &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    !(re_msg.data[3] & BIT(7))) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		re_msg.params.pci_cfg.reg = 0xd0;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, sizeof(re_msg), &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		cpu_seg = re_msg.data[2];
++		cpu_bus = re_msg.data[0];
++
++		re_msg.msg_type = PECI_ENDPTCFG_TYPE_MMIO;
++		re_msg.params.mmio.seg = cpu_seg;
++		re_msg.params.mmio.bus = cpu_bus;
++		/*
++		 * Device 26, Offset 219a8: IMC 0 channel 0 -> rank 0
++		 * Device 26, Offset 299a8: IMC 0 channel 1 -> rank 1
++		 * Device 27, Offset 219a8: IMC 1 channel 0 -> rank 2
++		 * Device 27, Offset 299a8: IMC 1 channel 1 -> rank 3
++		 * Device 28, Offset 219a8: IMC 2 channel 0 -> rank 4
++		 * Device 28, Offset 299a8: IMC 2 channel 1 -> rank 5
++		 * Device 29, Offset 219a8: IMC 3 channel 0 -> rank 6
++		 * Device 29, Offset 299a8: IMC 3 channel 1 -> rank 7
++		 */
++		re_msg.params.mmio.device = 0x1a + chan_rank / 2;
++		re_msg.params.mmio.function = 0;
++		re_msg.params.mmio.bar = 0;
++		re_msg.params.mmio.addr_type = PECI_ENDPTCFG_ADDR_TYPE_MMIO_Q;
++		re_msg.params.mmio.offset = 0x219a8 + dimm_order * 4;
++		if (chan_rank % 2)
++			re_msg.params.mmio.offset += 0x8000;
++
++		ret = peci_command(priv->mgr->client->adapter,
++				   PECI_CMD_RD_END_PT_CFG, sizeof(re_msg), &re_msg);
++		if (ret || re_msg.cc != PECI_DEV_CC_SUCCESS ||
++		    re_msg.data[1] == 0 || re_msg.data[2] == 0) {
++			/* Use default or previous value */
++			ret = 0;
++			break;
++		}
++
++		priv->temp_max[dimm_no] = re_msg.data[1] * 1000;
++		priv->temp_crit[dimm_no] = re_msg.data[2] * 1000;
++		break;
+ 	default:
+ 		return -EOPNOTSUPP;
+ 	}
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 69834a230998..37cb74d11491 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -62,6 +62,18 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_mask_bits = CORE_MASK_BITS_ON_ICXD,
+ 		.chan_rank_max  = CHAN_RANK_MAX_ON_ICXD,
+ 		.dimm_idx_max   = DIMM_IDX_MAX_ON_ICXD },
++	{ /* Sapphire Rapids */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SAPPHIRERAPIDS,
++		.core_mask_bits = CORE_MASK_BITS_ON_SPR,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SPR,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SPR },
++	{ /* Granite Rapids */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_GRANITERAPIDS,
++		.core_mask_bits = CORE_MASK_BITS_ON_GRA,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_GRA,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_GRA },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 0a069b87f733..95bc00def3de 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -20,6 +20,8 @@
+ #define INTEL_FAM6_SKYLAKE_XD		0x56
+ #define INTEL_FAM6_ICELAKE_X		0x6A
+ #define INTEL_FAM6_ICELAKE_XD		0x6C
++#define INTEL_FAM6_SAPPHIRERAPIDS	0x8F
++#define INTEL_FAM6_GRANITERAPIDS	0xAD
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -48,6 +50,16 @@
+ #define CHAN_RANK_MAX_ON_ICXD  4  /* Max number of channel ranks on Icelake D */
+ #define DIMM_IDX_MAX_ON_ICXD   2  /* Max DIMM index per channel on Icelake D */
+ 
++/*SAPPHIRERAPIDS*/
++#define CORE_MASK_BITS_ON_SPR  50 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_SPR   8  /* Max number of channel ranks on Sapphire Rapids */
++#define DIMM_IDX_MAX_ON_SPR    2  /* Max DIMM index per channel on Sapphire Rapids */
++
++/*GRANITERAPIDS*/
++#define CORE_MASK_BITS_ON_GRA  64 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_GRA   8  /* Max number of channel ranks on Granite Rapids */
++#define DIMM_IDX_MAX_ON_GRA    2  /* Max DIMM index per channel on Granite Rapids */
++
+ #define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_ICX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.17.1
+

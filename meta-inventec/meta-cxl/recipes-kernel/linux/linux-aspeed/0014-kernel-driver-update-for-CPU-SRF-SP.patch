@@ -1,0 +1,187 @@
+From 1c9d8f65a6d0de95b68a571acd5857037f67a619 Mon Sep 17 00:00:00 2001
+From: "daniel.tsai" <Tsai.Daniel@inventec.com>
+Date: Wed, 11 Oct 2023 08:16:22 +0000
+Subject: [PATCH] kernel driver update for CPU SRF-SP
+
+Symptom/Reason :
+                 old driver cannot support CPU SRF-SP.
+
+Root Cause     :
+                 There is mechanism for identifying CPU ID in kernel driver intel-peci-client.c, intel-peci-client.h and peci-dimmtemp.c. This patch adds CPU SRF-SP to the support list, ensuring proper detection of the CPU.
+                 Additionally, in peci-dimmtemp.c, there are some more modifications needed:
+                 1. The BIT(channel) will result in the output of the function dimmtemp_is_visible being 0444, preventing the atrributes from being created in hwmon.c.
+                 2. The settings for temp*_max and temp*_crit in the function check_populated_dimms currently use the actual dimm number as the index, but they should use the sysfs dimm number to set the values of temp*_max and temp*_crit.
+
+Solution/Change:
+                 [intel-peci-client.c][intel-peci-client.h][peci-dimmtemp.c]
+                         -add the CPU SRF-SP in the support model list, and do necessary modification in peci-dimmtemp.c.
+
+Entry Test     :
+
+sysadmin@superion:~# ls /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/
+device       subsystem    temp1_label  temp2_input  temp3_crit   temp3_max    temp4_label
+name         temp1_crit   temp1_max    temp2_label  temp3_input  temp4_crit   temp4_max
+power        temp1_input  temp2_crit   temp2_max    temp3_label  temp4_input  uevent
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_input
+28000
+28000
+27000
+27000
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_max
+90000
+90000
+90000
+90000
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_crit
+100000
+100000
+100000
+100000
+sysadmin@superion:~# cat /sys/bus/peci/devices/0-30/peci-dimmtemp.0/hwmon/hwmon*/temp*_label
+DIMM A1
+DIMM A2
+DIMM C1
+DIMM C2
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_A1_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         28                                       emits-change writable
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_A2_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         28                                       emits-change writable
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_C1_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         27                                       emits-change writable
+sysadmin@superion:~# busctl introspect xyz.openbmc_project.CPUSensor /xyz/openbmc_project/sensors/temperature/DIMM_C2_CPU1
+NAME                                                  TYPE      SIGNATURE RESULT/VALUE                             FLAGS
+.Value                                                property  d         27                                       emits-change writable
+sysadmin@superion:~# ipmitool sdr list
+Cpu Power Averag | 54 Watts          | ok
+Cpu Power Cap CP | 0 Watts           | ok
+Dimm Power Avera | 4 Watts           | ok
+Dimm Power Cap C | 0 Watts           | ok
+DIMM A1 CPU1     | 28 degrees C      | ok
+DIMM A2 CPU1     | 28 degrees C      | ok
+DIMM C1 CPU1     | 27 degrees C      | ok
+DIMM C2 CPU1     | 27 degrees C      | ok
+DTS CPU1         | 46 degrees C      | ok
+Die CPU1         | 46 degrees C      | ok
+---
+ drivers/hwmon/peci-dimmtemp.c         | 15 +++++++++------
+ drivers/mfd/intel-peci-client.c       |  6 ++++++
+ include/linux/mfd/intel-peci-client.h |  6 ++++++
+ 3 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/hwmon/peci-dimmtemp.c b/drivers/hwmon/peci-dimmtemp.c
+index bb31b038b59c..6a1662345e3f 100644
+--- a/drivers/hwmon/peci-dimmtemp.c
++++ b/drivers/hwmon/peci-dimmtemp.c
+@@ -52,6 +52,7 @@ static const u8 support_model[] = {
+ 	INTEL_FAM6_ICELAKE_XD,
+ 	INTEL_FAM6_SAPPHIRERAPIDS,
+ 	INTEL_FAM6_GRANITERAPIDS,
++	INTEL_FAM6_SIERRAFOREST,
+ };
+ 
+ static inline int read_ddr_dimm_temp_config(struct peci_dimmtemp *priv,
+@@ -278,6 +279,7 @@ static int get_dimm_temp(struct peci_dimmtemp *priv, int dimm_no)
+ 		break;
+ 	case INTEL_FAM6_SAPPHIRERAPIDS:
+ 	case INTEL_FAM6_GRANITERAPIDS:
++	case INTEL_FAM6_SIERRAFOREST:
+ 		re_msg.addr = priv->mgr->client->addr;
+ 		re_msg.rx_len = 4;
+ 		re_msg.msg_type = PECI_ENDPTCFG_TYPE_LOCAL_PCI;
+@@ -400,7 +402,7 @@ static umode_t dimmtemp_is_visible(const void *data,
+ 	const struct peci_dimmtemp *priv = data;
+ 
+ 	if (priv->temp_config[channel] & BIT(attr) &&
+-	    priv->dimm_mask & BIT(channel))
++	    priv->dimm_mask & BIT(priv->dimm_phy_info[channel].slot))
+ 		return 0444;
+ 
+ 	return 0;
+@@ -416,10 +418,10 @@ static int check_populated_dimms(struct peci_dimmtemp *priv)
+ {
+ 	u32 chan_rank_max = priv->gen_info->chan_rank_max;
+ 	u32 dimm_idx_max = priv->gen_info->dimm_idx_max;
+-	int chan_rank;
++	int chan_rank, config_idx;
+ 	u8  cfg_data[4];
+ 
+-	for (chan_rank = 0; chan_rank < chan_rank_max; chan_rank++) {
++	for (chan_rank = 0, config_idx = 0; chan_rank < chan_rank_max; chan_rank++) {
+ 		int ret, idx;
+ 
+ 		ret = read_ddr_dimm_temp_config(priv, chan_rank, cfg_data);
+@@ -435,8 +437,8 @@ static int check_populated_dimms(struct peci_dimmtemp *priv)
+ 			if (cfg_data[idx]) {
+ 				uint chan = chan_rank * dimm_idx_max + idx;
+ 				priv->dimm_mask |= BIT(chan);
+-				priv->temp_max[chan] = DIMM_TEMP_MAX_DEFAULT;
+-				priv->temp_crit[chan] = DIMM_TEMP_CRIT_DEFAULT;
++				priv->temp_max[config_idx] = DIMM_TEMP_MAX_DEFAULT;
++				priv->temp_crit[config_idx++] = DIMM_TEMP_CRIT_DEFAULT;
+ 			}
+ 		}
+ 	}
+@@ -505,7 +507,7 @@ static int create_dimm_temp_info(struct peci_dimmtemp *priv)
+ 	if (!priv->dimmtemp_label)
+ 		return -ENOMEM;
+ 
+-	for (i = 0, config_idx = 0; i < channels; i++)
++	for (i = 0, config_idx = 0; i < channels; i++) {
+ 		if (priv->dimm_mask & BIT(i)) {
+ 			dimm_order = i % priv->gen_info->dimm_idx_max;
+ 			chan_rank = i / priv->gen_info->dimm_idx_max;
+@@ -527,6 +529,7 @@ static int create_dimm_temp_info(struct peci_dimmtemp *priv)
+ 					return ret;
+ 			}
+ 		}
++	}
+ 
+ 	priv->chip.ops = &dimmtemp_ops;
+ 	priv->chip.info = priv->info;
+diff --git a/drivers/mfd/intel-peci-client.c b/drivers/mfd/intel-peci-client.c
+index 37cb74d11491..7385c9b90564 100644
+--- a/drivers/mfd/intel-peci-client.c
++++ b/drivers/mfd/intel-peci-client.c
+@@ -74,6 +74,12 @@ static const struct cpu_gen_info cpu_gen_info_table[] = {
+ 		.core_mask_bits = CORE_MASK_BITS_ON_GRA,
+ 		.chan_rank_max  = CHAN_RANK_MAX_ON_GRA,
+ 		.dimm_idx_max   = DIMM_IDX_MAX_ON_GRA },
++	{ /* Sierra Forest */
++		.family         = INTEL_FAM6,
++		.model          = INTEL_FAM6_SIERRAFOREST,
++		.core_mask_bits = CORE_MASK_BITS_ON_SRF,
++		.chan_rank_max  = CHAN_RANK_MAX_ON_SRF,
++		.dimm_idx_max   = DIMM_IDX_MAX_ON_SRF },
+ };
+ 
+ static int peci_client_get_cpu_gen_info(struct peci_client_manager *priv)
+diff --git a/include/linux/mfd/intel-peci-client.h b/include/linux/mfd/intel-peci-client.h
+index 95bc00def3de..921ba7e7af72 100644
+--- a/include/linux/mfd/intel-peci-client.h
++++ b/include/linux/mfd/intel-peci-client.h
+@@ -22,6 +22,7 @@
+ #define INTEL_FAM6_ICELAKE_XD		0x6C
+ #define INTEL_FAM6_SAPPHIRERAPIDS	0x8F
+ #define INTEL_FAM6_GRANITERAPIDS	0xAD
++#define INTEL_FAM6_SIERRAFOREST	    0xAF
+ #endif
+ 
+ #define INTEL_FAM6             6 /* P6 (Pentium Pro and later) */
+@@ -60,6 +61,11 @@
+ #define CHAN_RANK_MAX_ON_GRA   8  /* Max number of channel ranks on Granite Rapids */
+ #define DIMM_IDX_MAX_ON_GRA    2  /* Max DIMM index per channel on Granite Rapids */
+ 
++/*Sierra Forest*/
++#define CORE_MASK_BITS_ON_SRF  64 /* Max number of cores */
++#define CHAN_RANK_MAX_ON_SRF   8  /* Max number of channel ranks on Granite Rapids */
++#define DIMM_IDX_MAX_ON_SRF    2  /* Max DIMM index per channel on Granite Rapids */
++
+ #define CORE_MASK_BITS_MAX     CORE_MASK_BITS_ON_ICX
+ #define CHAN_RANK_MAX          CHAN_RANK_MAX_ON_HSX
+ #define DIMM_IDX_MAX           DIMM_IDX_MAX_ON_HSX
+-- 
+2.17.1
+

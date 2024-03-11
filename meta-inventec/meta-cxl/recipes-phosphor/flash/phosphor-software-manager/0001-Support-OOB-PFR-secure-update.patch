@@ -1,0 +1,234 @@
+From 5c5bbf86c7039676f2cbf33ebaaa83c32c88a5e5 Mon Sep 17 00:00:00 2001
+From: "jimmy.chen" <Chen.JimmyHC@inventec.com>
+Date: Fri, 1 Sep 2023 05:43:54 +0000
+Subject: [PATCH] Fix patch conflict
+
+original patch : 0001-Support-OOB-PFR-secure-update.patch
+---
+ activation.cpp   | 66 ++++++++++++++++++++++++++++++++++++++++++++++++
+ activation.hpp   | 14 ++++++++++
+ image_verify.cpp | 25 ++++++++++++++++++
+ images.hpp       |  3 +++
+ item_updater.cpp | 33 +++++++++++++++++++-----
+ 5 files changed, 135 insertions(+), 6 deletions(-)
+
+diff --git a/activation.cpp b/activation.cpp
+index 67bbb42..64af859 100644
+--- a/activation.cpp
++++ b/activation.cpp
+@@ -254,6 +254,20 @@ void Activation::onFlashWriteSuccess()
+ 
+     if (Activation::checkApplyTimeImmediate() == true)
+     {
++	auto purpose = parent.versions.find(versionId)->second->purpose();
++        if (purpose == VersionPurpose::PFRBMC || purpose == VersionPurpose::PFRRoT)
++        {
++            if (Activation::getUfmProvisioned())
++                Activation::pfrUpdate();
++            else
++                error("The BMC is not provisioning, please provision first.");
++        }
++        else
++        {
++            info("Image Active and ApplyTime is immediate; rebooting BMC.");
++            Activation::rebootBmc();
++        }
++
+         info("Image Active and ApplyTime is immediate; rebooting BMC.");
+         Activation::rebootBmc();
+     }
+@@ -822,6 +836,58 @@ void Activation::rebootBmc()
+     }
+ }
+ 
++void Activation::pfrUpdate()
++{
++    auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
++                                      SYSTEMD_INTERFACE, "StartUnit");
++    method.append("pfr-update.service", "replace");
++    try
++    {
++        auto reply = bus.call(method);
++    }
++    catch (const sdbusplus::exception::exception& e)
++    {
++        alert("Error in trying to do the secure update. {ERROR}", "ERROR", e);
++        report<InternalFailure>();
++    }
++}
++
++bool Activation::getUfmProvisioned()
++{
++    constexpr auto busPath = "xyz.openbmc_project.PFR.Manager";
++    constexpr auto objPath = "/xyz/openbmc_project/pfr";
++    constexpr auto ifaceName = "org.freedesktop.DBus.Properties";
++    constexpr auto pfrAttributeItf = "xyz.openbmc_project.PFR.Attributes";
++    constexpr auto pfrAttributeProp = "UfmProvisioned";
++
++    auto service = utils::getService(bus, objPath, pfrAttributeItf);
++    if (service.empty())
++    {
++        error("Cannot get the pfr attributes.");
++    }
++    else
++    {
++        auto method = bus.new_method_call(busPath, objPath, ifaceName, "Get");
++        method.append(pfrAttributeItf, pfrAttributeProp);
++
++        try
++        {
++            auto reply = bus.call(method);
++
++            std::variant<bool> result;
++            reply.read(result);
++            bool ufmProvisioned = std::get<bool>(result);
++            return ufmProvisioned;
++        }
++        catch (const sdbusplus::exception::exception& e)
++        {
++            error("Error in getting UfmProvisioned state: {ERROR}", "ERROR", e);
++        }
++    }
++    return false;
++}
++
++
+ } // namespace updater
+ } // namespace software
+ } // namespace phosphor
+diff --git a/activation.hpp b/activation.hpp
+index e092383..35b9515 100644
+--- a/activation.hpp
++++ b/activation.hpp
+@@ -315,6 +315,20 @@ class Activation : public ActivationInherit, public Flash
+      **/
+     void rebootBmc();
+ 
++    /**
++     * @brief PFR secure update. Called when ApplyTime is immediate.
++     *
++     * @return none
++     **/
++    void pfrUpdate();
++
++    /**
++     * @brief get the provision state. Called before doing pfrUpdate.
++     *
++     * @return boolean
++     **/
++    bool getUfmProvisioned();
++
+     /** @brief Persistent sdbusplus DBus bus connection */
+     sdbusplus::bus::bus& bus;
+ 
+diff --git a/image_verify.cpp b/image_verify.cpp
+index d549e50..5955359 100644
+--- a/image_verify.cpp
++++ b/image_verify.cpp
+@@ -165,6 +165,31 @@ bool Signature::verify()
+             }
+         }
+ 
++        if (!valid)
++        {
++            // Validate signedImages
++            for (auto& image : signedImages)
++            {
++                valid = checkAndVerifyImage(imageDirPath, publicKeyFile,
++	                                        imageUpdateList, bmcFilesFound);
++                if (bmcFilesFound && !valid)
++                {
++                    error("Signed image found but invalid");
++                    return false;
++                }
++                else if (!valid)
++                {
++                    continue;
++                }
++                else
++                {
++                    imageUpdateList.clear();
++                    imageUpdateList.push_back(image);
++                    break;
++                }
++            }
++        }
++
+         // Validate the optional image files.
+         auto optionalImages = getOptionalImages();
+         bool optionalFilesFound = false;
+diff --git a/images.hpp b/images.hpp
+index 7801ea3..dbe60e8 100644
+--- a/images.hpp
++++ b/images.hpp
+@@ -16,6 +16,9 @@ const std::vector<std::string> bmcImages = {"image-kernel", "image-rofs",
+ // BMC flash image file name list for full flash image (image-bmc)
+ const std::string bmcFullImages = {"image-bmc"};
+ 
++// Signed image file name list for pfr secure update
++const std::vector<std::string> signedImages = {"image-bmc-stg", "image-pfr-stg"};
++
+ std::vector<std::string> getOptionalImages();
+ 
+ } // namespace image
+diff --git a/item_updater.cpp b/item_updater.cpp
+index abf77cb..0fa54a2 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -76,7 +76,9 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+                         value == VersionPurpose::PLDM ||
+ #endif
+                         value == VersionPurpose::System ||
+-                        value == VersionPurpose::Other)
++                        value == VersionPurpose::PFRRoT ||
++                        value == VersionPurpose::PFRBMC ||
++			value == VersionPurpose::Other)
+                     {
+                         purpose = value;
+                     }
+@@ -140,8 +142,9 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+         // Determine the Activation state by processing the given image dir.
+         auto activationState = server::Activation::Activations::Invalid;
+         ItemUpdater::ActivationStatus result;
+-        if (purpose == VersionPurpose::BMC || purpose == VersionPurpose::System)
+-            result = ItemUpdater::validateSquashFSImage(filePath);
++        if (purpose == VersionPurpose::BMC || purpose == VersionPurpose::System
++            || purpose == VersionPurpose::PFRRoT || purpose == VersionPurpose::PFRBMC)
++	    result = ItemUpdater::validateSquashFSImage(filePath);
+         else
+             result = ItemUpdater::ActivationStatus::ready;
+ 
+@@ -488,9 +491,27 @@ ItemUpdater::ActivationStatus
+         valid = checkImage(filePath, imageUpdateList);
+         if (!valid)
+         {
+-            error("Failed to find the needed BMC images.");
+-            return ItemUpdater::ActivationStatus::invalid;
+-        }
++            for (auto& image : signedImages)
++            {
++                fs::path file(filePath);
++                file /= image;
++                std::ifstream efile(file.c_str());
++                if (efile.good())
++                {
++                    valid = true;
++                    imageUpdateList.clear();
++                    imageUpdateList.push_back(image);
++                    break;
++                }
++            }
++
++            if (!valid)
++            {
++                error("Failed to find the needed BMC images.");
++                return ItemUpdater::ActivationStatus::invalid;
++            }
++
++	}
+     }
+ 
+     return ItemUpdater::ActivationStatus::ready;
+-- 
+2.17.1
+

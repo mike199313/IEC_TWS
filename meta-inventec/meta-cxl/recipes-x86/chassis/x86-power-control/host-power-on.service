@@ -1,0 +1,10 @@
+[Unit]
+Description=System unit to for host power on
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/sbin/host-power-on.sh
+
+[Install]
+WantedBy=host-power-on.target

@@ -1,0 +1,159 @@
+From 866da2c68ecf2cfd57b63595076b0c0e866c0b2a Mon Sep 17 00:00:00 2001
+From: "jimmy.chen" <Chen.JimmyHC@inventec.com>
+Date: Wed, 30 Aug 2023 02:08:39 +0000
+Subject: [PATCH] Subject: [PATCH 1/1] copy yaml and add to xyz/
+
+Root Cause:
+
+    bitbake intel-ipmi-oem meet build Error.
+
+Soolution:
+
+    Add 0001-copy-yaml-and-add-to-xyz.patch from meta-superion/recipe-phosphor/dbus
+
+    Add 0001-changes-to-xyz.patch from meta-common/recipe-intel/ipmi/
+
+    phosphor-ipmi-host_%.bbappend add *.hpp
+
+Entry Test:
+
+    $bitbake obmc-phosphor-image success
+
+-------------------------------------------------------------------------------------
+Out-of-band PFR Secure update.
+
+Root Cause:
+	N/A
+
+Solution/Change:
+    Add new version purposes for PFR.
+
+Entry Test:
+	bitbake phosphor-software-manager
+
+-------------------------------------------------------------------------------------
+Solve conflict with common patch.
+
+Root Cause:
+
+    - conflict with patch: 0024-Add-PLDM-version-purpose-enumeration.patch
+
+Solution:
+
+    - remove original patch: 0001-copy-yaml-and-add-to-xyz.patch
+    - devtool modify "phosphor-dbus-interfaces"
+    - add patch content
+    - bitbake phosphor-dbus-interfaces success
+    - bitbake obmc-phosphor-image success
+
+Entry Test:
+
+    $bitbake obmc-phosphor-image success
+---
+ .../Control/OCOTShutdownPolicy/meson.build    | 15 ++++++++++++
+ gen/xyz/openbmc_project/Control/meson.build   | 15 ++++++++++++
+ .../Control/OCOTShutdownPolicy.interface.yaml | 23 +++++++++++++++++++
+ .../Software/Version.interface.yaml           |  9 ++++++++
+ 4 files changed, 62 insertions(+)
+ create mode 100644 gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+ create mode 100644 yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+
+diff --git a/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+new file mode 100644
+index 0000000..ba9dc6a
+--- /dev/null
++++ b/gen/xyz/openbmc_project/Control/OCOTShutdownPolicy/meson.build
+@@ -0,0 +1,15 @@
++# Generated file; do not modify.
++generated_sources += custom_target(
++    'xyz/openbmc_project/Control/OCOTShutdownPolicy__cpp'.underscorify(),
++    input: [ '../../../../../yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml',  ],
++    output: [ 'server.cpp', 'server.hpp', 'client.hpp',  ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'cpp',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../../yaml',
++        'xyz/openbmc_project/Control/OCOTShutdownPolicy',
++    ],
++)
++
++
+diff --git a/gen/xyz/openbmc_project/Control/meson.build b/gen/xyz/openbmc_project/Control/meson.build
+index 9d22099..d74134f 100644
+--- a/gen/xyz/openbmc_project/Control/meson.build
++++ b/gen/xyz/openbmc_project/Control/meson.build
+@@ -140,6 +140,21 @@ generated_others += custom_target(
+     ],
+ )
+ 
++subdir('OCOTShutdownPolicy')
++generated_others += custom_target(
++    'xyz/openbmc_project/Control/OCOTShutdownPolicy__markdown'.underscorify(),
++    input: [ '../../../../yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml',  ],
++    output: [ 'OCOTShutdownPolicy.md' ],
++    command: [
++        sdbuspp_gen_meson_prog, '--command', 'markdown',
++        '--output', meson.current_build_dir(),
++        '--tool', sdbusplusplus_prog,
++        '--directory', meson.current_source_dir() / '../../../../yaml',
++        'xyz/openbmc_project/Control/OCOTShutdownPolicy',
++    ],
++)
++
++
+ subdir('Power')
+ subdir('PowerSupplyAttributes')
+ generated_others += custom_target(
+diff --git a/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+new file mode 100644
+index 0000000..86d239e
+--- /dev/null
++++ b/yaml/xyz/openbmc_project/Control/OCOTShutdownPolicy.interface.yaml
+@@ -0,0 +1,23 @@
++description: >
++    An interface for node shutdown policy on multi-node products. It is used by
++    Intel OEM IPMI command.
++properties:
++    - name: OCOTPolicy
++      type: enum[self.Policy]
++      description: >
++          Node shutdown policy on a power supply over current(OC) or over
++          temperature(OT) event, Only available on multi-node products.
++
++      default: "NoShutdownOnOCOT"
++
++enumerations:
++    - name: Policy
++      description: >
++          The type of shutdown policy.
++      values:
++          - name: "NoShutdownOnOCOT"
++            description: >
++                Do not shutdown node on an OC/OT event.
++          - name: "ShutdownOnOCOT"
++            description: >
++                Shutdown node on an OC/OT event.
+diff --git a/yaml/xyz/openbmc_project/Software/Version.interface.yaml b/yaml/xyz/openbmc_project/Software/Version.interface.yaml
+index a2b1eb6..d23eec7 100644
+--- a/yaml/xyz/openbmc_project/Software/Version.interface.yaml
++++ b/yaml/xyz/openbmc_project/Software/Version.interface.yaml
+@@ -41,6 +41,15 @@ enumerations:
+           - name: PSU
+             description: >
+                 The version is a version for a PSU.
++          - name: PFRRoT
++            description: >
++                The version is a version for a PFRRoT.
++          - name: PFRBMC
++            description: >
++                The version is a version for a PFRBMC.
++          - name: PFRHost
++            description: >
++                The version is a version for a PFRHost.
+           - name: PLDM
+             description: >
+                 The version is a version for a PLDM.
+-- 
+2.17.1
+
