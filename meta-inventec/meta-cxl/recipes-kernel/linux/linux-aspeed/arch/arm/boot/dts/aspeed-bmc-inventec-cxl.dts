@@ -409,11 +409,6 @@
 	clk-phase-sd-hs = <7>, <200>;
 };
 
-&video {
-	status = "okay";
-	memory-region = <&video_engine_memory>;
-};
-
 &vhub {
 	status = "okay";
 	aspeed,vhub-downstream-ports = <7>;
