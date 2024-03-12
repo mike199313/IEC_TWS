@@ -14,9 +14,6 @@
 
 	aliases {
 		serial4 = &uart5;
-                i2c21 = &fan_bd1;
-                i2c22 = &i2c6_mux_3;
-		i2c23 = &i2c7_mux_0;
 	};
 
 	chosen {
@@ -70,24 +67,6 @@
 		compatible = "aspeed,ast2500-vga-sharedmem";
 		reg = <0xbff00000 0x10000>;
 	};
-
-	iio-hwmon {
-		compatible = "iio-hwmon";
-		io-channels =
-			<&adc_u74 0>, // AIN0
-			<&adc_u74 1>, // AIN1
-			<&adc_u74 2>, // P0_3V3_S5
-			<&adc_u74 3>, // P1_3V3_S5
-			<&adc_u74 4>, // P3V3
-			<&adc_u74 5>, // VBAT
-			<&adc_u74 6>, // P3V3_AUX
-			<&adc_u74 7>, // P5V_AUX
-			<&adc_u74 8>, // P5V
-			<&adc_u74 9>, // P12V
-			<&adc_u74 10>, // P1V8_AUX
-			<&adc_u74 11> // P1V05_AUX
-			;
-    };
 
 	vcc_sdhci0: regulator-vcc-sdhci0 {
 		compatible = "regulator-fixed";
@@ -292,157 +271,14 @@
 
 &i2c6 {
 	status = "okay";
-
-        eeprom@51 {
-                compatible = "atmel,24c64";
-                reg = <0x50>;
-                pagesize = <32>;
-        };
-
-        i2c-switch@70 {
-                compatible = "nxp,pca9546";
-                #address-cells = <1>;
-                #size-cells = <0>;
-                reg = <0x70>;
-
-                /* 12c-21 */
-                fan_bd1: i2c@0 {
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <0>;
-
-                        eeprom@51 {
-                                compatible = "atmel,24c64";
-                                reg = <0x51>;
-                                pagesize = <32>;
-                        };
-
-                        adt7462@58 {
-                                compatible = "adt7462";
-                                reg = <0x58>;
-                        };
-
-                        //PWR MON INA220
-                        ina220@44 {
-                                compatible = "ti,ina220";
-                                reg = <0x44>;
-                                shunt-resistor = <200>;
-                        };
-
-                        //PWR MON INA220
-                        ina220@45 {
-                                compatible = "ti,ina220";
-                                reg = <0x45>;
-                                shunt-resistor = <200>;
-                        };
-
-                        //Fan Thermal Sensor
-                        tmp75@48 {
-                               compatible = "ti,tmp75";
-                               reg = <0x48>;
-                        };
-
-                        //PWR MON INA220
-                        ina220@4c {
-                                compatible = "ti,ina220";
-                                reg = <0x4c>;
-                                shunt-resistor = <200>;
-                        };
-
-                        //PWR MON INA220
-                        ina220@4d {
-                                compatible = "ti,ina220";
-                                reg = <0x4d>;
-                                shunt-resistor = <200>;
-                        };
-                };
-
-                /* i2c-22 */
-                i2c6_mux_3: i2c@3 {
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <3>;
-
-                        tmp75@48 {
-                               compatible = "ti,tmp75";
-                               reg = <0x48>;
-                        };
-                };
-        };
-
 };
 
 &i2c7 {
 	status = "okay";
-
-        i2c-switch@70 {
-                compatible = "nxp,pca9546";
-                #address-cells = <1>;
-                #size-cells = <0>;
-                reg = <0x70>;
-
-		/* i2c-23 */
-		i2c7_mux_0: i2c@0 {
-
-			#address-cells = <1>;
-			#size-cells = <0>;
-			reg = <0>;
-
-			/* XDPE19284B - PVCCIN VR */
-			xdpe152c4@60 {
-				compatible = "infineon,xdpe152c4";
-				reg = <0x60>;
-			};	
-			
-			/* XDPE19284B - PVCCFA EHV FIVRA */
-			xdpe152c4@62 {
-				compatible = "infineon,xdpe152c4";
-				reg = <0x62>;
-			};	
-			
-			/* XDPE19284B - PVCCD0 & D1 VR */
-			xdpe152c4@76 {
-				compatible = "infineon,xdpe152c4";
-				reg = <0x76>;
-			};	
-			
-			/* XDPE19284B - PVCCA EHV PVNN VR */
-			xdpe152c4@74 {
-				compatible = "infineon,xdpe152c4";
-				reg = <0x74>;
-			};
-
-		};
-		i2c7_mux_1: i2c@1 {
-                        #address-cells = <1>;
-                        #size-cells = <0>;
-                        reg = <1>;
-	            		//Voltage Sensor MAX1139
-	                        adc_u74: voltage-sensor@35 {
-	                                compatible = "maxim,max1139";
-	                                reg = <0x35>;
-	                                #io-channel-cells = <1>;
-	                        };
-			};
-	};
 };
 
 &i2c8 {
 	status = "okay";
-
-	/* SCM EEPROM*/
-	eeprom@50 {
-		compatible = "atmel,24c64";
-		reg = <0x50>;
-		pagesize = <32>;
-	};
-
-	/* RunBMC EEPROM*/
-	eeprom@51 {
-		compatible = "atmel,24c512";
-		reg = <0x51>;
-		pagesize = <128>;
-	};
 };
 
 &i2c9 {
@@ -462,23 +298,11 @@
 };
 
 &i2c13 {
-        status = "okay";
+    status = "okay";
 };
 
 &i2c14 {
-        status = "okay";
-
-        /* CXL DCSCM_EEPROM*/
-        eeprom@51 {
-            compatible = "atmel,24c64";
-            reg = <0x50>;
-            pagesize = <32>;
-            };
-
-        tmp75@48 {
-               compatible = "ti,tmp75";
-               reg = <0x48>;
-        };
+    status = "okay";
 };
 
 &i2c15 {
