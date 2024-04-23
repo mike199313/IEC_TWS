@@ -8,7 +8,7 @@
     },
     {
       "Name" : "PowerOut",
-      "LineName" : "PWR_BTN_BMC_OUT_N",
+      "LineName" : "P12V_BTN_EN_N",
       "Type" : "GPIO",
       "Polarity" : "ActiveLow"
     },

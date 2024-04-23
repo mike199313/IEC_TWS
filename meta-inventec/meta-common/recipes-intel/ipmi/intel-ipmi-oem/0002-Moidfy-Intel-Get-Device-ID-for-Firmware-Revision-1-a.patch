@@ -1,0 +1,35 @@
+From 33faf1d5392f12c058eaa8fee33b201354b07d0c Mon Sep 17 00:00:00 2001
+From: kian <Lee.Kian@inventec.com>
+Date: Fri, 14 Jul 2023 15:53:05 +0800
+Subject: [PATCH] Moidfy Intel Get Device ID for Firmware Revision 1 and
+ Firmware Revision 2
+
+System/Reason:
+    Intel Get Device Firmware Revision 1 and Firmware Revision 2
+
+Root Cause:
+    To use the Get Device ID command with Intel OEM CMD, you need to integrate it with other Intel recipes and services.
+    Therefore, you should include the Firmware Revision 1 and Firmware Revision 2
+
+Solution:
+    Hook Firmware Revision 1 and Firmware Revision 2
+
+Entry Test:
+    This entry shall update dev_id.json
+---
+ src/appcommands.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/appcommands.cpp b/src/appcommands.cpp
+index 10e3d13..6640b67 100644
+--- a/src/appcommands.cpp
++++ b/src/appcommands.cpp
+@@ -330,6 +330,8 @@ RspType<uint8_t,  // Device ID
+             {
+                 devId.id = data.value("id", 0);
+                 devId.revision = data.value("revision", 0);
++		devId.fwMajor = data.value("Firmware_Revision_1" , 0);
++		devId.fwMinor = data.value("Firmware_Revision_2" , 0);
+                 devId.addnDevSupport = data.value("addn_dev_support", 0);
+                 devId.manufId = data.value("manuf_id", 0);
+             }
