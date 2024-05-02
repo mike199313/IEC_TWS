@@ -435,6 +435,17 @@
 		reg = <0x46>;
 		shunt-resistor = <500>;
 	};
+
+	gpio@21 {
+		compatible = "ti,tca6408";
+		reg = <0x21>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-line-names = "UPDB_BOARD_SKU0","UPDB_BOARD_SKU1",
+                                  "UPDB_BOARD_SKU2","UPDB_BOARD_REV",
+                                  "RSVD_U49_P4","RSVD_U49_P5",
+                                  "RSVD_U49_P6","RSVD_U49_P7";
+	};
 };
 
 &i2c15 {
