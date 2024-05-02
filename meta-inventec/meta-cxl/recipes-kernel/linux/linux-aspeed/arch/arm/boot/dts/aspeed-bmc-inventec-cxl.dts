@@ -280,6 +280,17 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0x77>;
+
+		i2c4_mux_0: i2c@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0>;
+
+ 			ucd90320@11 {
+		  			compatible = "ti,ucd90320";
+		  			reg = <0x11>;
+ 			};
+		};
 	};
 };
 
