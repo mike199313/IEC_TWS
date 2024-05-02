@@ -350,6 +350,40 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x70>;
+
+                        i2c14_mux_0: i2c@0 {
+                                            #address-cells = <1>;
+                                            #size-cells = <0>;
+                                            reg = <0>;
+
+                                adt7462@58 {
+                                            compatible = "adt7462";
+                                            reg = <0x58>;
+                                };
+                        };
+
+                        i2c14_mux_1: i2c@1 {
+                                            #address-cells = <1>;
+                                            #size-cells = <0>;
+                                            reg = <1>;
+
+                                adt7462@58 {
+                                            compatible = "adt7462";
+                                            reg = <0x58>;
+                                };
+                        };
+
+                        i2c14_mux_2: i2c@2 {
+                                            #address-cells = <1>;
+                                            #size-cells = <0>;
+                                            reg = <2>;
+
+                                adt7462@58 {
+                                            compatible = "adt7462";
+                                            reg = <0x58>;
+                                };
+                        };
+
 		};
 
 	eeprom@57 {
