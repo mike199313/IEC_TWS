@@ -416,6 +416,25 @@
 		compatible = "ti,tmp75";
 		reg = <0x4c>;
 	};
+
+	ina230@40 {
+		compatible = "ti,ina230";
+		reg = <0x40>;
+		shunt-resistor = <500>;
+	};
+
+	ina230@42 {
+		compatible = "ti,ina230";
+		reg = <0x42>;
+		shunt-resistor = <500>;
+	};
+
+
+	ina230@46 {
+		compatible = "ti,ina230";
+		reg = <0x46>;
+		shunt-resistor = <500>;
+	};
 };
 
 &i2c15 {
