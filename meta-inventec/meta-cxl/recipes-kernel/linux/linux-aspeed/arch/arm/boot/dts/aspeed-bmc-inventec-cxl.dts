@@ -264,6 +264,11 @@
 &i2c4 {
 	status = "okay";
 
+	tmp75@48 {
+		compatible = "ti,tmp75";
+		reg = <0x48>;
+ 	};
+
 	i2c-switch@77 {
 		compatible = "nxp,pca9548";
 		#address-cells = <1>;
@@ -318,12 +323,42 @@
 		pagesize = <32>;
 		};
 
+ 	tmp75@4f {
+		compatible = "ti,tmp75";
+		reg = <0x4f>;
+               	};
+
 		i2c-switch@70 {
 			compatible = "nxp,pca9546";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x70>;
 		};
+
+	tmp75@48 {
+		compatible = "ti,tmp75";
+		reg = <0x48>;
+	};
+
+	tmp75@49 {
+		compatible = "ti,tmp75";
+		reg = <0x49>;
+	};
+
+	tmp75@4a {
+		compatible = "ti,tmp75";
+		reg = <0x4a>;
+	};
+
+	tmp75@4b {
+		compatible = "ti,tmp75";
+		reg = <0x4b>;
+	};
+
+	tmp75@4c {
+		compatible = "ti,tmp75";
+		reg = <0x4c>;
+	};
 };
 
 &i2c15 {
