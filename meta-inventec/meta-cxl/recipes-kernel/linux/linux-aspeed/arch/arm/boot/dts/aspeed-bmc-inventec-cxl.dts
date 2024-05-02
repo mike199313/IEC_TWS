@@ -263,6 +263,13 @@
 
 &i2c4 {
 	status = "okay";
+
+	i2c-switch@77 {
+		compatible = "nxp,pca9548";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x77>;
+	};
 };
 
 &i2c5 {
@@ -309,6 +316,13 @@
 		compatible = "atmel,24c64";
 		reg = <0x50>;
 		pagesize = <32>;
+		};
+
+		i2c-switch@70 {
+			compatible = "nxp,pca9546";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x70>;
 		};
 };
 
