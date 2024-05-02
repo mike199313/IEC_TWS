@@ -269,6 +269,12 @@
 		reg = <0x48>;
  	};
 
+	 eeprom@56 {
+		compatible = "microchip,24c02";
+		reg = <0x56>;
+		pagesize = <16>;
+	};
+
 	i2c-switch@77 {
 		compatible = "nxp,pca9548";
 		#address-cells = <1>;
@@ -334,6 +340,12 @@
 			#size-cells = <0>;
 			reg = <0x70>;
 		};
+
+	eeprom@57 {
+		compatible = "atmel,24c128";
+		reg = <0x57>;
+		pagesize = <64>;
+	};
 
 	tmp75@48 {
 		compatible = "ti,tmp75";
