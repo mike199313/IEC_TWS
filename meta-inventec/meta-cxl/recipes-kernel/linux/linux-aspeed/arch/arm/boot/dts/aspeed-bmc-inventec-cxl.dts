@@ -359,6 +359,31 @@
 		reg = <0x4f>;
                	};
 
+	//Reference https://www.analog.com/media/en/technical-documentation/data-sheets/adm1278.pdf datasheet
+	adm1278@10 {  //P12V_STBY
+			compatible = "adi,adm1278";
+			reg = <0x10>;
+			shunt-resistor-micro-ohms = <125>;  //P12V_STBY 10h , parallel sense resistor 500 micro ohms * 4 ==> 125 micro ohms (R total from parallel resistors circuit)
+			adi,volt-curr-sample-average = <128>;  //PMON_CONFIG register (0xd4) bit [10:8] (VI_AVG) is sample averaging setting for current and voltage  (VIN/VOUT/IOUT averaging)
+			adi,power-sample-average = <128>;  //PMON_CONFIG register (0xd4) bit [13:11] (PWR_AVG) is sample averaging setting for power (PIN averaging)
+	};
+
+	adm1278@13 {  //P12V_HUM
+			compatible = "adi,adm1278";
+			reg = <0x13>;
+			shunt-resistor-micro-ohms = <250>;  //P12V_HUM 13h , parallel sense resistor 500 micro ohms * 2 ==> 250 micro ohms (R total from parallel resistors circuit)
+			adi,volt-curr-sample-average = <128>;
+			adi,power-sample-average = <128>;
+	};
+
+	adm1278@11 {  //P12V
+			compatible = "adi,adm1278";
+			reg = <0x11>;
+			shunt-resistor-micro-ohms = <100>;   //P12V 11h ,parallel sense resistor 300 micro ohms * 3 ==> 100 micro ohms (R total from parallel resistors circuit)
+			adi,volt-curr-sample-average = <128>;
+			adi,power-sample-average = <128>;
+	};
+
 		i2c-switch@70 {
 			compatible = "nxp,pca9546";
 			#address-cells = <1>;
