@@ -290,6 +290,20 @@
 		  			compatible = "ti,ucd90320";
 		  			reg = <0x11>;
  			};
+
+			 gpio@21 {
+                compatible = "ti,tca6416";
+                reg = <0x21>;
+                gpio-controller;
+                #gpio-cells = <2>;
+       		 };
+
+			gpio@20 {
+				compatible = "ti,tca6416";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
 		};
 	};
 };
