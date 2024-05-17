@@ -17,6 +17,7 @@ SRC_URI:append = " file://superion.cfg \
                    file://0013-Cxl_ADT7462_driver_update_inv.patch \
                    file://0014-kernel-driver-update-for-CPU-SRF-SP.patch \
                    file://0015-Cxl-Taurus-recipes-kernel-Cxl-device-tree-source-i2c.patch \
+                   file://0016-Cxl-Taurus-recipes-kernel-Cxl-device-tree-source-cm5.patch \
                  "
 
 do_add_overwrite_files () {
