@@ -16,6 +16,7 @@ SRC_URI:append = " file://superion.cfg \
 		   file://0012-peci-dimmtemp-presence-detection.patch \
                    file://0013-Cxl_ADT7462_driver_update_inv.patch \
                    file://0014-kernel-driver-update-for-CPU-SRF-SP.patch \
+                   file://0015-Cxl-Taurus-recipes-kernel-Cxl-device-tree-source-i2c.patch \
                  "
 
 do_add_overwrite_files () {

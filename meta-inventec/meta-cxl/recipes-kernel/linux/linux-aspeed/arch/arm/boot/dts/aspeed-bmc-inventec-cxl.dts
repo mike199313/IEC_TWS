@@ -14,6 +14,12 @@
 
 	aliases {
 		serial4 = &uart5;
+                i2c16 = &i2c4_mux_0;
+                i2c17 = &i2c4_mux_1;
+                i2c18 = &i2c4_mux_2;
+                i2c19 = &i2c14_mux_0;
+                i2c20 = &i2c14_mux_1;
+                i2c21 = &i2c14_mux_2;
 	};
 
 	chosen {
@@ -281,22 +287,23 @@
 		#size-cells = <0>;
 		reg = <0x77>;
 
+                /* i2c-16 */
 		i2c4_mux_0: i2c@0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0>;
 
  			ucd90320@11 {
-		  			compatible = "ti,ucd90320";
-		  			reg = <0x11>;
+		  		    compatible = "ti,ucd90320";
+		  		    reg = <0x11>;
  			};
 
-			 gpio@21 {
-                compatible = "ti,tca6416";
-                reg = <0x21>;
-                gpio-controller;
-                #gpio-cells = <2>;
-       		 };
+			gpio@21 {
+                                compatible = "ti,tca6416";
+                                reg = <0x21>;
+                                gpio-controller;
+                                #gpio-cells = <2>;
+       		        };
 
 			gpio@20 {
 				compatible = "ti,tca6416";
@@ -305,6 +312,32 @@
 				#gpio-cells = <2>;
 			};
 		};
+
+                /* i2c-17 */
+                i2c4_mux_1: i2c@1 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <1>;
+
+                        cm5162@27 {
+                        compatible = "asteralabs,cm5162";
+                        reg = <0x27>;
+                        };
+
+                };
+
+                /* i2c-18 */
+                i2c4_mux_2: i2c@2 {
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+                        reg = <2>;
+
+                        cm5162@27 {
+                        compatible = "asteralabs,cm5162";
+                        reg = <0x27>;
+                        };
+
+                };
 	};
 };
 
@@ -389,7 +422,8 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x70>;
-
+                        
+                        /* i2c-19 */
                         i2c14_mux_0: i2c@0 {
                                             #address-cells = <1>;
                                             #size-cells = <0>;
@@ -401,6 +435,7 @@
                                 };
                         };
 
+                        /* i2c-20 */
                         i2c14_mux_1: i2c@1 {
                                             #address-cells = <1>;
                                             #size-cells = <0>;
@@ -412,6 +447,7 @@
                                 };
                         };
 
+                        /* i2c-21 */
                         i2c14_mux_2: i2c@2 {
                                             #address-cells = <1>;
                                             #size-cells = <0>;

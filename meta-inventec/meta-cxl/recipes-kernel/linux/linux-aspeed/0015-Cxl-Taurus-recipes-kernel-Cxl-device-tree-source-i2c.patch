@@ -1,0 +1,863 @@
+From 1fb40a2322c426139f0c450ab4ebf225bea4aaba Mon Sep 17 00:00:00 2001
+From: "Cheng.Mike" <Cheng.Mike@inventec.com>
+Date: Tue, 14 May 2024 06:54:38 +0000
+Subject: [PATCH 1/1] [Cxl Taurus][recipes-kernel] Cxl device tree source i2c
+ sync cm5162 CXL LEO Memory Expander Soc
+
+System/Reason :
+
+        1. Cxl Update sync cm5162 CXL LEO Memory Expander Soc
+
+Root Cause :
+
+        1. Base on Customer provided sdk driver source :
+        http://tao-pdmnet-4:8080/tfs/TAO_BU5_FW5/FW5E/_git/AWS_Taurus_Docs?path=/DataSheet/leo_csdk_v0_4_pi_1202_2022.tar
+        and reference from Astera fimillar Soc coding style to modify (PT516XX Retimer):
+        https://lwn.net/ml/linux-kernel/CAOeEDyt%2B4GrdouY1rr7TYgwOkhg%3DJWz63c5WppDb55iL3GApHA%40mail.gmail.com/
+
+Solution :
+
+        1. Modify record under linux-aspeed :
+              Documentation/devicetree/bindings/hwmon/asteralabs,cm5162.yaml
+              Documentation/devicetree/bindings/vendor-prefixes.yaml
+              Documentation/hwmon/index.rst
+              MAINTAINERS
+              drivers/hwmon/Kconfig
+              drivers/hwmon/Makefile
+              Documentation/hwmon/cm5162.rst
+              drivers/hwmon/cm5162.c
+
+Entry Test :
+
+        aspeed-bmc-inventec-cxl.dts add below :
+
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+        / {
+                model = "CXL BMC";
+                compatible = "inventec,cxl-bmc", "aspeed,ast2600";
+
+                aliases {
+                        serial4 = &uart5;
+                        i2c16 = &i2c4_mux_0;
+                        i2c17 = &i2c4_mux_1;
+                        i2c18 = &i2c4_mux_2;
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+        &i2c3 {
+                status = "okay";
+        };
+
+        &i2c4 {
+                status = "okay";
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+                        /* i2c-17 */
+                        i2c4_mux_1: i2c@1 {
+                                #address-cells = <1>;
+                                #size-cells = <0>;
+                                reg = <1>;
+
+                                cm5162@27 {
+                                compatible = "asteralabs,cm5162";
+                                reg = <0x27>;
+                                };
+
+                        };
+
+                        /* i2c-18 */
+                        i2c4_mux_2: i2c@2 {
+                                #address-cells = <1>;
+                                #size-cells = <0>;
+                                reg = <2>;
+
+                                cm5162@27 {
+                                compatible = "asteralabs,cm5162";
+                                reg = <0x27>;
+                                };
+
+                        };
+                    .
+                    .
+                    .
+                    .
+                    .
+                    .
+
+        bitbake obmc-phosphor-image PASS
+---
+ .../bindings/hwmon/asteralabs,cm5162.yaml     |  38 ++
+ .../devicetree/bindings/vendor-prefixes.yaml  |   2 +
+ Documentation/hwmon/cm5162.rst                |  40 ++
+ Documentation/hwmon/index.rst                 |   1 +
+ MAINTAINERS                                   |   8 +
+ drivers/hwmon/Kconfig                         |  10 +
+ drivers/hwmon/Makefile                        |   1 +
+ drivers/hwmon/cm5162.c                        | 570 ++++++++++++++++++
+ 8 files changed, 670 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/hwmon/asteralabs,cm5162.yaml
+ create mode 100644 Documentation/hwmon/cm5162.rst
+ create mode 100644 drivers/hwmon/cm5162.c
+
+diff --git a/Documentation/devicetree/bindings/hwmon/asteralabs,cm5162.yaml b/Documentation/devicetree/bindings/hwmon/asteralabs,cm5162.yaml
+new file mode 100644
+index 000000000000..6d634d63f454
+--- /dev/null
++++ b/Documentation/devicetree/bindings/hwmon/asteralabs,cm5162.yaml
+@@ -0,0 +1,38 @@
++# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
++%YAML 1.2
++
++$id: http://devicetree.org/schemas/hwmon/asteralabs,cm5162.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: CM5162 hwmon sensor
++
++maintainers:
++  - Cheng Mike <Cheng.Mike@inventec.com>
++
++properties:
++  compatible:
++    enum:
++      - asteralabs,cm5162
++
++
++  reg:
++    maxItems: 1
++
++required:
++  - compatible
++  - reg
++
++additionalProperties: false
++
++examples:
++  - |
++    i2c {
++      #address-cells = <1>;
++      #size-cells = <0>;
++
++
++      cm5162@27 {
++        compatible = "asteralabs,cm5162";
++        reg = <0x27>;
++      };
++    };
+diff --git a/Documentation/devicetree/bindings/vendor-prefixes.yaml b/Documentation/devicetree/bindings/vendor-prefixes.yaml
+index 6fb7c640ae92..980b812a8a39 100644
+--- a/Documentation/devicetree/bindings/vendor-prefixes.yaml
++++ b/Documentation/devicetree/bindings/vendor-prefixes.yaml
+@@ -135,6 +135,8 @@ patternProperties:
+     description: ASPEED Technology Inc.
+   "^asus,.*":
+     description: AsusTek Computer Inc.
++  "^asteralabs,.*":
++    description: Astera Labs, Inc.
+   "^atlas,.*":
+     description: Atlas Scientific LLC
+   "^atmel,.*":
+diff --git a/Documentation/hwmon/cm5162.rst b/Documentation/hwmon/cm5162.rst
+new file mode 100644
+index 000000000000..6607a6e2256b
+--- /dev/null
++++ b/Documentation/hwmon/cm5162.rst
+@@ -0,0 +1,40 @@
++.. SPDX-License-Identifier: GPL-2.0-or-later
++
++Kernel driver cm5162
++====================
++
++Supported chips:
++
++  * Astera Labs CM5162
++
++    Prefix: 'cm5162'
++
++    Addresses: I2C 0x27
++
++    Datasheet:
++https://www.asteralabs.com/wp-content/uploads/2023/01/Sample-Report_Page1-1.pdf
++
++Authors: Mike Cheng <Cheng.Mike@inventec.com>
++
++Description
++-----------
++
++This driver implements support for temperature monitoring of Astera Labs
++Leo CM5162 CXL 2.0 Memory Expansion chips.
++
++
++The communication protocol utilized is based on the I2C/SMBus standard.
++
++Sysfs entries
++----------------
++
++================ ==============================================
++temp1_input      Measured temperature (in millidegrees Celsius)
++================ ==============================================
++
++Debugfs entries
++----------------
++
++================ ====================================
++fw_ver           Firmware version of the chips
++================ ====================================
+diff --git a/Documentation/hwmon/index.rst b/Documentation/hwmon/index.rst
+index 3aa9c2d3a271..d0549ab327ca 100644
+--- a/Documentation/hwmon/index.rst
++++ b/Documentation/hwmon/index.rst
+@@ -50,6 +50,7 @@ Hardware Monitoring Kernel Drivers
+    coretemp
+    corsair-cpro
+    corsair-psu
++   cm5162
+    da9052
+    da9055
+    dell-smm-hwmon
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 03b126257619..b849b85d1754 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -5142,6 +5142,14 @@ L:	linux-input@vger.kernel.org
+ S:	Maintained
+ F:	drivers/input/touchscreen/cyttsp*
+ 
++CM5162 HARDWARE MONITOR DRIVER
++M:	Cheng Mike <Cheng.Mike@inventec.com>
++L:	linux-hwmon@vger.kernel.org
++S:	Maintained
++F:	Documentation/devicetree/bindings/hwmon/asteralabs,cm5162.yaml
++F:	Documentation/hwmon/cm5162.rst
++F:	drivers/hwmon/cm5162.c
++
+ D-LINK DIR-685 TOUCHKEYS DRIVER
+ M:	Linus Walleij <linus.walleij@linaro.org>
+ L:	linux-input@vger.kernel.org
+diff --git a/drivers/hwmon/Kconfig b/drivers/hwmon/Kconfig
+index 8222f1553352..a4d268022287 100644
+--- a/drivers/hwmon/Kconfig
++++ b/drivers/hwmon/Kconfig
+@@ -459,6 +459,16 @@ config SENSORS_CORSAIR_PSU
+ 	  This driver can also be built as a module. If so, the module
+ 	  will be called corsair-psu.
+ 
++config SENSORS_CM5162
++	tristate "Astera Labs CM5162 LEO CXL Memory Expansion Soc hardware monitoring"
++	depends on I2C
++	help
++	  If you say yes here you get support for temperature monitoring
++	  on the Astera Labs CM5162 LEO CXL Memory Expansion Soc.
++
++	  This driver can also be built as a module. If so, the module
++	  will be called cm5162.
++
+ config SENSORS_DRIVETEMP
+ 	tristate "Hard disk drives with temperature sensors"
+ 	depends on SCSI && ATA
+diff --git a/drivers/hwmon/Makefile b/drivers/hwmon/Makefile
+index a46cdaf58efc..26814673e73d 100644
+--- a/drivers/hwmon/Makefile
++++ b/drivers/hwmon/Makefile
+@@ -58,6 +58,7 @@ obj-$(CONFIG_SENSORS_BT1_PVT)	+= bt1-pvt.o
+ obj-$(CONFIG_SENSORS_CORETEMP)	+= coretemp.o
+ obj-$(CONFIG_SENSORS_CORSAIR_CPRO) += corsair-cpro.o
+ obj-$(CONFIG_SENSORS_CORSAIR_PSU) += corsair-psu.o
++obj-$(CONFIG_SENSORS_CM5162) += cm5162.o
+ obj-$(CONFIG_SENSORS_DA9052_ADC)+= da9052-hwmon.o
+ obj-$(CONFIG_SENSORS_DA9055)+= da9055-hwmon.o
+ obj-$(CONFIG_SENSORS_DELL_SMM)	+= dell-smm-hwmon.o
+diff --git a/drivers/hwmon/cm5162.c b/drivers/hwmon/cm5162.c
+new file mode 100644
+index 000000000000..4d44a76a26ee
+--- /dev/null
++++ b/drivers/hwmon/cm5162.c
+@@ -0,0 +1,570 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++
++#include <linux/debugfs.h>
++#include <linux/delay.h>
++#include <linux/err.h>
++#include <linux/i2c.h>
++#include <linux/init.h>
++#include <linux/hwmon.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of_device.h>
++#include <linux/types.h>
++
++/**
++ * @file leo_api_internal.h
++ * @brief Definition of Internal registers.
++ */
++
++// Copy of Internal registers
++#define LEO_BOOT_STAT_FW_RUNNING 0x4
++#define LEO_BOOT_STAT_ADDR 0x8017c
++#define LEO_FW_VERSION_ADDR 0x80180
++#define LEO_FW_BUILD_ADDR 0x80184
++
++
++
++
++/* General purpose errors */
++/** Success return value, no error occured */
++#define LEO_SUCCESS 0
++/** FW not running */
++#define LEO_FW_NOT_RUNNING -9
++
++
++
++
++/**
++ * @file leo_mailbox.h
++ * @brief Definition of enums and structs used by the mailbox.
++ */
++#define AL_MM_STS_SUCCESS 0
++#define AL_MM_STS_ERROR 0x4
++
++
++
++/**Definition of enums and structs used by the mailbox.**/
++#define LEO_TOP_CSR_MUC_ADDRESS 0x80000
++#define MAILBOX_ADDR_REG_ADDRESS (LEO_TOP_CSR_MUC_ADDRESS + 0x3f4)
++#define MAILBOX_DATA_REG_ADDRESS (LEO_TOP_CSR_MUC_ADDRESS + 0x3f8)
++#define MAILBOX_CMD_REG_ADDRESS (LEO_TOP_CSR_MUC_ADDRESS + 0x438)
++#define MAILBOX_STATUS_REG_ADDRESS (LEO_TOP_CSR_MUC_ADDRESS + 0x43c)
++#define FW_API_MMB_CMD_OPCODE_MMB_CHK_DIMM_TSOD 0x23
++
++
++
++
++/* Struct defining FW version loaded on an Aries device */
++struct cm5162_fw_ver {
++	u8 major; // FW version major release value
++	u8 minor; // FW version minor release value
++	u16 build; // FW version build release value
++};
++
++
++
++/**
++ * @brief struct to hold the temperature values
++ * we use four variables to hold the whole number and decimal portions
++ * of the temperature data.
++ * for example 33.56 degrees is :
++ * ts0WholeNum = 33
++ * ts0Decimal = 56
++ * ts0WholeNum.ts0Decimal
++ */
++struct tsod_data {
++  u32 ts0_whole_num;
++  u32 ts1_whole_num;
++  u32 ts0_dec;
++  u32 ts1_dec;
++};
++
++
++/**
++ * @brief Struct defining Leo CXL device
++ */
++struct cm5162_data {
++	struct i2c_client *client;
++	struct dentry *debugfs;
++	struct cm5162_fw_ver fw_ver;
++	struct mutex lock;
++	bool init_done;
++	bool pec_enable; // Enable PEC
++	// bool code_load_okay; // indicate if code load reg value is expected
++	bool mm_heartbeat_okay; // indicate if Main Micro heartbeat is good
++	bool mm_wide_reg_valid; // MM assisted Wide Register access
++	u8 temp_cal_code_avg;
++};
++
++
++static struct dentry *cm5162_debugfs_dir;
++
++
++/*
++ * Write multiple data bytes to Aries over I2C
++ */
++static int cm5162_write_block_data(struct cm5162_data *data, u32 address,
++				    u8 len, u8 *val)
++{
++	struct i2c_client *client = data->client;
++	int ret;
++    /* ASTERA_INFO("**INFO : leoWriteBlockData\n"); */
++
++    /**
++     * @TODO: After removing padding functionality from libi2c, enable it here.
++     */
++	size_t addr_len = 3;
++	size_t xfer_len = len + addr_len + 3;
++  u8 cmd = 0;
++	u8 buf[xfer_len];
++
++    buf[0] = 0xf;
++    buf[1] = 0x8;
++    /* buf[1] = 1 + addr_len + len; */
++    buf[2] = 0x4e;
++    /* buf[2] = ((addr_len + len) << 1) | 0x40; */
++    buf[3] = (address >> 16) & 0xff;
++    buf[4] = (address >> 8) & 0xff;
++    buf[5] = (address)&0xff;
++    memcpy(&buf[6], val, len);
++    ret = i2c_smbus_write_i2c_block_data(client, cmd, xfer_len, buf);
++    return ret;
++}
++
++int cm5162_read_block_data_assemble(struct i2c_client *client, int cmdCode, uint8_t numBytes,
++                           uint8_t *buf) {
++  int32_t rc;                       
++  uint16_t i;                        
++  uint8_t buffer[8];
++  uint8_t reg;
++  //struct i2c_client *client;
++  
++  //client = (struct i2c_client*)handle;
++  buffer[0] = 0xA;
++  buffer[1] = 0x4;
++  buffer[2] = 0x6;
++  buffer[3] = (cmdCode >> 16) & 0xff;
++  buffer[4] = (cmdCode >> 8) & 0xff;
++  buffer[5] = (cmdCode)&0xff;
++  
++  
++  
++//   printf ("w addr 0x%02X ", _i2c_slave_Addr);
++  
++
++//   for (i = 0; i< 6; i++)
++//   {
++// 	  printf ("0x%02X ", buffer[i]);
++//   }
++  
++//   printf ("\r\n");
++  
++  rc = i2c_smbus_write_i2c_block_data(client, buffer[0], (6-1), &buffer[1]);
++  
++  reg = 0x09;
++  rc = i2c_smbus_read_i2c_block_data(client, reg, (4+1), &buffer[0]);
++  
++
++//   printf ("w addr 0x%02X ", _i2c_slave_Addr);
++//   printf ("0x%02X ", reg);
++  
++//   printf ("r addr 0x%02X ", _i2c_slave_Addr);
++//   for (i = 0; i< 5; i++)
++//   {
++// 	  printf ("0x%02X ", buffer[i]);
++//   }
++  
++//   printf ("\r\n");
++  
++  for (i = 0; i < 4; i++)
++  {
++  
++    buf[i] = buffer[i+1];
++  }
++  // memcpy(buf, buffer+1, 4);
++  
++  return rc;
++}
++
++/*
++ * Read multiple data bytes from Aries over I2C
++ */
++static int cm5162_read_block_data(struct cm5162_data *data, u32 address,
++				   u8 len, u8 *val)
++{
++	struct i2c_client *client = data->client;
++	int ret;
++	(void)len; // Unused when performing SMBus block read transaction
++	ret = cm5162_read_block_data_assemble(client, (int)address, len, val);
++    return ret;
++}
++
++static int cm5162_write_word_data(struct cm5162_data *data, uint32_t address,
++                              uint32_t val)
++{
++  uint8_t buf[4];
++  buf[0] = (val >> 24) & 0xff;
++  buf[1] = (val >> 16) & 0xff;
++  buf[2] = (val >> 8) & 0xff;
++  buf[3] = (val)&0xff;
++
++  return cm5162_write_block_data(data, address, 4, buf);
++}
++
++static int cm5162_read_word_data(struct cm5162_data *data, u32 address,
++				   u32 *val)
++{
++    int ret = cm5162_read_block_data(data, address, 4, (uint8_t *)val);
++    return ret;
++}
++
++uint32_t check_door_bell(struct cm5162_data *data)
++{
++  uint32_t val;
++  cm5162_read_word_data(data, MAILBOX_CMD_REG_ADDRESS, &val);
++  return ((val >> 16) & 1);
++}
++
++int wait_for_door_bell(struct cm5162_data *data)
++{
++  size_t i;
++  uint32_t door_bell = 0;
++  /* wait for door bell to be 0 */
++  for (i = 0; i < 10000; i++) {
++    door_bell = check_door_bell(data);
++    if (0 == door_bell) {
++      break;
++    }
++  }
++  if (0 != door_bell) {
++    return -1;
++  }
++  return 0;
++}
++
++static size_t send_mailbox_payload(struct cm5162_data *data, uint32_t *payload)
++{
++  size_t idx = 0;
++  size_t payload_len = 16;
++  // printPayload(payload, payloadLen);
++  for (idx = 0; idx < payload_len; idx++) {
++    /* LeoMailboxInfo_s.payloadReg.payload[idx] = payload.payload[idx]; */
++    cm5162_write_word_data(data, (MAILBOX_DATA_REG_ADDRESS + (idx << 2)),
++                     payload[idx]);
++  }
++  return idx;
++}
++
++void send_mailbox_cmd(struct cm5162_data *data, uint32_t addr, uint32_t cmd,
++                    size_t payload_len)
++{
++  cm5162_write_word_data(data, MAILBOX_ADDR_REG_ADDRESS, addr);
++  uint32_t val =
++      cmd | (payload_len << 24) | (1 << 16); // bit 16 is the doorbell
++  cm5162_write_word_data(data, MAILBOX_CMD_REG_ADDRESS, val);
++}
++
++uint32_t get_mailbox_status(struct cm5162_data *data)
++{
++  uint32_t val;
++  cm5162_read_word_data(data, MAILBOX_STATUS_REG_ADDRESS, &val);
++  return (val > 24) & 0xf;
++}
++
++static size_t get_return_data(struct cm5162_data *data, uint32_t *data_out,
++                     size_t exp_data_len)
++{
++  size_t i;
++  uint32_t read_data;
++
++  for (i = 0; i < exp_data_len; i++) {
++    cm5162_read_word_data(data, (MAILBOX_DATA_REG_ADDRESS + (i << 2)),
++                    &read_data);
++    /* ASTERA_INFO("Get return data: read data: %08x\n", read_data); */
++    data_out[i] = read_data;
++  }
++  return exp_data_len;
++}
++
++static int exec_operation(struct cm5162_data *data, uint32_t addr,
++                                uint32_t cmd, uint32_t *data_in,
++                                uint32_t *data_out, size_t exp_ret_data_len)
++{
++  size_t data_len;
++  size_t ret_len;
++  uint32_t buf[4];
++  int i;
++
++  /* ASTERA_INFO("MM: in exec_operation: wait for doorbell\n"); */
++  buf[0] = wait_for_door_bell(data);
++  if (0 != buf[0]) {
++    // ASTERA_ERROR(
++    //     "MM: exec_operation: timed out while waiting for doorbell to clear.\n");
++    return AL_MM_STS_ERROR;
++  }
++
++  if (data_in != NULL) {
++    data_len = send_mailbox_payload(data, data_in);
++  }
++  send_mailbox_cmd(data, addr, cmd, data_len);
++
++  buf[0] = wait_for_door_bell(data);
++  if (0 != buf[0]) {
++    // ASTERA_ERROR(
++    //     "MM: exec_operation: timed out while waiting for doorbell to clear.\n");
++    return AL_MM_STS_ERROR;
++  }
++
++  buf[1] = get_mailbox_status(data);
++  if (AL_MM_STS_ERROR == buf[1]) {
++    // ASTERA_ERROR("AL_MM_STS_ERROR(%d)\n", buf[1]);
++	return AL_MM_STS_ERROR;
++  }
++
++  ret_len = get_return_data(data, data_out, exp_ret_data_len);
++
++  return buf[1]; // mailbox status
++}
++
++static int cm5162_get_tsod_data(struct cm5162_data *data,
++                            struct tsod_data *tsod, uint8_t dimm_id)
++{
++  uint32_t buf_in[16];
++  uint32_t buf_out[16];
++  buf_out[0] = dimm_id;
++  exec_operation(data, 0, FW_API_MMB_CMD_OPCODE_MMB_CHK_DIMM_TSOD,
++                buf_out, buf_in, 4);
++  tsod->ts0_whole_num = buf_in[0];
++  tsod->ts0_dec = buf_in[1];
++  tsod->ts1_whole_num = buf_in[2];
++  tsod->ts1_dec = buf_in[3];
++
++  if (0 == tsod->ts0_whole_num + tsod->ts0_dec + tsod->ts1_whole_num + tsod->ts1_dec)
++  {
++    return -1;
++  }
++  return 0;
++}
++
++/*
++ * Check the status of firmware
++ */
++// static int cm5162_fwsts_check(struct cm5162_data *data)
++// {
++//   u32 read_word;
++
++//   // FIXME_FUTURE ASSERT device
++//   // FIXME_FUTURE ASSERT leoDevice->i2cDriver
++//   cm5162_read_word_data(data, LEO_BOOT_STAT_ADDR, &read_word);
++//   return (read_word > LEO_BOOT_STAT_FW_RUNNING) ? LEO_SUCCESS
++//                                                 : LEO_FW_NOT_RUNNING;
++// }
++
++// static int cm5162_fw_is_at_least(struct cm5162_data *data, u8 major, u8 minor,
++// 				  u16 build)
++// {
++// 	u32 ver = major << 24 | minor << 16 | build;
++// 	u32 curr_ver = data->fw_ver.major << 24 | data->fw_ver.minor << 16 |
++// 		       data->fw_ver.build;
++
++// 	if (curr_ver >= ver)
++// 		return true;
++
++// 	return false;
++// }
++
++static int cm5162_get_fw_version(struct cm5162_data *data)
++{
++  uint32_t read_word;
++  cm5162_read_word_data(data, LEO_FW_VERSION_ADDR, &read_word);
++  data->fw_ver.minor = read_word & 0xff;
++  data->fw_ver.major = (read_word >> 8) & 0xff;
++  cm5162_read_word_data(data, LEO_FW_BUILD_ADDR, &read_word);
++  data->fw_ver.build = read_word;
++  return LEO_SUCCESS;
++}
++
++static int cm5162_init_dev(struct cm5162_data *data)
++{
++	return cm5162_get_fw_version(data);
++}
++
++static int cm5162_read(struct device *dev, enum hwmon_sensor_types type,
++			u32 attr, int channel, long *val)
++{
++	struct tsod_data *tsod;
++	struct cm5162_data *data = dev_get_drvdata(dev);
++	int ret = 0;
++	// long adc_code = 0;
++
++	if (!data->init_done) {
++		ret = cm5162_init_dev(data);
++		if (ret) {
++			dev_err(dev, "cm5162_init_dev failed %d\n", ret);
++			return ret;
++		}
++	}
++
++	switch (attr) {
++	case hwmon_temp_input:
++		mutex_lock(&data->lock);
++		ret = cm5162_get_tsod_data(data,tsod,0);  // 0 means CM5162 value Check dimm id 0 area temperature value via i2c command
++		mutex_unlock(&data->lock);
++		break;
++	default:
++		return -EOPNOTSUPP;
++	}
++	if (ret) {
++		dev_err(dev, "Read adc_code failed %d\n", ret);
++		return ret;
++	}
++	// if (adc_code == 0 || adc_code >= 0x3ff) {
++	// 	dev_err(dev, "Invalid adc_code %lx\n", adc_code);
++	// 	return -EINVAL;
++	// }
++
++	//*val = 110000 + ((adc_code - (data->temp_cal_code_avg + 250)) * -320);
++	*val = (tsod->ts0_whole_num * 1000) + (tsod->ts0_dec * 10); // feedback CM5162 get dimm id 0 tempoerature value into sysfs
++
++	return 0;
++}
++
++static umode_t cm5162_is_visible(const void *data,
++				  enum hwmon_sensor_types type, u32 attr,
++				  int channel)
++{
++	switch (attr) {
++	case hwmon_temp_input:
++		return 0444;
++	default:
++		break;
++	}
++
++	return 0;
++}
++
++static const struct hwmon_channel_info *cm5162_info[] = {
++	HWMON_CHANNEL_INFO(temp, HWMON_T_INPUT),
++	NULL
++};
++
++static const struct hwmon_ops cm5162_hwmon_ops = {
++	.is_visible = cm5162_is_visible,
++	.read = cm5162_read,
++};
++
++static const struct hwmon_chip_info cm5162_chip_info = {
++	.ops = &cm5162_hwmon_ops,
++	.info = cm5162_info,
++};
++
++static ssize_t cm5162_debugfs_read_fw_ver(struct file *file, char __user *buf,
++					   size_t count, loff_t *ppos)
++{
++	struct cm5162_data *data = file->private_data;
++	int ret;
++	char ver[32];
++
++	mutex_lock(&data->lock);
++	ret = cm5162_get_fw_version(data);
++	mutex_unlock(&data->lock);
++	if (ret)
++		return ret;
++
++	ret = snprintf(ver, sizeof(ver), "%u.%u.%u\n", data->fw_ver.major,
++		       data->fw_ver.minor, data->fw_ver.build);
++	if (ret < 0)
++		return ret;
++
++	return simple_read_from_buffer(buf, count, ppos, ver, ret + 1);
++}
++
++static const struct file_operations cm5162_debugfs_ops_fw_ver = {
++	.read = cm5162_debugfs_read_fw_ver,
++	.open = simple_open,
++};
++
++static int cm5162_init_debugfs(struct cm5162_data *data)
++{
++	if (!cm5162_debugfs_dir)
++		return -ENOENT;
++
++	data->debugfs = debugfs_create_dir(dev_name(&data->client->dev),
++					   cm5162_debugfs_dir);
++	if (IS_ERR_OR_NULL(data->debugfs))
++		return -ENOENT;
++
++	debugfs_create_file("fw_ver", 0444, data->debugfs, data,
++			    &cm5162_debugfs_ops_fw_ver);
++
++	return 0;
++}
++
++static int cm5162_probe(struct i2c_client *client)
++{
++	struct device *dev = &client->dev;
++	struct device *hwmon_dev;
++	struct cm5162_data *data;
++
++	data = devm_kzalloc(dev, sizeof(struct cm5162_data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	data->client = client;
++	mutex_init(&data->lock);
++	cm5162_init_dev(data);
++
++	hwmon_dev = devm_hwmon_device_register_with_info(
++		dev, client->name, data, &cm5162_chip_info, NULL);
++
++	if (cm5162_init_debugfs(data))
++		dev_warn(dev, "Failed to register debugfs\n");
++
++	return PTR_ERR_OR_ZERO(hwmon_dev);
++}
++
++static const struct i2c_device_id cm5162_id[] = {
++	{ "cm5162", 0 },
++	{}
++};
++
++MODULE_DEVICE_TABLE(i2c, cm5162_id);
++
++static const struct of_device_id __maybe_unused cm5162_of_match[] = {
++	{ .compatible = "asteralabs,cm5162" },
++	{},
++};
++MODULE_DEVICE_TABLE(of, cm5162_of_match);
++
++static struct i2c_driver cm5162_driver = {
++	.class = I2C_CLASS_HWMON,
++	.driver = {
++		.name = "cm5162",
++		.of_match_table = of_match_ptr(cm5162_of_match),
++	},
++	.probe_new = cm5162_probe,
++	.id_table = cm5162_id,
++};
++
++module_i2c_driver(cm5162_driver);
++
++static int __init cm5162_core_init(void)
++{
++	cm5162_debugfs_dir = debugfs_create_dir("cm5162", NULL);
++	if (IS_ERR(cm5162_debugfs_dir))
++		cm5162_debugfs_dir = NULL;
++
++	return 0;
++}
++
++static void __exit cm5162_core_exit(void)
++{
++	debugfs_remove_recursive(cm5162_debugfs_dir);
++}
++
++module_init(cm5162_core_init);
++module_exit(cm5162_core_exit);
++
++MODULE_AUTHOR("Mike Cheng <Cheng.Mike@inventec.com>");
++MODULE_DESCRIPTION("Hwmon driver for Astera Labs LEO CXL Memory Expansion Soc");
++MODULE_LICENSE("GPL");
+\ No newline at end of file
+-- 
+2.39.2
+
