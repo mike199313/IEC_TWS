@@ -1,0 +1,88 @@
+From 8a04ffd197348f21c4b027a8a23b7611da6be2e3 Mon Sep 17 00:00:00 2001
+From: "Cheng.Mike" <Cheng.Mike@inventec.com>
+Date: Mon, 27 May 2024 07:28:46 +0000
+Subject: [PATCH 1/1] CXL Uboot MultiFuncPin Support GPIOM4 Reg Pull Hi Pwr On
+
+---
+ arch/arm/mach-aspeed/ast2600/board_common.c | 54 +++++++++++++++++++++
+ 1 file changed, 54 insertions(+)
+
+diff --git a/arch/arm/mach-aspeed/ast2600/board_common.c b/arch/arm/mach-aspeed/ast2600/board_common.c
+index 3a12723b5a..d3994f74e8 100644
+--- a/arch/arm/mach-aspeed/ast2600/board_common.c
++++ b/arch/arm/mach-aspeed/ast2600/board_common.c
+@@ -49,10 +49,27 @@ DECLARE_GLOBAL_DATA_PTR;
+ #define ENABLE_LPC			1
+ #define DISABLE_PCIE_VGA_DEVICE		1
+ #define REGISTER_NONE			-1
++
++/* GPIOM4 register Enable USB2 Power */
++#define DISABLE_GPIOM4_REG               1
++#define SCU41C                           0x41c
++#define MULTIFUNC_PIN_SCU41C             SCU_BASE + 0x41c
++#define GPIO078                          0x078
++#define GPIO07C                          0x07c
++#define GPIOMNOP_DATA_VAL_REG            GPIO_BASE + GPIO078
++#define GPIOMNOP_DIR_REG                 GPIO_BASE + GPIO07C
++#define GPIOM4_MULTFUNC_ENABLE           BIT(4) /* GPIOM4 Multi Function Pin reverse to enable GPIOM4 */
++#define GPIOM4_DATA_HIGH                 BIT(4) /* GPIOM4 Data Value BIT define */
++#define GPIOM4_DIR_OUTPUT                BIT(4) /* GPIOM4 Direction BIT define */
++
++
+ void inventec_cxl (void)
+ {
+ 	u32 HW_Strap3_Tmp = REGISTER_NONE;
+ 	HW_Strap3_Tmp = readl(HW_STRAP3_SCU51C);
++        u32 EN_USB2_PWR_MULTI_Tmp = REGISTER_NONE;
++        EN_USB2_PWR_MULTI_Tmp = readl(MULTIFUNC_PIN_SCU41C);
++
+ 
+ 	#ifdef IEC_CXL_DBG
+ 	{
+@@ -60,6 +77,43 @@ void inventec_cxl (void)
+ 	}
+ 	#endif
+ 
++	if (((EN_USB2_PWR_MULTI_Tmp & GPIOM4_MULTFUNC_ENABLE) >> 4) == DISABLE_GPIOM4_REG)
++	{
++		//It will enable GPIOM4 register.
++		EN_USB2_PWR_MULTI_Tmp = EN_USB2_PWR_MULTI_Tmp & (~GPIOM4_MULTFUNC_ENABLE);
++		writel(EN_USB2_PWR_MULTI_Tmp, MULTIFUNC_PIN_SCU41C);
++		#ifdef IEC_CXL_DBG
++		{
++			EN_USB2_PWR_MULTI_Tmp = readl(MULTIFUNC_PIN_SCU41C);
++			printf("Enable GPIOM0 multi function pin register,EN USB2 PWR SCU41C = %08x \n",EN_USB2_PWR_MULTI_Tmp);
++		}
++		#endif
++	}
++
++	//setup GPIOM4 Data Value = data high.
++	u32 EN_USB2_PWR_DATA_Tmp = REGISTER_NONE;
++	EN_USB2_PWR_DATA_Tmp = readl(GPIOMNOP_DATA_VAL_REG);
++	EN_USB2_PWR_DATA_Tmp = EN_USB2_PWR_DATA_Tmp | GPIOM4_DATA_HIGH;
++	writel(EN_USB2_PWR_DATA_Tmp, GPIOMNOP_DATA_VAL_REG);
++	#ifdef IEC_CXL_DBG
++	{
++		EN_USB2_PWR_DATA_Tmp = readl(GPIOMNOP_DATA_VAL_REG);
++		printf("Enable GPIOM0 register data value high,EN USB2 PWR GPIOM4 = %08x \n",EN_USB2_PWR_DATA_Tmp);
++	}
++	#endif
++
++	//setup GPIOM4 Direction = output.
++	u32 EN_USB2_PWR_DIR_Tmp = REGISTER_NONE;
++	EN_USB2_PWR_DIR_Tmp = readl(GPIOMNOP_DIR_REG);
++	EN_USB2_PWR_DIR_Tmp = EN_USB2_PWR_DIR_Tmp | GPIOM4_DIR_OUTPUT;
++	writel(EN_USB2_PWR_DIR_Tmp, GPIOMNOP_DIR_REG);
++	#ifdef IEC_CXL_DBG
++	{
++		EN_USB2_PWR_DIR_Tmp = readl(GPIOMNOP_DIR_REG);
++		printf("Set GPIOM4 register direction output,EN USB2 PWR GPIOM4 = %08x \n",EN_USB2_PWR_DIR_Tmp);
++	}
++	#endif
++
+ 	if (((HW_Strap3_Tmp & HBLED_REG) >> 8) == DISABLE_HBLED)
+ 	{
+ 		// Enable HBLED
+-- 
+2.39.2
+

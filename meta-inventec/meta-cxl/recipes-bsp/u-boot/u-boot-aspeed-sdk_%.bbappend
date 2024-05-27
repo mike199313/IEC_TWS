@@ -14,6 +14,7 @@ SRC_URI:append = " file://superion-ast2600.cfg \
 		   file://0101-misc-dp-Fix-dp-display-turn-black-for-a-sudden-if-BM.patch \
 		   file://0102-misc-dp-Fix-dp-display-turn-black-for-a-sudden-if-BM.patch \
 		   file://0103-misc-dp-refine-config-for-redriver.patch \
+		   file://0104-CXL-Uboot-MultiFuncPin-Support-GPIOM4-Reg-Pull-Hi-Pw.patch \
                  "
 
 do_copyfile () {
